@@ -1,0 +1,22 @@
+Data from examples in Bayesian Data Analysis
+http://www.stat.columbia.edu/~gelman/book/data/
+
+Doing Bayesian Data Analysis
+https://sites.google.com/site/doingbayesiandataanalysis/software-installation
+https://github.com/cluhmann/DBDA-python/tree/master?tab=readme-ov-file
+
+
+https://www.pymc.io/projects/docs/en/latest/learn/core_notebooks/pymc_overview.html
+
+https://www.pymc.io/projects/docs/en/stable/learn.html
+
+https://github.com/CamDavidsonPilon/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers
+
+https://bap.com.ar/
+
+Statistical Rethinking
+https://xcelab.net/rm/
+https://github.com/rmcelreath/stat_rethinking_2024
+https://github.com/dustinstansbury/statistical-rethinking-2023
+https://github.com/pymc-devs/pymc-resources/tree/main/Rethinking_2
+https://www.youtube.com/watch?v=FdnMWdICdRs&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus
