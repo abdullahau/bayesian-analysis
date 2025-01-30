@@ -57,5 +57,6 @@ import warnings  # noqa: E402
 warnings.filterwarnings("ignore")
 
 from matplotlib import style  # noqa: E402
+from cycler import cycler # noqa: E402
 STYLE = "statistical-rethinking-2023.mplstyle"
 style.use(STYLE)
