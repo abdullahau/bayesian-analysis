@@ -5,6 +5,7 @@ import pymc as pm
 import xarray as xr
 import arviz as az
 import utils as utils
+import seaborn as sns
 
 from scipy import stats as stats
 from matplotlib import pyplot as plt
@@ -12,7 +13,7 @@ from matplotlib import pyplot as plt
 
 # ---
 
-__all__ = ['pd', 'np', 'smf', 'pm', 'xr', 'az', 'utils', 'stats', 'plt']
+__all__ = ['pd', 'np', 'smf', 'pm', 'xr', 'az', 'utils', 'sns', 'stats', 'plt']
 
 # Print imports / aliases
 with open(__file__) as f:
