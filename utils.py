@@ -389,3 +389,46 @@ def simulate_2_parameter_bayesian_learning_grid_approximation(
 
     plt.title(f"N={len(y_obs)}")
     plt.legend(loc="upper left")
+
+# R's bandwidth: Bandwidth Selectors for Kernel Density Estimation
+# https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/bandwidth
+# Other Bandwidth selections include: bw.nrd, bw.ucv, bw.bcv, and bw.SJ
+
+def bw_nrd0(x):
+    '''
+    Implementation of R's rule-of-thumb for choosing the bandwidth of a Gaussian 
+    kernel density estimator. It defaults to 0.9 times the minimum of the standard 
+    deviation and the interquartile range divided by 1.34 times the sample size to 
+    the negative one-fifth power (= Silverman's ‘rule of thumb’, Silverman (1986, 
+    page 48, eqn (3.31))) unless the quartiles coincide when a positive result 
+    will be guaranteed.
+    '''
+    if len(x) < 2:
+        raise(Exception("need at least 2 data points"))
+
+    hi = np.std(x, ddof=1)
+    q75, q25 = np.percentile(x, [75 ,25])
+    iqr = q75 - q25
+    lo = min(hi, iqr/1.34)
+    
+    lo = lo or hi or abs(x[0]) or 1
+
+    # if not lo:
+    #     if hi:
+    #         lo = hi
+    #     elif abs(x[0]):
+    #         lo = abs(x[0])
+    #     else:
+    #         lo = 1
+
+    return 0.9 * lo *len(x)**-0.2
+
+
+# bw.nrd is the more common variation given by Scott (1992), using factor 1.06.
+
+# bw.ucv and bw.bcv implement unbiased and biased cross-validation respectively.
+
+# bw.SJ implements the methods of Sheather & Jones (1991) to select the bandwidth 
+# using pilot estimation of derivatives. The algorithm for method "ste" solves an equation 
+# (via uniroot) and because of that, enlarges the interval c(lower, upper) when the boundaries
+# were not user-specified and do not bracket the root.
