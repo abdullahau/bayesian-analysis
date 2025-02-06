@@ -1,4 +1,4 @@
-figure.figsize: 7.2, 4.8
+figure.figsize: 5, 4
 figure.dpi: 100.0
 figure.facecolor: white
 figure.constrained_layout.use: True
@@ -21,11 +21,13 @@ xtick.labelsize: 8
 ytick.labelsize: 8
 legend.fontsize: 8
 
+lines.linewidth: 0.75
+
 axes.grid: False
 axes.facecolor: white
 axes.edgecolor: black
-axes.spines.right: False
-axes.spines.top: False
+axes.spines.right: True
+axes.spines.top: True
 image.cmap: viridis
 xtick.major.size: 3
 ytick.major.size: 3

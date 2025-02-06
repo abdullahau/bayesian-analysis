@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import numpy as np
 import pymc as pm
@@ -7,18 +6,6 @@ import graphviz as gr
 import networkx as nx
 import xarray as xr
 from matplotlib import pyplot as plt
-from pathlib import Path
-from typing import List, Union, Callable
-
-HERE = Path(".")
-
-
-def load_data(dataset, delimiter=";"):
-    fname = f"{dataset}.csv"
-    data_path = HERE / "data"
-    data_file = data_path / fname
-    return pd.read_csv(data_file, sep=delimiter)
-
 
 def crosstab(x: np.array, y: np.array, labels: list[str] = None):
     """Simple cross tabulation of two discrete vectors x and y"""
@@ -67,76 +54,6 @@ def draw_causal_graph(
     return g
 
 
-def plot_scatter(xs, ys, **scatter_kwargs):
-    """Draw scatter plot with consistent style (e.g. unfilled points)"""
-    defaults = {"alpha": 0.6, "lw": 3, "s": 80, "color": "C0", "facecolors": "none"}
-
-    for k, v in defaults.items():
-        val = scatter_kwargs.get(k, v)
-        scatter_kwargs[k] = val
-
-    plt.scatter(xs, ys, **scatter_kwargs)
-
-
-def plot_line(xs, ys, **plot_kwargs):
-    """Plot line with consistent style (e.g. bordered lines)"""
-    linewidth = plot_kwargs.get("linewidth", 3)
-    plot_kwargs["linewidth"] = linewidth
-
-    # Copy settings for background
-    background_plot_kwargs = {k: v for k, v in plot_kwargs.items()}
-    background_plot_kwargs["linewidth"] = linewidth + 2
-    background_plot_kwargs["color"] = "white"
-    del background_plot_kwargs["label"]  # no legend label for background
-
-    plt.plot(xs, ys, **background_plot_kwargs, zorder=30)
-    plt.plot(xs, ys, **plot_kwargs, zorder=31)
-
-
-def plot_errorbar(
-    xs, ys, error_lower, error_upper, colors="C0", error_width=12, alpha=0.3
-):
-    if isinstance(colors, str):
-        colors = [colors] * len(xs)
-
-    """Draw thick error bars with consistent style"""
-    for ii, (x, y, err_l, err_u) in enumerate(zip(xs, ys, error_lower, error_upper)):
-        marker, _, bar = plt.errorbar(
-            x=x,
-            y=y,
-            yerr=np.array((err_l, err_u))[:, None],
-            ls="none",
-            color=colors[ii],
-            zorder=1,
-        )
-        plt.setp(bar[0], capstyle="round")
-        marker.set_fillstyle("none")
-        bar[0].set_alpha(alpha)
-        bar[0].set_linewidth(error_width)
-
-
-def plot_x_errorbar(
-    xs, ys, error_lower, error_upper, colors="C0", error_width=12, alpha=0.3
-):
-    if isinstance(colors, str):
-        colors = [colors] * len(xs)
-
-    """Draw thick error bars with consistent style"""
-    for ii, (x, y, err_l, err_u) in enumerate(zip(xs, ys, error_lower, error_upper)):
-        marker, _, bar = plt.errorbar(
-            x=x,
-            y=y,
-            xerr=np.array((err_l, err_u))[:, None],
-            ls="none",
-            color=colors[ii],
-            zorder=1,
-        )
-        plt.setp(bar[0], capstyle="round")
-        marker.set_fillstyle("none")
-        bar[0].set_alpha(alpha)
-        bar[0].set_linewidth(error_width)
-
-
 def plot_graph(graph, **graph_kwargs):
     """Draw a network graph.
 
@@ -175,52 +92,6 @@ def plot_graph(graph, **graph_kwargs):
     return graph_kwargs["pos"]
 
 
-def plot_2d_function(xrange, yrange, func, ax=None, **countour_kwargs):
-    """Evaluate the function `func` over the values of xrange and yrange and
-    plot the resulting value contour over that range.
-
-    Parameters
-    ----------
-    xrange : np.ndarray
-        The horizontal values to evaluate/plot
-    yrange : p.ndarray
-        The horizontal values to evaluate/plot
-    func : Callable
-        function of two arguments, xs and ys. Should return a single value at
-        each point.
-    ax : matplotlib.Axis, optional
-        An optional axis to plot the function, by default None
-
-    Returns
-    -------
-    contour : matplotlib.contour.QuadContourSet
-    """
-    resolution = len(xrange)
-    xs, ys = np.meshgrid(xrange, yrange)
-    xs = xs.ravel()
-    ys = ys.ravel()
-
-    value = func(xs, ys)
-
-    if ax is not None:
-        plt.sca(ax)
-
-    return plt.contour(
-        xs.reshape(resolution, resolution),
-        ys.reshape(resolution, resolution),
-        value.reshape(resolution, resolution),
-        **countour_kwargs,
-    )
-
-
-def create_variables_dataframe(*variables: List[np.ndarray]) -> pd.DataFrame:
-    """Converts a list of numpy arrays to a dataframe; infers column names from
-    variable names
-    """
-    column_names = [get_variable_name(v) for v in variables]
-    return pd.DataFrame(np.vstack(variables).T, columns=column_names)
-
-
 def plot_pymc_distribution(distribution: pm.Distribution, **distribution_params):
     """Plot a PyMC Distribution with specific distrubution parameters
 
@@ -240,25 +111,6 @@ def plot_pymc_distribution(distribution: pm.Distribution, **distribution_params)
         d = distribution(name=distribution.__name__, **distribution_params)
         draws = pm.draw(d, draws=10_000)
     return az.plot_dist(draws)
-
-
-def savefig(filename):
-    """Save a figure to the `./images` directory"""
-    image_path = HERE / "images"
-    if not image_path.exists():
-        print(f"creating image directory: {image_path}")
-        os.makedirs(image_path)
-
-    figure_path = image_path / filename
-    print(f"saving figure to {figure_path}")
-    plt.savefig(figure_path, dpi=300, bbox_inches="tight")
-
-
-def display_image(filename, width=600):
-    """Display an image saved to the `./images` directory"""
-    from IPython.display import Image, display
-
-    return display(Image(filename=f"images/{filename}", width=width))
 
 
 def simulate_2_parameter_bayesian_learning_grid_approximation(
