@@ -5,6 +5,7 @@ import pymc as pm
 import arviz as az
 import graphviz as gr
 import networkx as nx
+import xarray as xr
 from matplotlib import pyplot as plt
 from pathlib import Path
 from typing import List, Union, Callable
@@ -436,9 +437,6 @@ def bw_nrd0(x):
 def precis(samples, var_names=None):
     return az.summary(samples, kind="stats", hdi_prob=0.89, var_names=var_names).round(2)
 
-
-import numpy as np
-import pymc as pm
 from pymc.step_methods.arraystep import ArrayStep
 from pymc.util import get_value_vars_from_user_vars
 
@@ -486,3 +484,38 @@ class QuadraticApproximation(ArrayStep):
     def astep(self, q0, logp):
         sample = np.random.multivariate_normal(self.mode, self.covariance)
         return sample, []
+    
+def vcov(custom_step):
+    '''Returns Variance-Covariance matrix of the parameters
+    Input:
+            custom_step: pymc.step_methods.arraystep
+    '''
+    return custom_step.covariance
+
+def cov2cor(c: np.ndarray) -> np.ndarray:
+    """
+    Return a correlation matrix given a covariance matrix.
+    : c = covariance matrix
+    """
+    D = np.zeros(c.shape)
+    np.fill_diagonal(D, np.sqrt(np.diag(c)))
+    invD = np.linalg.inv(D)
+    return invD @ c @ invD
+
+# See https://python.arviz.org/en/stable/getting_started/CreatingInferenceData.html#from-dataframe
+def convert_to_inference_data(df):
+    df["chain"] = 1
+    df["draw"] = np.arange(len(df), dtype=int)
+    df = df.set_index(["chain", "draw"])
+    xdata = xr.Dataset.from_dataframe(df)
+    idata = az.InferenceData(posterior=xdata)
+    return idata
+
+
+# Add the `to_inference_data()` method to the DataFrame class
+pd.DataFrame.convert_to_inference_data = convert_to_inference_data
+
+def extract_samples(custom_step, size=10000):
+    samples = np.random.multivariate_normal(mean=custom_step.mode, cov=custom_step.covariance, size=size)
+    df = pd.DataFrame({"mu": samples[:, 0], "sigma": samples[:, 1]})
+    return df.convert_to_inference_data()
