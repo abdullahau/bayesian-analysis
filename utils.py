@@ -363,7 +363,6 @@ def convert_to_inference_data(df):
     idata = az.InferenceData(posterior=xdata)
     return idata
 
-
 # Add the `to_inference_data()` method to the DataFrame class
 pd.DataFrame.convert_to_inference_data = convert_to_inference_data
 
