@@ -1,0 +1,14 @@
+pymc
+arviz
+matplotlib
+numpy
+scipy
+pandas
+xarray
+patsy
+graphviz
+statsmodels
+seaborn
+watermark
+colorama
+networkx
