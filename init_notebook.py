@@ -8,12 +8,13 @@ import utils as utils
 
 from scipy import stats as stats
 from matplotlib import pyplot as plt
+from causalgraphicalmodels import CausalGraphicalModel as CausalGraphicalModel
 import seaborn as sns
 import daft as daft
 
 # ---
 
-__all__ = ['pd', 'np', 'smf', 'pm', 'xr', 'az', 'utils', 'stats', 'plt', 'sns', 'daft']
+__all__ = ['pd', 'np', 'smf', 'pm', 'xr', 'az', 'utils', 'stats', 'plt', 'sns', 'CausalGraphicalModel', 'daft']
 
 # Print imports / aliases
 with open(__file__) as f:
