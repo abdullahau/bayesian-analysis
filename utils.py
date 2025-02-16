@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 import pymc as pm
 import arviz as az
-import graphviz as gr
-import networkx as nx
-import xarray as xr
 from matplotlib import pyplot as plt
 
 def crosstab(x: np.array, y: np.array, labels: list[str] = None):
@@ -35,82 +32,6 @@ def logit(p: float) -> float:
 
 def invlogit(x: float) -> float:
     return 1 / (1 + np.exp(-x))
-
-
-def draw_causal_graph(
-    edge_list, node_props=None, edge_props=None, graph_direction="UD"
-):
-    """Utility to draw a causal (directed) graph"""
-    g = gr.Digraph(graph_attr={"rankdir": graph_direction})
-
-    edge_props = {} if edge_props is None else edge_props
-    for e in edge_list:
-        props = edge_props[e] if e in edge_props else {}
-        g.edge(e[0], e[1], **props)
-
-    if node_props is not None:
-        for name, props in node_props.items():
-            g.node(name=name, **props)
-    return g
-
-
-def plot_graph(graph, **graph_kwargs):
-    """Draw a network graph.
-
-    graph: Union[networkx.DiGraph, np.ndarray]
-        if ndarray, assume `graph` is an adjacency matrix defining
-        a directed graph.
-
-    """
-    # convert to networkx.DiGraph, if needed
-    G = (
-        nx.from_numpy_array(graph, create_using=nx.DiGraph)
-        if isinstance(graph, np.ndarray)
-        else graph
-    )
-
-    # Set default styling
-    np.random.seed(123)  # for consistent spring-layout
-    if "layout" in graph_kwargs:
-        graph_kwargs["pos"] = graph_kwargs["layout"](G)
-
-    default_graph_kwargs = {
-        "node_color": "C0",
-        "node_size": 500,
-        "arrowsize": 30,
-        "width": 3,
-        "alpha": 0.7,
-        "connectionstyle": "arc3,rad=0.1",
-        "pos": nx.kamada_kawai_layout(G),
-    }
-    for k, v in default_graph_kwargs.items():
-        if k not in graph_kwargs:
-            graph_kwargs[k] = v
-
-    nx.draw(G, **graph_kwargs)
-    # return the node layout for consistent graphing
-    return graph_kwargs["pos"]
-
-
-def plot_pymc_distribution(distribution: pm.Distribution, **distribution_params):
-    """Plot a PyMC Distribution with specific distrubution parameters
-
-    Parameters
-    ----------
-    distribution : pymc.Distribution
-        The class of distribution to
-    **distribution_params : dict
-        Distribution-specific parameters.
-
-    Returns
-    -------
-    ax : matplotlib.Axes
-        The axes object associated with the plot.
-    """
-    with pm.Model() as _:
-        d = distribution(name=distribution.__name__, **distribution_params)
-        draws = pm.draw(d, draws=10_000)
-    return az.plot_dist(draws)
 
 
 def simulate_2_parameter_bayesian_learning_grid_approximation(
@@ -355,18 +276,18 @@ def cov2cor(c: np.ndarray) -> np.ndarray:
     return invD @ c @ invD
 
 # See https://python.arviz.org/en/stable/getting_started/CreatingInferenceData.html#from-dataframe
-def convert_to_inference_data(df):
-    df["chain"] = 1
-    df["draw"] = np.arange(len(df), dtype=int)
-    df = df.set_index(["chain", "draw"])
-    xdata = xr.Dataset.from_dataframe(df)
-    idata = az.InferenceData(posterior=xdata)
-    return idata
+# def convert_to_inference_data(df):
+#     df["chain"] = 1
+#     df["draw"] = np.arange(len(df), dtype=int)
+#     df = df.set_index(["chain", "draw"])
+#     xdata = xr.Dataset.from_dataframe(df)
+#     idata = az.InferenceData(posterior=xdata)
+#     return idata
 
-# Add the `to_inference_data()` method to the DataFrame class
-pd.DataFrame.convert_to_inference_data = convert_to_inference_data
+# # Add the `to_inference_data()` method to the DataFrame class
+# pd.DataFrame.convert_to_inference_data = convert_to_inference_data
 
-def extract_samples(custom_step, size=10000):
-    samples = np.random.multivariate_normal(mean=custom_step.mode, cov=custom_step.covariance, size=size)
-    df = pd.DataFrame({"mu": samples[:, 0], "sigma": samples[:, 1]})
-    return df.convert_to_inference_data()
+# def extract_samples(custom_step, size=10000):
+#     samples = np.random.multivariate_normal(mean=custom_step.mode, cov=custom_step.covariance, size=size)
+#     df = pd.DataFrame({"mu": samples[:, 0], "sigma": samples[:, 1]})
+#     return df.convert_to_inference_data()
