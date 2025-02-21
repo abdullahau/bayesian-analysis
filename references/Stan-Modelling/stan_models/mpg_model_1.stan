@@ -1,8 +1,8 @@
 
 data {              
     int N;                      // Number of observations (rows of data)
-    vector[N] mpg;              // Variable called mpg as a vector of length n
-    vector[N] engine;            // Variable called weight as a vector of length n
+    vector[N] mpg;              // Variable called mpg as a vector of length N
+    vector[N] engine;           // Variable called engine as a vector of length N
 }
 parameters {        
   real alpha;                   // This will be our intercept
