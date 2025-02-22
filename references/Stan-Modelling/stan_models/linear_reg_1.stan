@@ -41,4 +41,3 @@ model {
 generated quantities {
   // Here you can calculate things like log-likelihood, replication data, etc.
 }
-

@@ -16,9 +16,16 @@ parameters {
 model {
     //linear predictor mu
     vector[N] mu;
-
+    
     //write the linear equation
-    mu = alpha + beta_w * weight_c + beta_c * cylinders_c + beta_h * hp_c;
+    mu = alpha + beta_w * weight_c + beta_c * cylinders_c + beta_h * hp_c;    
+    
+    //prior expectations
+    alpha ~ normal(20, 5);
+    beta_w ~ normal(-10, 5);
+    beta_c ~ normal(0, 5); 
+    beta_h ~ normal(0, 5);
+    sigma ~ uniform(0, 10);    
 
     //likelihood function
     mpg ~ normal(mu, sigma);

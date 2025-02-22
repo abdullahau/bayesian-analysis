@@ -22,4 +22,3 @@ model {
   // Likelihood function
   mpg ~ normal(mu, sigma);
 }
-
