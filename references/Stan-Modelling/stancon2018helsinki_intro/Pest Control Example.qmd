@@ -1,9 +1,11 @@
 ---
-title: StanCon 2018 Helsinki Intro Workshop
+title: "StanCon 2018 Helsinki Intro Workshop - Pest Control Example"
+author: "Abdullah Mahmood"
+format: html
+editor: source
 jupyter: main
+ipynb-shell-interactivity: all
 ---
-
-
 
 ### Setup
 
@@ -21,7 +23,6 @@ from cmdstanpy import CmdStanModel
 from matplotlib import style 
 style.use('../../../PlottingStyle.mplstyle')
 
-%config InlineBackend.figure_formats = ['svg']
 ```
 
 ```{python}
@@ -34,19 +35,6 @@ def StanModel(stan_file: str, stan_code: str) -> CmdStanModel:
         return CmdStanModel(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
     
     return CmdStanModel(stan_file=stan_src, exe_file=stan_file)
-
-def bw_nrd0(x):
-    if len(x) < 2:
-        raise(Exception("need at least 2 data points"))
-
-    hi = np.std(x, ddof=1)
-    q75, q25 = np.percentile(x, [75 ,25])
-    iqr = q75 - q25
-    lo = min(hi, iqr/1.34)
-    
-    lo = lo or hi or abs(x[0]) or 1
-
-    return 0.9 * lo *len(x)**-0.2
 ```
 
 ## The Problem
@@ -59,16 +47,14 @@ One alternative to this problem is to deploy long term bait stations. In this al
 
 ### The Goal
 
-The manager wishes to employ your services to help them to find the optimal number of roach bait stations they should place in each of their buildings in order to minimize the number of cockroach complaints while also keeping expenditure on pest control affordable. 
+The manager wishes to employ your services to help them to find the optimal number of roach bait stations they should place in each of their buildings in order to minimize the number of cockroach complaints while also keeping expenditure on pest control affordable.
 
-A subset of the company's buildings have been randomly selected for an experiment: 
-- At the beginning of each month, a pest inspector randomly places a number of bait stations throughout the building, without knowledge of the current cockroach levels in the building
-- At the end of the month, the manager records the total number of cockroach complaints in that building. 
-- The manager would like to determine the optimal number of traps ($\textrm{traps}$) that balances the lost revenue ($R$) that complaints ($\textrm{complaints}$) generate with the all-in cost of maintaining the traps ($\textrm{TC}$). 
+A subset of the company's buildings have been randomly selected for an experiment: - At the beginning of each month, a pest inspector randomly places a number of bait stations throughout the building, without knowledge of the current cockroach levels in the building - At the end of the month, the manager records the total number of cockroach complaints in that building. - The manager would like to determine the optimal number of traps ($\textrm{traps}$) that balances the lost revenue ($R$) that complaints ($\textrm{complaints}$) generate with the all-in cost of maintaining the traps ($\textrm{TC}$).
 
 Fortunately, Bayesian data analysis provides a coherent framework for us to tackle this problem.
 
-Formally, we are interested in finding:
+Formally, we are interested in finding: 
+
 $$
 \arg\max_{\textrm{traps} \in \mathbb{N}} \mathbb{E}_{\text{complaints}}[R(\textrm{complaints}(\textrm{traps})) - \textrm{TC}(\textrm{traps})]
 $$
@@ -86,18 +72,18 @@ pest_data = pd.read_csv('data/pest_data.csv', sep=',', header=0, parse_dates=['d
 pest_data.head()
 ```
 
-We have access to the following fields: 
+We have access to the following fields:
 
-* `complaints`: Number of complaints per building per month
-* `building_id`: The unique building identifier
-* `traps`: The number of traps used per month per building
-* `date`: The date at which the number of complaints are recorded
-* `live_in_super`: An indicator for whether the building as a live-in super
-* `age_of_building`: The age of the building
-* `total_sq_foot`: The total square footage of the building
-* `average_tenant_age`: The average age of the tenants per building
-* `monthly_average_rent`: The average monthly rent per building
-* `floors`: The number of floors per building
+-   `complaints`: Number of complaints per building per month
+-   `building_id`: The unique building identifier
+-   `traps`: The number of traps used per month per building
+-   `date`: The date at which the number of complaints are recorded
+-   `live_in_super`: An indicator for whether the building as a live-in super
+-   `age_of_building`: The age of the building
+-   `total_sq_foot`: The total square footage of the building
+-   `average_tenant_age`: The average age of the tenants per building
+-   `monthly_average_rent`: The average monthly rent per building
+-   `floors`: The number of floors per building
 
 First, let's see how many buildings we have data for:
 
@@ -106,18 +92,23 @@ N_buildings = len(pest_data.building_id.unique())
 N_buildings
 ```
 
-And make some plots of the raw data: 
+And make some plots of the raw data:
 
 ```{python}
-sns.histplot(pest_data.complaints, discrete=True);
+plt.clf()
+sns.histplot(pest_data.complaints, discrete=True)
+plt.show()
 ```
 
 ```{python}
-sns.stripplot(data=pest_data, x='traps', y='complaints', hue='live_in_super', jitter=True);
+plt.clf()
+sns.stripplot(data=pest_data, x='traps', y='complaints', hue='live_in_super', jitter=True)
+plt.show()
 ```
 
 ```{python}
 import matplotlib.dates as mdates
+plt.clf()
 
 g = sns.FacetGrid(data=pest_data, col='building_id', hue='live_in_super', col_wrap=2, height=2, sharex=False)
 g.map_dataframe(sns.lineplot, 'date', 'traps', linestyle='dashed', color='k', label='Number of Traps')
@@ -132,17 +123,19 @@ line_labels = [
     plt.Line2D([0], [0], marker='o', color='k', label="Number of Complaints", linestyle='solid')
 ]
 g.add_legend(handles=line_labels, title='Legend', loc='upper right')   
+
+plt.show()
 ```
 
 The first question we'll look at is just whether the number of complaints per building per month is associated with the number of bait stations per building per month, ignoring the temporal and across-building variation (we'll come back to those sources of variation later in the document). That requires only two variables, $\textrm{complaints}$ and $\textrm{traps}$. How should we model the number of complaints?
 
 ## Bayesian Workflow
 
-- Exploratory data analysis
-- Prior predictive checking
-- Model fitting and algorithm diagnostics
-- Posterior predictive checking
-- Model comparison (e.g., via cross-validation)
+-   Exploratory data analysis
+-   Prior predictive checking
+-   Model fitting and algorithm diagnostics
+-   Posterior predictive checking
+-   Model comparison (e.g., via cross-validation)
 
 ## Modeling count data: Poisson distribution
 
@@ -162,7 +155,7 @@ $$
 \end{align*}
 $$
 
-Let's encode this probability model in a Stan program. 
+Let's encode this probability model in a Stan program.
 
 ### Writing our first Stan model
 
@@ -237,7 +230,7 @@ generated quantities {
 '''
 ```
 
-Here we will do the *compilation* and *fitting* in two stages to demonstrate what is happening under the hood. 
+Here we will do the *compilation* and *fitting* in two stages to demonstrate what is happening under the hood.
 
 First we will compile the Stan program (`simple_poisson_regression_dgp.stan`) that will generate the fake data.
 
@@ -275,8 +268,7 @@ stan_dat_fake = {
 Now that we have the simulated data we fit the model to see if we can recover the `alpha` and `beta` parameters used in the simulation.
 
 ```{python}
-fit_model_P = simple_poisson_regression_model.sample(data=stan_dat_fake,
-                                                     show_progress=False)
+fit_model_P = simple_poisson_regression_model.sample(data=stan_dat_fake, show_progress=False)
 posterior_alpha_beta = az.extract(az.from_cmdstanpy(fit_model_P), 'posterior', var_names=['alpha', 'beta']).to_dataframe()[['alpha', 'beta']]
 ```
 
@@ -286,34 +278,38 @@ posterior_alpha_beta = az.extract(az.from_cmdstanpy(fit_model_P), 'posterior', v
 true_alpha = samps_dgp.posterior.alpha.sel(chain=0, draw=0).to_numpy()
 true_beta = samps_dgp.posterior.beta.sel(chain=0, draw=0).to_numpy()
 
+plt.clf()
 _, ax = plt.subplots(1,2, figsize=(8,4))
 sns.histplot(posterior_alpha_beta, x='alpha', bins=30, ax=ax[0])
 ax[0].axvline(true_alpha, color='r', linewidth=2)
 sns.histplot(posterior_alpha_beta, x='beta', bins=30, ax=ax[1])
-ax[1].axvline(true_beta, color='r', linewidth=2);
+ax[1].axvline(true_beta, color='r', linewidth=2)
+plt.show()
 ```
 
-We don't do a great job recovering the parameters here simply because we're simulating so few observations that the posterior uncertainty remains rather large, but it looks at least _plausible_ ($\alpha$ and $\beta$ are contained within the histograms). If we did the simulation with many more observations the parameters would be estimated much more precisely.
+We don't do a great job recovering the parameters here simply because we're simulating so few observations that the posterior uncertainty remains rather large, but it looks at least *plausible* ($\alpha$ and $\beta$ are contained within the histograms). If we did the simulation with many more observations the parameters would be estimated much more precisely.
 
 We should also check if the `y_rep` datasets (in-sample predictions) that we coded in the `generated quantities` block are similar to the `y` (complaints) values we conditioned on when fitting the model.
 
-Here is a plot of the density estimate of the observed data compared to 200 of the `y_rep` datasets: 
+Here is a plot of the density estimate of the observed data compared to 200 of the `y_rep` datasets:
 
 ```{python}
 y_rep = az.from_cmdstanpy(fit_model_P).posterior.y_rep
 
+plt.clf()
 for i in range(200):
     sns.kdeplot(y_rep.sel(chain=slice(0,4), draw=i).to_dataframe(), x='y_rep', color='k', alpha=0.2)
 sns.kdeplot(stan_dat_fake['complaints'], color='r', linewidth=2)
-plt.xlim(0,12);
+plt.xlim(0,12)
+plt.show()
 ```
 
 In the plot above we have the kernel density estimate of the observed data ($y$, thicker curve) and 200 simulated data sets ($y_{rep}$, thin curves) from the posterior predictive distribution. If the model fits the data well, as it does here, there is little difference between the observed dataset and the simulated datasets.
 
-Another plot we can make for count data is a rootogram. This is a plot of the expected counts (continuous line) vs the observed counts (blue histogram). We
-can see the model fits well because the observed histogram matches the expected counts relatively well.
+Another plot we can make for count data is a rootogram. This is a plot of the expected counts (continuous line) vs the observed counts (blue histogram). We can see the model fits well because the observed histogram matches the expected counts relatively well.
 
 ```{python}
+plt.clf()
 fig, ax = plt.subplots()
 vals, counts = np.unique(y_rep.to_dataframe()['y_rep'].to_numpy(), return_counts=True)
 hist_range = (min(vals), max(vals))
@@ -326,10 +322,11 @@ secax.plot(vals, counts, color='red', linestyle='dashed', marker='o')
 ax.set_xlim(hist_range[0]-0.5, hist_range[1]+0.5)
 
 secax.set_yticklabels([])
-secax.yaxis.set_ticks([]);
+secax.yaxis.set_ticks([])
+plt.show()
 ```
 
-### Fit with real data 
+### Fit with real data
 
 To fit the model to the actual observed data we'll first create a dictionary to pass to Stan using the variables in the `pest_data` data frame:
 
@@ -349,16 +346,17 @@ summary = fit_P_real_data.summary(percentiles=(2.5, 25, 50, 75, 97.5))
 summary[~summary.index.str.contains('y_rep')]
 ```
 
-We can also plot the posterior distributions: 
+We can also plot the posterior distributions:
 
 ```{python}
 import matplotlib.ticker as mticker
-
+plt.clf()
 _, ax = plt.subplots(1,2, figsize=(8,4))
 az.plot_dist(az_fit_P_real_data.posterior.alpha, kind='hist', ax=ax[0])
 az.plot_dist(az_fit_P_real_data.posterior.beta, kind='hist', ax=ax[1])
 for a in ax:
     a.xaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
+plt.show()
 ```
 
 As we expected, it appears the number of bait stations set in a building is associated with the number of complaints about cockroaches that were made in the following month. However, we still need to consider how well the model fits.
@@ -368,10 +366,12 @@ As we expected, it appears the number of bait stations set in a building is asso
 ```{python}
 y_rep = az_fit_P_real_data.posterior_predictive.y_rep
 
+plt.clf()
 for i in range(200):
     sns.kdeplot(y_rep.sel(chain=slice(0), draw=i).to_dataframe(), x='y_rep', color='k', alpha=0.2)
 sns.kdeplot(stan_dat_simple['complaints'], color='r', linewidth=2)
-plt.xlim(0,25);
+plt.xlim(0,25)
+plt.show()
 ```
 
 As opposed to when we fit the model to simulated data above, here the simulated datasets is not as dispersed as the observed data and don't seem to capture the rate of zeros in the observed data. The Poisson model may not be sufficient for this data.
@@ -379,23 +379,28 @@ As opposed to when we fit the model to simulated data above, here the simulated 
 Let's explore this further by looking directly at the proportion of zeros in the real data and predicted data.
 
 ```{python}
+plt.clf()
 _, ax = plt.subplots()
 sns.histplot(np.mean(y_rep == 0, axis=2).to_numpy().flatten(), bins=20, ax=ax)
-ax.axvline(np.mean(stan_dat_simple['complaints'] == 0), linewidth=2, color='r');
+ax.axvline(np.mean(stan_dat_simple['complaints'] == 0), linewidth=2, color='r')
+plt.show()
 ```
 
 The plot above shows the observed proportion of zeros (thick vertical line) and a histogram of the proportion of zeros in each of the simulated data sets. It is clear that the model does not capture this feature of the data well at all.
 
-This next plot is a plot of the standardised residuals of the observed vs predicted number of complaints. 
+This next plot is a plot of the standardised residuals of the observed vs predicted number of complaints.
 
 ```{python}
 mean_y_rep = y_rep.mean(dim=['chain', 'draw'])
 std_resid = (stan_dat_simple['complaints'] - mean_y_rep) / np.sqrt(mean_y_rep)
+
+plt.clf()
 plt.plot(mean_y_rep, std_resid, 'o', alpha=0.5)
 plt.axhline(2, linestyle='--')
 plt.axhline(-2, linestyle='--')
 plt.xlabel('mean_y_rep')
-plt.ylabel('std_resid');
+plt.ylabel('std_resid')
+plt.show()
 ```
 
 As you can see here, it looks as though we have more positive residuals than negative, which indicates that the model tends to underestimate the number of complaints that will be received.
@@ -403,6 +408,7 @@ As you can see here, it looks as though we have more positive residuals than neg
 Below another useful plot to compare the observed vs expected number of complaints. This is a plot of the expected counts (continuous line) vs the observed counts (black histogram):
 
 ```{python}
+plt.clf()
 fig, ax = plt.subplots()
 vals, counts = np.unique(y_rep, return_counts=True)
 hist_range = (min(vals), max(vals))
@@ -415,7 +421,8 @@ secax.plot(vals, counts, color='red', linestyle='dashed', marker='o')
 ax.set_xlim(hist_range[0]-0.5, hist_range[1]+0.5)
 
 secax.set_yticklabels([])
-secax.yaxis.set_ticks([]);
+secax.yaxis.set_ticks([])
+plt.show()
 ```
 
 If the model was fitting well these would be relatively similar, however in this figure we can see the number of complaints is underestimated if there are few complaints, over-estimated for medium numbers of complaints, and underestimated if there are a large number of complaints.
@@ -425,6 +432,7 @@ We can also view how the predicted number of complaints varies with the number o
 ```{python}
 from collections import defaultdict
 
+plt.clf()
 _, ax = plt.subplots()
 
 ax.plot(stan_dat_simple['traps'], stan_dat_simple['complaints'], 'o', fillstyle='none')
@@ -441,6 +449,8 @@ for traps_x, complaints_y in grouped_array.items():
     ax.plot(np.full(inner_prob.shape, traps_x), inner_prob, 'k', linewidth=2)
     ax.plot(np.full(outer_prob.shape, traps_x), outer_prob, 'k', linewidth=0.5)
     ax.plot(traps_x, np.mean(complaints_y), 'ko')
+
+plt.show()
 ```
 
 Specifically, the model doesn't capture the tails of the observed data very well.
