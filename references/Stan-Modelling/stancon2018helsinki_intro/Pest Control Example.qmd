@@ -5,6 +5,9 @@ format: html
 editor: source
 jupyter: main
 ipynb-shell-interactivity: all
+execute:
+  echo: false
+  warning: true
 ---
 
 ### Setup
@@ -53,7 +56,7 @@ A subset of the company's buildings have been randomly selected for an experimen
 
 Fortunately, Bayesian data analysis provides a coherent framework for us to tackle this problem.
 
-Formally, we are interested in finding: 
+Formally, we are interested in finding:
 
 $$
 \arg\max_{\textrm{traps} \in \mathbb{N}} \mathbb{E}_{\text{complaints}}[R(\textrm{complaints}(\textrm{traps})) - \textrm{TC}(\textrm{traps})]
@@ -484,8 +487,63 @@ $$
 A quick test shows us that there appears to be a relationship between the square footage of the building and the number of complaints received:
 
 ```{python}
-sns.regplot(x=np.log(pest_data.total_sq_foot),y=np.log1p(pest_data.complaints));
+#| warning: false
+plt.clf()
+sns.regplot(x=np.log(pest_data.total_sq_foot),y=np.log1p(pest_data.complaints))
+plt.show()
 ```
 
 Using the property manager's intuition, we include two extra pieces of information we know about the building - the (log of the) square floor space and whether there is a live in super or not - into both the simulated and real data.
 
+```{python}
+stan_dat_simple['log_sq_foot'] = np.log(pest_data.total_sq_foot/1e4)
+stan_dat_simple['live_in_super'] = pest_data.live_in_super
+```
+
+### Stan program for Poisson multiple regression
+
+Now we need a new Stan model that uses multiple predictors.
+
+```{python}
+multiple_poisson_regression = '''
+functions {
+  /*
+  * Alternative to poisson_log_rng() that 
+  * avoids potential numerical problems during warmup
+  */
+  int poisson_log_safe_rng(real eta) {
+    real pois_rate = exp(eta);
+    if (pois_rate >= exp(20.79))
+      return -9;
+    return poisson_rng(pois_rate);
+  }
+}
+data {
+  int<lower=1> N;
+  array[N] int<lower=0> complaints;
+  vector<lower=0>[N] traps;
+  vector<lower=0,upper=1>[N] live_in_super;
+  vector[N] log_sq_foot;  // exposure term
+}
+parameters {
+  real alpha;
+  real beta;
+  real beta_super;
+}
+model {
+  beta ~ normal(-0.25, 1);
+  beta_super ~ normal(-0.5, 1);
+  alpha ~ normal(log(4), 1);
+  
+  complaints ~ poisson_log(alpha + beta * traps + beta_super * live_in_super + log_sq_foot);
+} 
+generated quantities {
+  array[N] int y_rep;
+  
+  for (n in 1:N) 
+    y_rep[n] = poisson_log_safe_rng(alpha + beta * traps[n] + beta_super * live_in_super[n] + log_sq_foot[n]);
+}
+'''
+
+multiple_poisson_regression_model = StanModel('../stan_models/multiple_poisson_regression', multiple_poisson_regression)
+```
