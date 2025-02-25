@@ -984,7 +984,7 @@ We're getting plausible predictions for most building means but some are estimat
 ### Garbage Collect
 
 ```{python}
-exceptions = ['exceptions', 'active_variables']
+exceptions = ['pest_data', 'exceptions', 'active_variables']
 
 active_variables = [
     var for var, value in globals().items()
@@ -998,7 +998,7 @@ active_variables = [
 
 for var in active_variables:
     del globals()[var]
-del active_variables, exceptions, var, _
+del active_variables, exceptions, var, _, g, y_rep, mean_inv_phi, mean_y_rep
 
 gc.collect()
 
@@ -1044,6 +1044,13 @@ $$
 
 We'll need to do some more data prep before we can fit our models. Firstly to use the building variable in Stan we will need to transform it from a factor variable to an integer variable.
 
+```{python}
+N_months = len(pest_data.date.unique())
+
+# Add some IDs for building and month
+
+pest_data.head()
+```
 
 
 
