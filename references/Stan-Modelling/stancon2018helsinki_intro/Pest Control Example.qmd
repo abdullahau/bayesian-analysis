@@ -879,9 +879,9 @@ plt.xlim(0,)
 plt.show()
 ```
 
-It appears that our model now captures both the number of small counts better as well as the tails. 
+It appears that our model now captures both the number of small counts better as well as the tails.
 
-Let's check if the negative binomial model does a better job capturing the number of zeros: 
+Let's check if the negative binomial model does a better job capturing the number of zeros:
 
 ```{python}
 plt.clf()
@@ -907,7 +907,7 @@ plt.ylabel('std_resid')
 plt.show()
 ```
 
-Looks OK, but we still have some very large _standardized_ residuals. This might be because we are currently ignoring that the data are clustered by buildings, and that the probability of roach issue may vary substantially across buildings.
+Looks OK, but we still have some very large *standardized* residuals. This might be because we are currently ignoring that the data are clustered by buildings, and that the probability of roach issue may vary substantially across buildings.
 
 ```{python}
 plt.clf()
@@ -957,6 +957,103 @@ plt.show()
 ```
 
 We haven't used the fact that the data are clustered by building yet. A posterior predictive check might elucidate whether it would be a good idea to add the building information into the model.
+
+```{python}
+plt.cla()
+
+grouped_indices = defaultdict(list)
+for idx, building_id in enumerate(pest_data['building_id']):
+    grouped_indices[building_id].append(idx)
+
+grouped_array = {bldg_id: y_rep[:, :, idx_list].mean(axis=2).to_numpy().flatten() for bldg_id, idx_list in grouped_indices.items()}
+
+_, axes = plt.subplots(2, 5)
+
+for ax, key in zip(axes.flat, sorted(grouped_array.keys())):
+    sns.histplot(grouped_array[key], bins=30, ax=ax)
+    ax.axvline(pest_data[pest_data['building_id']==key].complaints.mean(), color='r', linewidth=2)
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=4))
+    ax.set(ylabel='', title=f"Bulding = {key}")
+    ax.yaxis.set_ticks([])
+
+plt.show()
+```
+
+We're getting plausible predictions for most building means but some are estimated better than others and some have larger uncertainties than we might expect. If we explicitly model the variation across buildings we may be able to get much better estimates.
+
+### Garbage Collect
+
+```{python}
+exceptions = ['exceptions', 'active_variables']
+
+active_variables = [
+    var for var, value in globals().items()
+    if not var.startswith('_')   # Exclude variables that start with "_"
+    and var not in exceptions    # Exclude variables in the exceptions list
+    and isinstance(value, (CmdStanModel, cmdstanpy.CmdStanMCMC, plt.Axes, 
+                           az.InferenceData, pd.DataFrame, pd.Series, 
+                           dict, list, int, float, str, tuple, plt.Figure, defaultdict,
+                           np.ndarray, np.int64, np.float32))  # Remove these types only
+]
+
+for var in active_variables:
+    del globals()[var]
+del active_variables, exceptions, var, _
+
+gc.collect()
+
+```
+
+## Hierarchical modeling
+
+### Modeling varying intercepts for each building
+
+Let's add a hierarchical intercept parameter, $\alpha_b$ at the building level to our model.
+
+$$
+\text{complaints}_{b,t} \sim \text{Neg-Binomial}(\lambda_{b,t}, \phi) \\
+\lambda_{b,t}  = \exp{(\eta_{b,t})} \\
+\eta_{b,t} = \mu_b + \beta \, {\rm traps}_{b,t} + \beta_{\rm super}\, {\rm super}_b + \text{log_sq_foot}_b \\
+\mu_b \sim \text{Normal}(\alpha, \sigma_{\mu})
+$$
+
+In our Stan model, $\mu_b$ is the $b$-th element of the vector $\texttt{mu}$ which has one element per building.
+
+One of our predictors varies only by building, so we can rewrite the above model more efficiently like so:
+
+$$
+\eta_{b,t} = \mu_b + \beta \, {\rm traps}_{b,t} + \text{log_sq_foot}_b\\
+\mu_b \sim \text{Normal}(\alpha +  \beta_{\text{super}} \, \text{super}_b , \sigma_{\mu})
+$$
+
+We have more information at the building level as well, like the average age of the residents, the average age of the buildings, and the average per-apartment monthly rent so we can add that data into a matrix called `building_data`, which will have one row per building and four columns:
+
+-   `live_in_super`
+-   `age_of_building`
+-   `average_tentant_age`
+-   `monthly_average_rent`
+
+We'll write the Stan model like:
+
+$$
+\eta_{b,t} = \alpha_b + \beta \, {\rm traps} + \text{log_sq_foot}\\
+\mu \sim \text{Normal}(\alpha + \texttt{building_data} \, \zeta, \,\sigma_{\mu})
+$$
+
+### Prepare building data for hierarchical
+
+We'll need to do some more data prep before we can fit our models. Firstly to use the building variable in Stan we will need to transform it from a factor variable to an integer variable.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
