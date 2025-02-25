@@ -7,8 +7,12 @@ AlwaysSaveHistory: Default
 
 EnableCodeIndexing: Yes
 UseSpacesForTab: Yes
-NumSpacesForTab: 2
+NumSpacesForTab: 4
 Encoding: UTF-8
 
 RnwWeave: Sweave
 LaTeX: pdfLaTeX
+
+PythonType: virtualenv
+PythonVersion: 3.13.2
+PythonPath: ~/Documents/Coding-Projects/.venv/bin/python

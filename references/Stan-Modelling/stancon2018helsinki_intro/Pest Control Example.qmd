@@ -1,13 +1,16 @@
 ---
 title: "StanCon 2018 Helsinki Intro Workshop - Pest Control Example"
 author: "Abdullah Mahmood"
-format: html
+format:
+    html:
+        toc: true
+        toc-depth: 2
+        code-fold: true
+        html-math-method:
+            method: mathjax
+            url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
 jupyter: main
-ipynb-shell-interactivity: all
-execute:
-  echo: false
-  warning: true
 ---
 
 ### Setup
@@ -52,7 +55,11 @@ One alternative to this problem is to deploy long term bait stations. In this al
 
 The manager wishes to employ your services to help them to find the optimal number of roach bait stations they should place in each of their buildings in order to minimize the number of cockroach complaints while also keeping expenditure on pest control affordable.
 
-A subset of the company's buildings have been randomly selected for an experiment: - At the beginning of each month, a pest inspector randomly places a number of bait stations throughout the building, without knowledge of the current cockroach levels in the building - At the end of the month, the manager records the total number of cockroach complaints in that building. - The manager would like to determine the optimal number of traps ($\textrm{traps}$) that balances the lost revenue ($R$) that complaints ($\textrm{complaints}$) generate with the all-in cost of maintaining the traps ($\textrm{TC}$).
+A subset of the company's buildings have been randomly selected for an experiment:
+
+-   At the beginning of each month, a pest inspector randomly places a number of bait stations throughout the building, without knowledge of the current cockroach levels in the building
+-   At the end of the month, the manager records the total number of cockroach complaints in that building.
+-   The manager would like to determine the optimal number of traps ($\textrm{traps}$) that balances the lost revenue ($R$) that complaints ($\textrm{complaints}$) generate with the all-in cost of maintaining the traps ($\textrm{TC}$).
 
 Fortunately, Bayesian data analysis provides a coherent framework for us to tackle this problem.
 
@@ -241,7 +248,7 @@ First we will compile the Stan program (`simple_poisson_regression_dgp.stan`) th
 simple_poisson_regression_dgp = StanModel('../stan_models/simple_poisson_regression_dgp', simple_poisson_regression_dgp_model)
 ```
 
-Now we can simulate the data by calling the `sample()` method on the CmdStanModel object instantiated above. The method requires that we pass input data in the form of a dictionary. The names must match the names used in the `data` block of the Stan program.
+Now we can simulate the data by calling the `sample()` method on the `CmdStanModel` object instantiated above. The method requires that we pass input data in the form of a dictionary. The names must match the names used in the `data` block of the Stan program.
 
 ```{python}
 fitted_model_dgp = simple_poisson_regression_dgp.sample(
@@ -253,7 +260,6 @@ fitted_model_dgp = simple_poisson_regression_dgp.sample(
 )
 
 samps_dgp = az.from_cmdstanpy(fitted_model_dgp)
-samps_dgp
 ```
 
 ### Fit the model to the fake data
@@ -507,43 +513,462 @@ Now we need a new Stan model that uses multiple predictors.
 ```{python}
 multiple_poisson_regression = '''
 functions {
-  /*
-  * Alternative to poisson_log_rng() that 
-  * avoids potential numerical problems during warmup
-  */
-  int poisson_log_safe_rng(real eta) {
+    /*
+    * Alternative to poisson_log_rng() that 
+    * avoids potential numerical problems during warmup
+    */
+    int poisson_log_safe_rng(real eta) {
     real pois_rate = exp(eta);
     if (pois_rate >= exp(20.79))
       return -9;
     return poisson_rng(pois_rate);
-  }
+    }
 }
 data {
-  int<lower=1> N;
-  array[N] int<lower=0> complaints;
-  vector<lower=0>[N] traps;
-  vector<lower=0,upper=1>[N] live_in_super;
-  vector[N] log_sq_foot;  // exposure term
+    int<lower=1> N;
+    array[N] int<lower=0> complaints;
+    vector<lower=0>[N] traps;
+    vector<lower=0,upper=1>[N] live_in_super;
+    vector[N] log_sq_foot;  // exposure term
 }
 parameters {
-  real alpha;
-  real beta;
-  real beta_super;
+    real alpha;
+    real beta;
+    real beta_super;
 }
 model {
-  beta ~ normal(-0.25, 1);
-  beta_super ~ normal(-0.5, 1);
-  alpha ~ normal(log(4), 1);
-  
-  complaints ~ poisson_log(alpha + beta * traps + beta_super * live_in_super + log_sq_foot);
+    beta ~ normal(-0.25, 1);
+    beta_super ~ normal(-0.5, 1);
+    alpha ~ normal(log(4), 1);
+    
+    complaints ~ poisson_log(alpha + beta * traps + beta_super * live_in_super + log_sq_foot);
 } 
 generated quantities {
-  array[N] int y_rep;
-  
-  for (n in 1:N) 
+    array[N] int y_rep;
+    
+    for (n in 1:N) 
     y_rep[n] = poisson_log_safe_rng(alpha + beta * traps[n] + beta_super * live_in_super[n] + log_sq_foot[n]);
 }
 '''
 
 multiple_poisson_regression_model = StanModel('../stan_models/multiple_poisson_regression', multiple_poisson_regression)
 ```
+
+### Simulate fake data with multiple predictors
+
+```{python}
+multiple_poisson_regression_dgp = '''
+data {
+    int<lower=1> N;
+}
+model {
+} 
+generated quantities {
+    vector[N] log_sq_foot;
+    array[N] int live_in_super;
+    array[N] int traps;
+    array[N] int complaints;
+    
+    real alpha = normal_rng(log(4), .1);
+    real beta = normal_rng(-0.25, .1);
+    real beta_super = normal_rng(-0.5, .1);
+    
+    for (n in 1:N) {
+    log_sq_foot[n] = normal_rng(1.5, .1);
+    live_in_super[n] = bernoulli_rng(0.5);
+    traps[n] = poisson_rng(8);
+    complaints[n] = poisson_log_rng(alpha + log_sq_foot[n] 
+                               + beta * traps[n] 
+                               + beta_super * live_in_super[n]);
+    }
+}
+'''
+
+multiple_poisson_regression_dgp_model = StanModel('../stan_models/multiple_poisson_regression_dgp', multiple_poisson_regression_dgp)
+```
+
+Fit / sample the prior predictive check model:
+
+```{python}
+fitted_model_dgp = multiple_poisson_regression_dgp_model.sample(
+    data={'N': len(pest_data.traps)},
+    chains = 1,
+    iter_sampling = 1,
+    show_progress = False,
+    fixed_param = True
+)
+
+samps_dgp = az.from_cmdstanpy(fitted_model_dgp)
+```
+
+Now pop that simulated data into a dictionary ready for Stan.
+
+```{python}
+stan_dat_fake = {
+    'N': len(pest_data.traps),
+    'complaints': samps_dgp.posterior.complaints.sel(chain=0, draw=0).to_numpy().astype(int),
+    'traps': samps_dgp.posterior.traps.sel(chain=0, draw=0),
+    'live_in_super': samps_dgp.posterior.live_in_super.sel(chain=0, draw=0),
+    'log_sq_foot': samps_dgp.posterior.log_sq_foot.sel(chain=0, draw=0)
+}
+```
+
+And then compile and fit the model we wrote for the multiple regression.
+
+```{python}
+fit_model_P_mult = multiple_poisson_regression_model.sample(data=stan_dat_fake, show_progress=False)
+posterior_alpha_beta = az.extract(az.from_cmdstanpy(fit_model_P_mult), 'posterior', var_names=['alpha', 'beta', 'beta_super']).to_dataframe()[['alpha', 'beta', 'beta_super']]
+```
+
+Then compare these parameters to the true parameters:
+
+```{python}
+true_alpha = samps_dgp.posterior.alpha.sel(chain=0, draw=0).to_numpy()
+true_beta = samps_dgp.posterior.beta.sel(chain=0, draw=0).to_numpy()
+true_beta_super = samps_dgp.posterior.beta_super.sel(chain=0, draw=0).to_numpy()
+
+plt.clf()
+_, ax = plt.subplots(1,3, figsize=(8,4))
+sns.histplot(posterior_alpha_beta, x='alpha', bins=30, ax=ax[0])
+ax[0].axvline(true_alpha, color='r', linewidth=2)
+sns.histplot(posterior_alpha_beta, x='beta', bins=30, ax=ax[1])
+ax[1].axvline(true_beta, color='r', linewidth=2)
+sns.histplot(posterior_alpha_beta, x='beta_super', bins=30, ax=ax[2])
+ax[2].axvline(true_beta_super, color='r', linewidth=2)
+plt.show()
+```
+
+We've recovered the parameters sufficiently well, so we've probably coded the Stan program correctly and we're ready to fit the real data.
+
+### Fit the real data
+
+Now let's use the real data and explore the fit.
+
+```{python}
+fit_model_P_mult_real = multiple_poisson_regression_model.sample(data=stan_dat_simple, show_progress=False)
+az_fit_P_mult_real_data = az.from_cmdstanpy(fit_model_P_mult_real, posterior_predictive='y_rep')
+y_rep = az_fit_P_mult_real_data.posterior_predictive.y_rep
+
+plt.clf()
+for i in range(200):
+    sns.kdeplot(y_rep.sel(chain=slice(0), draw=i).to_dataframe(), x='y_rep', color='k', alpha=0.2)
+sns.kdeplot(stan_dat_simple['complaints'], color='r', linewidth=2)
+plt.xlim(0,25)
+plt.show()
+```
+
+This again looks like we haven't captured the smaller counts very well, nor have we captured the larger counts.
+
+```{python}
+plt.clf()
+_, ax = plt.subplots()
+sns.histplot(np.mean(y_rep == 0, axis=2).to_numpy().flatten(), bins=20, ax=ax)
+ax.axvline(np.mean(stan_dat_simple['complaints'] == 0), linewidth=2, color='r')
+plt.show()
+```
+
+We're still severely underestimating the proportion of zeros in the data. Ideally this vertical line would fall somewhere within the histogram.
+
+We can also plot uncertainty intervals for the predicted complaints for different numbers of traps.
+
+```{python}
+plt.clf()
+_, ax = plt.subplots()
+
+ax.plot(stan_dat_simple['traps'], stan_dat_simple['complaints'], 'o', fillstyle='none')
+
+grouped_indices = defaultdict(list)
+for idx, trap in enumerate(stan_dat_simple['traps']):
+    grouped_indices[trap].append(idx)
+
+grouped_array = {trap: y_rep[:, :, idx_list].to_numpy().flatten() for trap, idx_list in grouped_indices.items()}
+
+for traps_x, complaints_y in grouped_array.items():
+    inner_prob = np.array([np.quantile(complaints_y, 0.75), np.quantile(complaints_y, 0.25)])  # az.hdi(complaints_y, hdi_prob=0.5)
+    outer_prob = np.array([np.quantile(complaints_y, 0.95), np.quantile(complaints_y, 0.05)])  # az.hdi(complaints_y, hdi_prob=0.9)
+    ax.plot(np.full(inner_prob.shape, traps_x), inner_prob, 'k', linewidth=2)
+    ax.plot(np.full(outer_prob.shape, traps_x), outer_prob, 'k', linewidth=0.5)
+    ax.plot(traps_x, np.mean(complaints_y), 'ko')
+
+plt.show()
+```
+
+We can see that we've increased the tails a bit more at the larger numbers of traps but we still have some large observed numbers of complaints that the model would consider extremely unlikely events.
+
+## Modeling count data with the Negative Binomial
+
+When we considered modelling the data using a Poisson, we saw that the model didn't appear to fit as well to the data as we would like. In particular the model under-predicted low and high numbers of complaints, and over-predicted the medium number of complaints. This is one indication of **over-dispersion**, where the variance is larger than the mean. A Poisson model doesn't fit over-dispersed count data very well because the same parameter $\lambda$, controls both the expected counts and the variance of these counts. The natural alternative to this is the **negative binomial model**:
+
+$$
+\begin{align*}
+\text{complaints}_{b,t} & \sim \text{Neg-Binomial}(\lambda_{b,t}, \phi) \\
+\lambda_{b,t} & = \exp{(\eta_{b,t})} \\
+\eta_{b,t} &= \alpha + \beta \, {\rm traps}_{b,t} + \beta_{\rm super} \, {\rm super}_{b} + \text{log_sq_foot}_{b}
+\end{align*}
+$$
+
+In Stan the negative binomial mass function we'll use is called $\texttt{neg_binomial_2_log}(\text{ints} \, y, \text{reals} \, \eta, \text{reals} \, \phi)$ in Stan. Like the `poisson_log` function, this negative binomial mass function that is parameterized in terms of its log-mean, $\eta$, but it also has a precision $\phi$ such that
+
+$$
+\mathbb{E}[y] \, = \lambda = \exp(\eta)
+$$
+
+$$
+\text{Var}[y] = \lambda + \lambda^2/\phi = \exp(\eta) + \exp(\eta)^2 / \phi.
+$$
+
+As $\phi$ gets larger the term $\lambda^2 / \phi$ approaches zero and so the variance of the negative-binomial approaches $\lambda$, i.e., the negative-binomial gets closer and closer to the Poisson.
+
+### Stan program for negative-binomial regression
+
+```{python}
+# #| message: false
+multiple_NB_regression = '''
+functions {
+    /*
+    * Alternative to neg_binomial_2_log_rng() that 
+    * avoids potential numerical problems during warmup
+    */
+    int neg_binomial_2_log_safe_rng(real eta, real phi) {
+    real gamma_rate = gamma_rng(phi, phi / exp(eta));
+    if (gamma_rate >= exp(20.79))
+      return -9;
+      
+    return poisson_rng(gamma_rate);
+    }
+}
+data {
+    int<lower=1> N;
+    vector<lower=0>[N] traps;
+    vector<lower=0,upper=1>[N] live_in_super;
+    vector[N] log_sq_foot;
+    array[N] int<lower=0> complaints;
+}
+parameters {
+    real alpha;
+    real beta;
+    real beta_super;
+    real<lower=0> inv_phi;
+}
+transformed parameters {
+    real phi = inv(inv_phi);
+}
+model {
+    alpha ~ normal(log(4), 1);
+    beta ~ normal(-0.25, 1);
+    beta_super ~ normal(-0.5, 1);
+    inv_phi ~ normal(0, 1);
+    
+    complaints ~ neg_binomial_2_log(alpha + beta * traps + beta_super * live_in_super
+                                  + log_sq_foot, phi);
+} 
+generated quantities {
+    array[N] int y_rep;
+    for (n in 1:N) 
+    y_rep[n] = neg_binomial_2_log_safe_rng(alpha + beta * traps[n] + beta_super * live_in_super[n]
+                                       + log_sq_foot[n], phi);
+}
+'''
+
+multiple_NB_regression_model = StanModel('../stan_models/multiple_NB_regression', multiple_NB_regression)
+
+```
+
+### Fake data fit: Multiple NB regression
+
+```{python}
+multiple_NB_regression_dgp = '''
+data {
+    int<lower=1> N;
+}
+model {
+} 
+generated quantities {
+    vector[N] log_sq_foot;
+    array[N] int live_in_super;
+    array[N] int traps;
+    array[N] int complaints;
+    real alpha = normal_rng(log(4), .1);
+    real beta = normal_rng(-0.25, .1);
+    real beta_super = normal_rng(-0.5, .1);
+    real inv_phi = abs(normal_rng(0,1));
+    
+    for (n in 1:N) {
+    log_sq_foot[n] = normal_rng(1.5, .1);
+    live_in_super[n] = bernoulli_rng(0.5);
+    traps[n] = poisson_rng(8);
+    complaints[n] = neg_binomial_2_log_rng(alpha + log_sq_foot[n] 
+                               + beta * traps[n] 
+                               + beta_super * live_in_super[n], inv(inv_phi));
+    }
+}
+'''
+
+multiple_NB_regression_dpg_model = StanModel('../stan_models/multiple_NB_regression_dgp', multiple_NB_regression_dgp)
+
+```
+
+We're going to generate one draw from the fake data model so we can use the data to fit our model and compare the known values of the parameters to the posterior density of the parameters.
+
+```{python}
+fitted_model_dgp_NB = multiple_NB_regression_dpg_model.sample(
+    data={'N': len(pest_data.traps)},
+    chains = 1,
+    iter_sampling = 1,
+    show_progress = False,
+    fixed_param=True
+)
+
+samps_dgp_NB = az.from_cmdstanpy(fitted_model_dgp_NB)
+```
+
+Create a dictionary to feed into the Stan model.
+
+```{python}
+stan_dat_fake_NB = {
+    'N': len(pest_data.traps),
+    'traps': samps_dgp_NB.posterior.traps.sel(chain=0, draw=0),
+    'complaints': samps_dgp_NB.posterior.complaints.sel(chain=0, draw=0).to_numpy().astype(int),
+    'live_in_super': samps_dgp_NB.posterior.live_in_super.sel(chain=0, draw=0),
+    'log_sq_foot': samps_dgp_NB.posterior.log_sq_foot.sel(chain=0, draw=0)
+}
+```
+
+Now we run our NB regression over the fake data and extract the samples to examine posterior predictive checks and to check whether we've sufficiently recovered our known parameters, $\text{alpha}$ $\texttt{beta}$.
+
+```{python}
+fitted_model_NB = multiple_NB_regression_model.sample(data=stan_dat_fake_NB, show_progress=False)
+posterior_alpha_beta_NB = (
+    az.extract(
+        az.from_cmdstanpy(fitted_model_NB), 'posterior'
+    ).to_dataframe()[['alpha', 'beta', 'beta_super', 'inv_phi']]
+)
+```
+
+Construct the vector of true values from your simulated dataset and compare to the recovered parameters.
+
+```{python}
+true_params = ['alpha', 'beta', 'beta_super', 'inv_phi']
+
+plt.clf()
+_, axes = plt.subplots(2,2, figsize=(8,4))
+for i, ax in enumerate(axes.flat):
+    sns.histplot(posterior_alpha_beta_NB, x=true_params[i], bins=30, ax=ax)
+    ax.axvline(samps_dgp_NB.posterior[true_params[i]].sel(chain=0, draw=0).to_numpy(), color='r', linewidth=2)
+    ax.set(ylabel='')
+    ax.yaxis.set_ticks([])
+plt.show()
+```
+
+### Fit to real data and check the fit
+
+```{python}
+fitted_model_NB = multiple_NB_regression_model.sample(data=stan_dat_simple, show_progress=False)
+az_fitted_model_NB_data = az.from_cmdstanpy(fitted_model_NB, posterior_predictive='y_rep')
+y_rep = az_fitted_model_NB_data.posterior_predictive.y_rep
+```
+
+Let's look at our predictions vs. the data.
+
+```{python}
+plt.clf()
+for i in range(200):
+    sns.kdeplot(y_rep.sel(chain=slice(0), draw=i).to_dataframe(), x='y_rep', color='k', alpha=0.2)
+sns.kdeplot(stan_dat_simple['complaints'], color='r', linewidth=2)
+plt.xlim(0,)
+plt.show()
+```
+
+It appears that our model now captures both the number of small counts better as well as the tails. 
+
+Let's check if the negative binomial model does a better job capturing the number of zeros: 
+
+```{python}
+plt.clf()
+_, ax = plt.subplots()
+sns.histplot(np.mean(y_rep == 0, axis=2).to_numpy().flatten(), bins=25, ax=ax)
+ax.axvline(np.mean(stan_dat_simple['complaints'] == 0), linewidth=2, color='r')
+plt.show()
+```
+
+These look OK, but let's look at the standardized residual plot.
+
+```{python}
+mean_inv_phi = az_fitted_model_NB_data.posterior.inv_phi.mean(dim=['chain', 'draw'])
+mean_y_rep = y_rep.mean(dim=['chain', 'draw'])
+std_resid = (stan_dat_simple['complaints'] - mean_y_rep) / np.sqrt(mean_y_rep + mean_y_rep**2 * mean_inv_phi)
+
+plt.clf()
+plt.plot(mean_y_rep, std_resid, 'o', alpha=0.5)
+plt.axhline(2, linestyle='--')
+plt.axhline(-2, linestyle='--')
+plt.xlabel('mean_y_rep')
+plt.ylabel('std_resid')
+plt.show()
+```
+
+Looks OK, but we still have some very large _standardized_ residuals. This might be because we are currently ignoring that the data are clustered by buildings, and that the probability of roach issue may vary substantially across buildings.
+
+```{python}
+plt.clf()
+fig, ax = plt.subplots()
+vals, counts = np.unique(y_rep, return_counts=True)
+hist_range = (min(vals), max(vals))
+az.plot_dist(stan_dat_simple['complaints'], kind='hist', ax=ax, 
+             hist_kwargs={'bins': np.arange(hist_range[0], hist_range[1] + 1, 1), 'range': hist_range})
+
+secax = ax.twinx()
+secax.plot(vals, counts, color='red', linewidth=1.5)
+
+ax.set_xlim(hist_range[0]-0.5, hist_range[1]+0.5)
+
+secax.set_yticklabels([])
+secax.yaxis.set_ticks([])
+
+ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
+
+plt.show()
+```
+
+The rootogram now looks much more plausible. We can tell this because now the expected number of complaints matches much closer to the observed number of complaints. However, we still have some larger counts that appear to be outliers for the model.
+
+Check predictions by number of traps:
+
+```{python}
+plt.clf()
+_, ax = plt.subplots()
+
+ax.plot(stan_dat_simple['traps'], stan_dat_simple['complaints'], 'o', fillstyle='none')
+
+grouped_indices = defaultdict(list)
+for idx, trap in enumerate(stan_dat_simple['traps']):
+    grouped_indices[trap].append(idx)
+
+grouped_array = {trap: y_rep[:, :, idx_list].to_numpy().flatten() for trap, idx_list in grouped_indices.items()}
+
+for traps_x, complaints_y in grouped_array.items():
+    inner_prob = np.array([np.quantile(complaints_y, 0.75), np.quantile(complaints_y, 0.25)])  # az.hdi(complaints_y, hdi_prob=0.5)
+    outer_prob = np.array([np.quantile(complaints_y, 0.95), np.quantile(complaints_y, 0.05)])  # az.hdi(complaints_y, hdi_prob=0.9)
+    ax.plot(np.full(inner_prob.shape, traps_x), inner_prob, 'k', linewidth=2)
+    ax.plot(np.full(outer_prob.shape, traps_x), outer_prob, 'k', linewidth=0.5)
+    ax.plot(traps_x, np.mean(complaints_y), 'ko')
+
+plt.show()
+```
+
+We haven't used the fact that the data are clustered by building yet. A posterior predictive check might elucidate whether it would be a good idea to add the building information into the model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
