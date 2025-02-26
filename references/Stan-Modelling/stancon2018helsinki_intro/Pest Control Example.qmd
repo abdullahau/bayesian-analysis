@@ -4,7 +4,7 @@ author: "Abdullah Mahmood"
 format:
     html:
         toc: true
-        toc-depth: 2
+        toc-depth: 3
         code-fold: true
         html-math-method:
             method: mathjax
@@ -251,6 +251,7 @@ simple_poisson_regression_dgp = StanModel('../stan_models/simple_poisson_regress
 Now we can simulate the data by calling the `sample()` method on the `CmdStanModel` object instantiated above. The method requires that we pass input data in the form of a dictionary. The names must match the names used in the `data` block of the Stan program.
 
 ```{python}
+#| output: false
 fitted_model_dgp = simple_poisson_regression_dgp.sample(
     data={'N': len(pest_data.traps), 
           'mean_traps': pest_data.traps.mean()},
@@ -277,6 +278,7 @@ stan_dat_fake = {
 Now that we have the simulated data we fit the model to see if we can recover the `alpha` and `beta` parameters used in the simulation.
 
 ```{python}
+#| output: false
 fit_model_P = simple_poisson_regression_model.sample(data=stan_dat_fake, show_progress=False)
 posterior_alpha_beta = az.extract(az.from_cmdstanpy(fit_model_P), 'posterior', var_names=['alpha', 'beta']).to_dataframe()[['alpha', 'beta']]
 ```
@@ -348,9 +350,12 @@ stan_dat_simple = {
 ```
 
 ```{python}
+#| output: false
 fit_P_real_data = simple_poisson_regression_model.sample(data=stan_dat_simple, show_progress=False)
 az_fit_P_real_data = az.from_cmdstanpy(fit_P_real_data, posterior_predictive='y_rep')
+```
 
+```{python}
 summary = fit_P_real_data.summary(percentiles=(2.5, 25, 50, 75, 97.5))
 summary[~summary.index.str.contains('y_rep')]
 ```
@@ -397,7 +402,7 @@ plt.show()
 
 The plot above shows the observed proportion of zeros (thick vertical line) and a histogram of the proportion of zeros in each of the simulated data sets. It is clear that the model does not capture this feature of the data well at all.
 
-This next plot is a plot of the standardised residuals of the observed vs predicted number of complaints.
+This next plot is a plot of the standardized residuals of the observed vs predicted number of complaints.
 
 ```{python}
 mean_y_rep = y_rep.mean(dim=['chain', 'draw'])
@@ -590,6 +595,7 @@ multiple_poisson_regression_dgp_model = StanModel('../stan_models/multiple_poiss
 Fit / sample the prior predictive check model:
 
 ```{python}
+#| output: false
 fitted_model_dgp = multiple_poisson_regression_dgp_model.sample(
     data={'N': len(pest_data.traps)},
     chains = 1,
@@ -616,6 +622,7 @@ stan_dat_fake = {
 And then compile and fit the model we wrote for the multiple regression.
 
 ```{python}
+#| output: false
 fit_model_P_mult = multiple_poisson_regression_model.sample(data=stan_dat_fake, show_progress=False)
 posterior_alpha_beta = az.extract(az.from_cmdstanpy(fit_model_P_mult), 'posterior', var_names=['alpha', 'beta', 'beta_super']).to_dataframe()[['alpha', 'beta', 'beta_super']]
 ```
@@ -645,10 +652,13 @@ We've recovered the parameters sufficiently well, so we've probably coded the St
 Now let's use the real data and explore the fit.
 
 ```{python}
+#| output: false
 fit_model_P_mult_real = multiple_poisson_regression_model.sample(data=stan_dat_simple, show_progress=False)
 az_fit_P_mult_real_data = az.from_cmdstanpy(fit_model_P_mult_real, posterior_predictive='y_rep')
 y_rep = az_fit_P_mult_real_data.posterior_predictive.y_rep
+```
 
+```{python}
 plt.clf()
 for i in range(200):
     sns.kdeplot(y_rep.sel(chain=slice(0), draw=i).to_dataframe(), x='y_rep', color='k', alpha=0.2)
@@ -722,7 +732,6 @@ As $\phi$ gets larger the term $\lambda^2 / \phi$ approaches zero and so the var
 ### Stan program for negative-binomial regression
 
 ```{python}
-# #| message: false
 multiple_NB_regression = '''
 functions {
     /*
@@ -748,7 +757,7 @@ parameters {
     real alpha;
     real beta;
     real beta_super;
-    real<lower=0> inv_phi;
+    real<lower=0> inv_phi;  // Enforce positivity
 }
 transformed parameters {
     real phi = inv(inv_phi);
@@ -757,7 +766,7 @@ model {
     alpha ~ normal(log(4), 1);
     beta ~ normal(-0.25, 1);
     beta_super ~ normal(-0.5, 1);
-    inv_phi ~ normal(0, 1);
+    inv_phi ~ normal(0, 1); // Alternative: normal(0.1, 0.1) // Alternative: exponential(1)
     
     complaints ~ neg_binomial_2_log(alpha + beta * traps + beta_super * live_in_super
                                   + log_sq_foot, phi);
@@ -811,6 +820,7 @@ multiple_NB_regression_dpg_model = StanModel('../stan_models/multiple_NB_regress
 We're going to generate one draw from the fake data model so we can use the data to fit our model and compare the known values of the parameters to the posterior density of the parameters.
 
 ```{python}
+#| output: false
 fitted_model_dgp_NB = multiple_NB_regression_dpg_model.sample(
     data={'N': len(pest_data.traps)},
     chains = 1,
@@ -837,6 +847,7 @@ stan_dat_fake_NB = {
 Now we run our NB regression over the fake data and extract the samples to examine posterior predictive checks and to check whether we've sufficiently recovered our known parameters, $\text{alpha}$ $\texttt{beta}$.
 
 ```{python}
+#| output: false
 fitted_model_NB = multiple_NB_regression_model.sample(data=stan_dat_fake_NB, show_progress=False)
 posterior_alpha_beta_NB = (
     az.extract(
@@ -851,7 +862,7 @@ Construct the vector of true values from your simulated dataset and compare to t
 true_params = ['alpha', 'beta', 'beta_super', 'inv_phi']
 
 plt.clf()
-_, axes = plt.subplots(2,2, figsize=(8,4))
+_, axes = plt.subplots(2,2, figsize=(6,4))
 for i, ax in enumerate(axes.flat):
     sns.histplot(posterior_alpha_beta_NB, x=true_params[i], bins=30, ax=ax)
     ax.axvline(samps_dgp_NB.posterior[true_params[i]].sel(chain=0, draw=0).to_numpy(), color='r', linewidth=2)
@@ -863,6 +874,7 @@ plt.show()
 ### Fit to real data and check the fit
 
 ```{python}
+#| output: false
 fitted_model_NB = multiple_NB_regression_model.sample(data=stan_dat_simple, show_progress=False)
 az_fitted_model_NB_data = az.from_cmdstanpy(fitted_model_NB, posterior_predictive='y_rep')
 y_rep = az_fitted_model_NB_data.posterior_predictive.y_rep
@@ -959,7 +971,7 @@ plt.show()
 We haven't used the fact that the data are clustered by building yet. A posterior predictive check might elucidate whether it would be a good idea to add the building information into the model.
 
 ```{python}
-plt.cla()
+plt.clf()
 
 grouped_indices = defaultdict(list)
 for idx, building_id in enumerate(pest_data['building_id']):
@@ -967,7 +979,7 @@ for idx, building_id in enumerate(pest_data['building_id']):
 
 grouped_array = {bldg_id: y_rep[:, :, idx_list].mean(axis=2).to_numpy().flatten() for bldg_id, idx_list in grouped_indices.items()}
 
-_, axes = plt.subplots(2, 5)
+_, axes = plt.subplots(2, 5, figsize=(7,4))
 
 for ax, key in zip(axes.flat, sorted(grouped_array.keys())):
     sns.histplot(grouped_array[key], bins=30, ax=ax)
@@ -1011,10 +1023,12 @@ gc.collect()
 Let's add a hierarchical intercept parameter, $\alpha_b$ at the building level to our model.
 
 $$
-\text{complaints}_{b,t} \sim \text{Neg-Binomial}(\lambda_{b,t}, \phi) \\
-\lambda_{b,t}  = \exp{(\eta_{b,t})} \\
-\eta_{b,t} = \mu_b + \beta \, {\rm traps}_{b,t} + \beta_{\rm super}\, {\rm super}_b + \text{log_sq_foot}_b \\
-\mu_b \sim \text{Normal}(\alpha, \sigma_{\mu})
+\begin{align*}
+\text{complaints}_{b,t} &\sim \text{Neg-Binomial}(\lambda_{b,t}, \phi) \\
+\lambda_{b,t}  &= \exp{(\eta_{b,t})} \\
+\eta_{b,t} &= \mu_b + \beta \, {\rm traps}_{b,t} + \beta_{\rm super}\, {\rm super}_b + \text{log_sq_foot}_b \\
+\mu_b &\sim \text{Normal}(\alpha, \sigma_{\mu})
+\end{align*}
 $$
 
 In our Stan model, $\mu_b$ is the $b$-th element of the vector $\texttt{mu}$ which has one element per building.
@@ -1022,8 +1036,10 @@ In our Stan model, $\mu_b$ is the $b$-th element of the vector $\texttt{mu}$ whi
 One of our predictors varies only by building, so we can rewrite the above model more efficiently like so:
 
 $$
-\eta_{b,t} = \mu_b + \beta \, {\rm traps}_{b,t} + \text{log_sq_foot}_b\\
-\mu_b \sim \text{Normal}(\alpha +  \beta_{\text{super}} \, \text{super}_b , \sigma_{\mu})
+\begin{align*}
+\eta_{b,t} &= \mu_b + \beta \, {\rm traps}_{b,t} + \text{log_sq_foot}_b\\
+\mu_b &\sim \text{Normal}(\alpha +  \beta_{\text{super}} \, \text{super}_b , \sigma_{\mu})
+\end{align*}
 $$
 
 We have more information at the building level as well, like the average age of the residents, the average age of the buildings, and the average per-apartment monthly rent so we can add that data into a matrix called `building_data`, which will have one row per building and four columns:
@@ -1036,8 +1052,10 @@ We have more information at the building level as well, like the average age of 
 We'll write the Stan model like:
 
 $$
-\eta_{b,t} = \alpha_b + \beta \, {\rm traps} + \text{log_sq_foot}\\
-\mu \sim \text{Normal}(\alpha + \texttt{building_data} \, \zeta, \,\sigma_{\mu})
+\begin{align*}
+\eta_{b,t} &= \alpha_b + \beta \, {\rm traps} + \text{log_sq_foot}\\
+\mu &\sim \text{Normal}(\alpha + \texttt{building_data} \, \zeta, \,\sigma_{\mu})
+\end{align*}
 $$
 
 ### Prepare building data for hierarchical
@@ -1045,34 +1063,165 @@ $$
 We'll need to do some more data prep before we can fit our models. Firstly to use the building variable in Stan we will need to transform it from a factor variable to an integer variable.
 
 ```{python}
-N_months = len(pest_data.date.unique())
+N_months = len(pest_data['date'].unique())
+N_buildings = len(pest_data['building_id'].unique())
 
 # Add some IDs for building and month
+pest_data['building_fac'] = pd.Categorical(pest_data['building_id'], categories=pest_data['building_id'].unique())
+pest_data['building_idx'] = pest_data['building_fac'].cat.codes + 1  # Convert to integer index (1-based)
+pest_data['ids'] = list(range(1, N_months + 1)) * N_buildings
+pest_data['mo_idx'] = pest_data['date'].dt.month  # Extract month from date column
 
-pest_data.head()
+# Center and rescale the building specific data
+building_data = pest_data[[
+    'building_idx',
+    'live_in_super',
+    'age_of_building',
+    'total_sq_foot',
+    'average_tenant_age',
+    'monthly_average_rent'
+]].drop_duplicates().sort_values('building_idx').drop(columns=['building_idx'])
+
+# Centering without scaling (subtract mean but don't divide by std)
+building_data = building_data - building_data.mean()
+
+# Scale by constants
+building_data['age_of_building'] /= 10
+building_data['total_sq_foot'] /= 10000
+building_data['average_tenant_age'] /= 10
+building_data['monthly_average_rent'] /= 1000
+
+# Convert to NumPy matrix
+building_data_matrix = building_data.to_numpy()
+
+# Make data dictionary for Stan
+stan_dat_hier = {
+  'complaints': pest_data.complaints,
+  'traps': pest_data.traps,
+  'N': len(pest_data.traps),
+  'J': N_buildings,
+  'M': N_months,
+  'log_sq_foot': np.log(pest_data.total_sq_foot/1e4),
+  'building_data': np.delete(building_data_matrix, 2, axis=1),
+  'mo_idx': pest_data.mo_idx,
+  'K': 4,
+  'building_idx': pest_data.building_idx
+  }
+
 ```
 
+### Compile and fit the hierarchical model
 
+Let's code up and compile the model.
 
+```{python}
+hier_NB_regression = '''
+functions {
+  /*
+  * Alternative to neg_binomial_2_log_rng() that 
+  * avoids potential numerical problems during warmup
+  */
+  int neg_binomial_2_log_safe_rng(real eta, real phi) {
+    real gamma_rate = gamma_rng(phi, phi / exp(eta));
+    if (gamma_rate >= exp(20.79))
+      return -9;
+      
+    return poisson_rng(gamma_rate);
+  }
+}
+data {
+  int<lower=1> N;                     
+  array[N] int<lower=0> complaints;
+  vector<lower=0>[N] traps;
+  
+  // 'exposure'
+  vector[N] log_sq_foot;  
+  
+  // building-level data
+  int<lower=1> K;
+  int<lower=1> J;
+  array[N] int <lower=1, upper=J> building_idx;
+  matrix[J,K] building_data;
+}
+parameters {
+  real<lower=0> inv_phi;   // 1/phi (easier to think about prior for 1/phi instead of phi)
+  real beta;               // coefficient on traps
+  
+  vector[J] mu;            // buildings-specific intercepts
+  real<lower=0> sigma_mu;  // sd of building-specific intercepts
+  real alpha;              // intercept of model for mu
+  vector[K] zeta;          // coefficients on building-level predictors in model for mu 
+}
+transformed parameters {
+  real phi = inv(inv_phi);
+}
+model {
+  mu ~ normal(alpha + building_data * zeta, sigma_mu);
+  sigma_mu ~ normal(0, 1);
+  alpha ~ normal(log(4), 1);
+  zeta ~ normal(0, 1);  // could also use informative priors on the different elements
+  beta ~ normal(-0.25, 1);
+  inv_phi ~ normal(0, 1);
+  
+  complaints ~ neg_binomial_2_log(mu[building_idx] + beta * traps + log_sq_foot, phi);
+} 
+generated quantities {
+  array[N] int y_rep;
+  for (n in 1:N) {
+    real eta_n = mu[building_idx[n]] + beta * traps[n] + log_sq_foot[n];
+    y_rep[n] = neg_binomial_2_log_safe_rng(eta_n, phi);
+  }
+}
+'''
 
+hier_NB_regression_model = StanModel('../stan_models/hier_NB_regression', hier_NB_regression)
 
+```
 
+Fit the model to data.
 
+```{python}
+#| output: false
+fitted_model_NB_hier = hier_NB_regression_model.sample(data=stan_dat_hier, iter_sampling=4000, show_progress=False)
+az_samps_hier_NB = az.from_cmdstanpy(fitted_model_NB_hier, posterior_predictive='y_rep')
+```
 
+### Diagnostics
 
+We get a bunch of warnings from Stan about divergent transitions, which is an indication that there may be regions of the posterior that have not been explored by the Markov chains.
 
+Divergences are discussed in more detail in the course slides as well as the **bayesplot** [MCMC diagnostics vignette](http://mc-stan.org/bayesplot/articles/visual-mcmc-diagnostics.html) and [_A Conceptual Introduction to Hamiltonian Monte Carlo_](https://arxiv.org/abs/1701.02434).
 
+In this example we will see that we have divergent transitions because we need to reparameterize our model - i.e., we will retain the overall structure of the model, but transform some of the parameters so that it is easier for Stan to sample from the parameter space. Before we go through exactly how to do this reparameterization, we will first go through what indicates that this is something that reparameterization will resolve. We will go through:
 
+1. Examining the fitted parameter values, including the effective sample size
+2. Traceplots and scatterplots that reveal particular patterns in locations of the divergences.
 
+Let us first run the `diagnose` and `summary` method on the model object `fitted_model_NB_hier`:
 
+```{python}
+print(fitted_model_NB_hier.diagnose())
+```
+This reports that 32% of the samples ended with a divergence. 
 
+Now, let's extract the fits from the model.
 
+```{python}
+summary = fitted_model_NB_hier.summary(percentiles=(5, 95)).round(2)
+summary[~summary.index.str.contains('y_rep')]
+```
+You can see that the effective samples are quite low for many of the parameters relative to the total number of samples. This alone isn't indicative of the need to reparameterize, but it indicates that we should look further at the trace plots and pairs plots. First let's look at the traceplots to see if the divergent transitions form a pattern.
 
+```{python}
+plt.clf()
+az.plot_trace(az_samps_hier_NB, var_names='sigma_mu', divergences='bottom')
+plt.show()
+```
 
+Looks as if the divergent parameters, the the black bars underneath the traceplots correspond to samples where the sampler gets stuck at one parameter value for $\sigma_\mu$.
 
-
-
-
-
+```{python}
+?az.plot_trace
+```
 
 
