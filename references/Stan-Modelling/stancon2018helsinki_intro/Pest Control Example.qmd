@@ -108,15 +108,18 @@ And make some plots of the raw data:
 plt.clf()
 sns.histplot(pest_data.complaints, discrete=True)
 plt.show()
+plt.close()
 ```
 
 ```{python}
 plt.clf()
 sns.stripplot(data=pest_data, x='traps', y='complaints', hue='live_in_super', jitter=True)
 plt.show()
+plt.close()
 ```
 
 ```{python}
+#| warning: false
 import matplotlib.dates as mdates
 plt.clf()
 
@@ -135,6 +138,7 @@ line_labels = [
 g.add_legend(handles=line_labels, title='Legend', loc='upper right')   
 
 plt.show()
+plt.close()
 ```
 
 The first question we'll look at is just whether the number of complaints per building per month is associated with the number of bait stations per building per month, ignoring the temporal and across-building variation (we'll come back to those sources of variation later in the document). That requires only two variables, $\textrm{complaints}$ and $\textrm{traps}$. How should we model the number of complaints?
@@ -155,7 +159,7 @@ We already know some rudimentary information about what we should expect. The nu
 
 Given that we have chosen a Poisson regression, we define the likelihood to be the Poisson probability mass function over the number bait stations placed in the building, denoted below as `traps`. This model assumes that the mean and variance of the outcome variable `complaints` (number of complaints) is the same. We'll investigate whether this is a good assumption after we fit the model.
 
-For building $b = 1,\dots,10$ at time (month) $t = 1,\dots,12$, we have
+For building $b = 1,\dots,10$ at time (month) $t = 1,\dots,12$, we have:
 
 $$
 \begin{align*}
@@ -170,6 +174,7 @@ Let's encode this probability model in a Stan program.
 ### Writing our first Stan model
 
 ```{python}
+#| output: false
 simple_poisson_regression = '''
 functions {
   /*
@@ -245,6 +250,7 @@ Here we will do the *compilation* and *fitting* in two stages to demonstrate wha
 First we will compile the Stan program (`simple_poisson_regression_dgp.stan`) that will generate the fake data.
 
 ```{python}
+#| output: false
 simple_poisson_regression_dgp = StanModel('../stan_models/simple_poisson_regression_dgp', simple_poisson_regression_dgp_model)
 ```
 
@@ -296,6 +302,7 @@ ax[0].axvline(true_alpha, color='r', linewidth=2)
 sns.histplot(posterior_alpha_beta, x='beta', bins=30, ax=ax[1])
 ax[1].axvline(true_beta, color='r', linewidth=2)
 plt.show()
+plt.close()
 ```
 
 We don't do a great job recovering the parameters here simply because we're simulating so few observations that the posterior uncertainty remains rather large, but it looks at least *plausible* ($\alpha$ and $\beta$ are contained within the histograms). If we did the simulation with many more observations the parameters would be estimated much more precisely.
@@ -313,6 +320,7 @@ for i in range(200):
 sns.kdeplot(stan_dat_fake['complaints'], color='r', linewidth=2)
 plt.xlim(0,12)
 plt.show()
+plt.close()
 ```
 
 In the plot above we have the kernel density estimate of the observed data ($y$, thicker curve) and 200 simulated data sets ($y_{rep}$, thin curves) from the posterior predictive distribution. If the model fits the data well, as it does here, there is little difference between the observed dataset and the simulated datasets.
@@ -335,6 +343,7 @@ ax.set_xlim(hist_range[0]-0.5, hist_range[1]+0.5)
 secax.set_yticklabels([])
 secax.yaxis.set_ticks([])
 plt.show()
+plt.close()
 ```
 
 ### Fit with real data
@@ -371,6 +380,7 @@ az.plot_dist(az_fit_P_real_data.posterior.beta, kind='hist', ax=ax[1])
 for a in ax:
     a.xaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
 plt.show()
+plt.close()
 ```
 
 As we expected, it appears the number of bait stations set in a building is associated with the number of complaints about cockroaches that were made in the following month. However, we still need to consider how well the model fits.
@@ -386,6 +396,7 @@ for i in range(200):
 sns.kdeplot(stan_dat_simple['complaints'], color='r', linewidth=2)
 plt.xlim(0,25)
 plt.show()
+plt.close()
 ```
 
 As opposed to when we fit the model to simulated data above, here the simulated datasets is not as dispersed as the observed data and don't seem to capture the rate of zeros in the observed data. The Poisson model may not be sufficient for this data.
@@ -398,6 +409,7 @@ _, ax = plt.subplots()
 sns.histplot(np.mean(y_rep == 0, axis=2).to_numpy().flatten(), bins=20, ax=ax)
 ax.axvline(np.mean(stan_dat_simple['complaints'] == 0), linewidth=2, color='r')
 plt.show()
+plt.close()
 ```
 
 The plot above shows the observed proportion of zeros (thick vertical line) and a histogram of the proportion of zeros in each of the simulated data sets. It is clear that the model does not capture this feature of the data well at all.
@@ -415,6 +427,7 @@ plt.axhline(-2, linestyle='--')
 plt.xlabel('mean_y_rep')
 plt.ylabel('std_resid')
 plt.show()
+plt.close()
 ```
 
 As you can see here, it looks as though we have more positive residuals than negative, which indicates that the model tends to underestimate the number of complaints that will be received.
@@ -437,6 +450,7 @@ ax.set_xlim(hist_range[0]-0.5, hist_range[1]+0.5)
 secax.set_yticklabels([])
 secax.yaxis.set_ticks([])
 plt.show()
+plt.close()
 ```
 
 If the model was fitting well these would be relatively similar, however in this figure we can see the number of complaints is underestimated if there are few complaints, over-estimated for medium numbers of complaints, and underestimated if there are a large number of complaints.
@@ -465,6 +479,7 @@ for traps_x, complaints_y in grouped_array.items():
     ax.plot(traps_x, np.mean(complaints_y), 'ko')
 
 plt.show()
+plt.close()
 ```
 
 Specifically, the model doesn't capture the tails of the observed data very well.
@@ -502,6 +517,7 @@ A quick test shows us that there appears to be a relationship between the square
 plt.clf()
 sns.regplot(x=np.log(pest_data.total_sq_foot),y=np.log1p(pest_data.complaints))
 plt.show()
+plt.close()
 ```
 
 Using the property manager's intuition, we include two extra pieces of information we know about the building - the (log of the) square floor space and whether there is a live in super or not - into both the simulated and real data.
@@ -516,6 +532,7 @@ stan_dat_simple['live_in_super'] = pest_data.live_in_super
 Now we need a new Stan model that uses multiple predictors.
 
 ```{python}
+#| output: false
 multiple_poisson_regression = '''
 functions {
     /*
@@ -562,6 +579,7 @@ multiple_poisson_regression_model = StanModel('../stan_models/multiple_poisson_r
 ### Simulate fake data with multiple predictors
 
 ```{python}
+#| output: false
 multiple_poisson_regression_dgp = '''
 data {
     int<lower=1> N;
@@ -643,6 +661,7 @@ ax[1].axvline(true_beta, color='r', linewidth=2)
 sns.histplot(posterior_alpha_beta, x='beta_super', bins=30, ax=ax[2])
 ax[2].axvline(true_beta_super, color='r', linewidth=2)
 plt.show()
+plt.close()
 ```
 
 We've recovered the parameters sufficiently well, so we've probably coded the Stan program correctly and we're ready to fit the real data.
@@ -665,6 +684,7 @@ for i in range(200):
 sns.kdeplot(stan_dat_simple['complaints'], color='r', linewidth=2)
 plt.xlim(0,25)
 plt.show()
+plt.close()
 ```
 
 This again looks like we haven't captured the smaller counts very well, nor have we captured the larger counts.
@@ -675,6 +695,7 @@ _, ax = plt.subplots()
 sns.histplot(np.mean(y_rep == 0, axis=2).to_numpy().flatten(), bins=20, ax=ax)
 ax.axvline(np.mean(stan_dat_simple['complaints'] == 0), linewidth=2, color='r')
 plt.show()
+plt.close()
 ```
 
 We're still severely underestimating the proportion of zeros in the data. Ideally this vertical line would fall somewhere within the histogram.
@@ -701,6 +722,7 @@ for traps_x, complaints_y in grouped_array.items():
     ax.plot(traps_x, np.mean(complaints_y), 'ko')
 
 plt.show()
+plt.close()
 ```
 
 We can see that we've increased the tails a bit more at the larger numbers of traps but we still have some large observed numbers of complaints that the model would consider extremely unlikely events.
@@ -732,6 +754,7 @@ As $\phi$ gets larger the term $\lambda^2 / \phi$ approaches zero and so the var
 ### Stan program for negative-binomial regression
 
 ```{python}
+#| output: false
 multiple_NB_regression = '''
 functions {
     /*
@@ -786,6 +809,7 @@ multiple_NB_regression_model = StanModel('../stan_models/multiple_NB_regression'
 ### Fake data fit: Multiple NB regression
 
 ```{python}
+#| output: false
 multiple_NB_regression_dgp = '''
 data {
     int<lower=1> N;
@@ -869,6 +893,7 @@ for i, ax in enumerate(axes.flat):
     ax.set(ylabel='')
     ax.yaxis.set_ticks([])
 plt.show()
+plt.close()
 ```
 
 ### Fit to real data and check the fit
@@ -889,6 +914,7 @@ for i in range(200):
 sns.kdeplot(stan_dat_simple['complaints'], color='r', linewidth=2)
 plt.xlim(0,)
 plt.show()
+plt.close()
 ```
 
 It appears that our model now captures both the number of small counts better as well as the tails.
@@ -901,6 +927,7 @@ _, ax = plt.subplots()
 sns.histplot(np.mean(y_rep == 0, axis=2).to_numpy().flatten(), bins=25, ax=ax)
 ax.axvline(np.mean(stan_dat_simple['complaints'] == 0), linewidth=2, color='r')
 plt.show()
+plt.close()
 ```
 
 These look OK, but let's look at the standardized residual plot.
@@ -917,6 +944,7 @@ plt.axhline(-2, linestyle='--')
 plt.xlabel('mean_y_rep')
 plt.ylabel('std_resid')
 plt.show()
+plt.close()
 ```
 
 Looks OK, but we still have some very large *standardized* residuals. This might be because we are currently ignoring that the data are clustered by buildings, and that the probability of roach issue may vary substantially across buildings.
@@ -940,6 +968,7 @@ secax.yaxis.set_ticks([])
 ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
 
 plt.show()
+plt.close()
 ```
 
 The rootogram now looks much more plausible. We can tell this because now the expected number of complaints matches much closer to the observed number of complaints. However, we still have some larger counts that appear to be outliers for the model.
@@ -966,6 +995,7 @@ for traps_x, complaints_y in grouped_array.items():
     ax.plot(traps_x, np.mean(complaints_y), 'ko')
 
 plt.show()
+plt.close()
 ```
 
 We haven't used the fact that the data are clustered by building yet. A posterior predictive check might elucidate whether it would be a good idea to add the building information into the model.
@@ -989,6 +1019,7 @@ for ax, key in zip(axes.flat, sorted(grouped_array.keys())):
     ax.yaxis.set_ticks([])
 
 plt.show()
+plt.close()
 ```
 
 We're getting plausible predictions for most building means but some are estimated better than others and some have larger uncertainties than we might expect. If we explicitly model the variation across buildings we may be able to get much better estimates.
@@ -1115,6 +1146,7 @@ stan_dat_hier = {
 Let's code up and compile the model.
 
 ```{python}
+#| output: false
 hier_NB_regression = '''
 functions {
   /*
@@ -1182,27 +1214,33 @@ Fit the model to data.
 
 ```{python}
 #| output: false
-fitted_model_NB_hier = hier_NB_regression_model.sample(data=stan_dat_hier, iter_sampling=4000, show_progress=False)
-az_samps_hier_NB = az.from_cmdstanpy(fitted_model_NB_hier, posterior_predictive='y_rep')
+fitted_model_NB_hier = hier_NB_regression_model.sample(data=stan_dat_hier, 
+                                                       chains=4, 
+                                                       parallel_chains=4,
+                                                       iter_sampling=4000, 
+                                                       seed=[1034992638, 1034992638, 1034992638, 1034992638],
+                                                       show_progress=False)
+az_samps_hier_NB = az.from_cmdstanpy(fitted_model_NB_hier, posterior_predictive='y_rep', observed_data=stan_dat_hier)
 ```
 
 ### Diagnostics
 
 We get a bunch of warnings from Stan about divergent transitions, which is an indication that there may be regions of the posterior that have not been explored by the Markov chains.
 
-Divergences are discussed in more detail in the course slides as well as the **bayesplot** [MCMC diagnostics vignette](http://mc-stan.org/bayesplot/articles/visual-mcmc-diagnostics.html) and [_A Conceptual Introduction to Hamiltonian Monte Carlo_](https://arxiv.org/abs/1701.02434).
+Divergences are discussed in more detail in the course slides as well as the **bayesplot** [MCMC diagnostics vignette](http://mc-stan.org/bayesplot/articles/visual-mcmc-diagnostics.html) and [*A Conceptual Introduction to Hamiltonian Monte Carlo*](https://arxiv.org/abs/1701.02434).
 
 In this example we will see that we have divergent transitions because we need to reparameterize our model - i.e., we will retain the overall structure of the model, but transform some of the parameters so that it is easier for Stan to sample from the parameter space. Before we go through exactly how to do this reparameterization, we will first go through what indicates that this is something that reparameterization will resolve. We will go through:
 
-1. Examining the fitted parameter values, including the effective sample size
-2. Traceplots and scatterplots that reveal particular patterns in locations of the divergences.
+1.  Examining the fitted parameter values, including the effective sample size
+2.  Traceplots and scatterplots that reveal particular patterns in locations of the divergences.
 
 Let us first run the `diagnose` and `summary` method on the model object `fitted_model_NB_hier`:
 
 ```{python}
 print(fitted_model_NB_hier.diagnose())
 ```
-This reports that 32% of the samples ended with a divergence. 
+
+This reports that 32% of the samples ended with a divergence.
 
 Now, let's extract the fits from the model.
 
@@ -1210,18 +1248,355 @@ Now, let's extract the fits from the model.
 summary = fitted_model_NB_hier.summary(percentiles=(5, 95)).round(2)
 summary[~summary.index.str.contains('y_rep')]
 ```
+
 You can see that the effective samples are quite low for many of the parameters relative to the total number of samples. This alone isn't indicative of the need to reparameterize, but it indicates that we should look further at the trace plots and pairs plots. First let's look at the traceplots to see if the divergent transitions form a pattern.
 
 ```{python}
 plt.clf()
 az.plot_trace(az_samps_hier_NB, var_names='sigma_mu', divergences='bottom')
 plt.show()
+plt.close()
 ```
 
 Looks as if the divergent parameters, the the black bars underneath the traceplots correspond to samples where the sampler gets stuck at one parameter value for $\sigma_\mu$.
 
 ```{python}
-?az.plot_trace
+plot_mu = az_samps_hier_NB.posterior.mu.sel(mu_dim_0=3).to_numpy().flatten()
+plot_sigma_mu = np.log(az_samps_hier_NB.posterior.sigma_mu.to_numpy().flatten())
+divergent_filter = az_samps_hier_NB.sample_stats.diverging.to_numpy().flatten()
+
+plt.clf()
+_, ax = plt.subplots()
+sns.scatterplot(x=plot_mu, y=plot_sigma_mu, alpha=0.2, ax=ax)
+sns.scatterplot(x=plot_mu[divergent_filter], y=plot_sigma_mu[divergent_filter], color='r', alpha=0.5, ax=ax)
+plt.show()
+plt.close()
 ```
+
+What we have here is a cloud-like shape, with most of the divergences clustering towards the bottom. We'll see a bit later that we actually want this to look more like a funnel than a cloud, but the divergences are indicating that the sampler can't explore the narrowing neck of the funnel.
+
+One way to see why we should expect some version of a funnel is to look at some simulations from the prior, which we can do without MCMC and thus with no risk of sampling problems:
+
+```{python}
+N_sims = 1000
+log_sigma = np.random.normal(loc=0, scale=1, size=N_sims)
+theta = np.random.normal(loc=0, scale=np.exp(log_sigma))
+
+plt.clf()
+_, ax = plt.subplots()
+sns.scatterplot(x=theta, y=log_sigma, alpha=0.2, ax=ax)
+plt.show()
+plt.close()
+```
+
+Of course, if the data is at all informative we shouldn't expect the posterior to look exactly like the prior. But unless the data is incredibly informative about the parameters and the posterior concentrates away from the narrow neck of the funnel, the sampler is going to have to confront the funnel geometry. (See the [Visual MCMC Diagnostics](http://mc-stan.org/bayesplot/articles/visual-mcmc-diagnostics.html) vignette for more on this.)
+
+Another way to look at the divergences is via a parallel coordinates plot:
+
+```{python}
+param_mat = np.zeros((11, 4000*4))
+param_mat[0,:] = az_samps_hier_NB.posterior.sigma_mu.to_numpy().flatten()
+for i in range(10):
+    param_mat[i+1,:] = az_samps_hier_NB.posterior.mu.sel(mu_dim_0=i).to_numpy().flatten()
+
+divergent_mat = np.zeros((11, np.sum(divergent_filter)))
+for i in range(11):
+    divergent_mat[i,:] = param_mat[i, divergent_filter]
+
+custom_labels = ["sigma_mu", "mu[1]", "mu[2]", "mu[3]", "mu[4]", "mu[5]",
+                 "mu[6]", "mu[7]", "mu[8]", "mu[9]", "mu[10]"]
+
+plt.clf()
+plt.plot(param_mat, 'k', alpha=0.015)
+plt.plot(divergent_mat, 'r', alpha=0.025)
+plt.xlim(0,10)
+plt.xticks(np.arange(11), custom_labels)
+plt.show()
+plt.close()
+```
+
+Again, we see evidence that our problems concentrate when $\texttt{sigma_mu}$ is small.
+
+### Reparameterize and recheck diagnostics
+
+Instead, we should use the non-centered parameterization for $\mu_b$. We define a vector of auxiliary variables in the parameters block, $\texttt{mu_raw}$ that is given a $\text{Normal}(0, 1)$ prior in the model block. We then make $\texttt{mu}$ a transformed parameter:
+
+We can reparameterize the random intercept $\mu_b$, which is distributed:
+
+$$
+\mu_b \sim \text{Normal}(\alpha + \texttt{building_data} \, \zeta, \sigma_{\mu})
+$$
+
+```         
+transformed parameters {
+  vector[J] mu;
+  mu = alpha + building_data * zeta + sigma_mu * mu_raw;
+}
+```
+
+This gives $\texttt{mu}$ a $\text{Normal}(\alpha + \texttt{building_data}\, \zeta, \sigma_\mu)$ distribution, but it decouples the dependence of the density of each element of $\texttt{mu}$ from $\texttt{sigma_mu}$ ($\sigma_\mu$). `hier_NB_regression_ncp` uses the non-centered parameterization for $\texttt{mu}$. We will examine the effective sample size of the fitted model to see whether we've fixed the problem with our reparameterization.
+
+Compile the model.
+
+```{python}
+#| output: false
+hier_NB_regression_ncp = '''
+functions {
+    /*
+    * Alternative to neg_binomial_2_log_rng() that 
+    * avoids potential numerical problems during warmup
+    */
+    int neg_binomial_2_log_safe_rng(real eta, real phi) {
+    real gamma_rate = gamma_rng(phi, phi / exp(eta));
+    if (gamma_rate >= exp(20.79))
+      return -9;
+      
+    return poisson_rng(gamma_rate);
+    }
+}
+data {
+    int<lower=1> N;                     
+    array[N] int<lower=0> complaints;
+    vector<lower=0>[N] traps;
+    
+    // 'exposure'
+    vector[N] log_sq_foot;
+    
+    // building-level data
+    int<lower=1> K;
+    int<lower=1> J;
+    array[N] int<lower=1, upper=J> building_idx;
+    matrix[J,K] building_data;
+}
+parameters {
+    real<lower=0> inv_phi;   // 1/phi (easier to think about prior for 1/phi instead of phi)
+    real beta;               // coefficient on traps
+    
+    vector[J] mu_raw;        // N(0,1) params for non-centered parameterization of building intercepts 
+    real<lower=0> sigma_mu;  // sd of building-specific intercepts
+    real alpha;              // intercept of model for mu
+    vector[K] zeta;          // coefficients on building-level predictors in model for mu 
+}
+transformed parameters {
+    real phi = inv(inv_phi);
+    
+    // non-centered parameterization
+    vector[J] mu = alpha + building_data * zeta + sigma_mu * mu_raw;
+}
+model {
+    mu_raw ~ normal(0, 1);   // implies mu ~ normal(alpha + building_data * zeta, sigma_mu)
+    sigma_mu ~ normal(0, 1);
+    alpha ~ normal(log(4), 1);
+    zeta ~ normal(0, 1);
+    beta ~ normal(-0.25, 1);
+    inv_phi ~ normal(0, 1);
+    
+    complaints ~ neg_binomial_2_log(mu[building_idx] + beta * traps + log_sq_foot, phi);
+} 
+generated quantities {
+    array[N] int y_rep;
+    for (n in 1:N) {
+        real eta_n = mu[building_idx[n]] + beta * traps[n] + log_sq_foot[n];
+        y_rep[n] = neg_binomial_2_log_safe_rng(eta_n, phi);
+    }
+}
+'''
+
+hier_NB_regression_ncp_model = StanModel('../stan_models/hier_NB_regression_ncp', hier_NB_regression_ncp)
+
+```
+
+Fit the model to the data.
+
+```{python}
+fitted_model_NB_hier_ncp = hier_NB_regression_ncp_model.sample(
+    data=stan_dat_hier,
+    chains=4,
+    parallel_chains=4,
+    adapt_delta=0.95,
+    show_progress=False
+)
+az_samps_hier_NB_hier_ncp = az.from_cmdstanpy(fitted_model_NB_hier_ncp, posterior_predictive='y_rep', observed_data=stan_dat_hier)
+```
+
+Examining the fit of the new model
+
+```{python}
+print(fitted_model_NB_hier_ncp.diagnose())
+```
+
+
+```{python}
+summary = fitted_model_NB_hier.summary(percentiles=(5, 95)).round(2)
+summary[~summary.index.str.contains(r'^(y_rep|zeta)', regex=True)]
+```
+This has improved the effective sample sizes of $\texttt{mu}$. We extract the parameters to run our usual posterior predictive checks.
+
+```{python}
+plot_mu = az_samps_hier_NB_hier_ncp.posterior.mu.sel(mu_dim_0=3).to_numpy().flatten()
+plot_sigma_mu = np.log(az_samps_hier_NB_hier_ncp.posterior.sigma_mu.to_numpy().flatten())
+divergent_filter = az_samps_hier_NB_hier_ncp.sample_stats.diverging.to_numpy().flatten()
+
+plt.clf()
+_, ax = plt.subplots()
+sns.scatterplot(x=plot_mu, y=plot_sigma_mu, alpha=0.2, ax=ax)
+sns.scatterplot(x=plot_mu[divergent_filter], y=plot_sigma_mu[divergent_filter], color='r', alpha=0.5, ax=ax)
+ax.set(xlabel='mu[4]', ylabel='log(sigma_mu)')
+plt.show()
+plt.close()
+```
+
+```{python}
+plt.clf()
+az.plot_parallel(az_samps_hier_NB_hier_ncp, 
+                 var_names=['sigma_mu', 'mu'])
+plt.show()
+plt.close()
+```
+
+```{python}
+y_rep = az_samps_hier_NB_hier_ncp.posterior_predictive.y_rep
+
+plt.clf()
+for i in range(200):
+    sns.kdeplot(y_rep.sel(chain=slice(0), draw=i).to_dataframe(), x='y_rep', color='k', alpha=0.2)
+sns.kdeplot(stan_dat_hier['complaints'], color='r', linewidth=2)
+plt.xlim(0,)
+plt.show()
+plt.close()
+```
+
+This looks quite nice. If we've captured the building-level means well, then the posterior distribution of means by building should match well with the observed means of the quantity of building complaints by month.
+
+```{python}
+plt.clf()
+
+grouped_indices = defaultdict(list)
+for idx, building_id in enumerate(pest_data['building_id']):
+    grouped_indices[building_id].append(idx)
+
+grouped_array = {bldg_id: y_rep[:, :, idx_list].mean(axis=2).to_numpy().flatten() for bldg_id, idx_list in grouped_indices.items()}
+
+_, axes = plt.subplots(2, 5, figsize=(7,4))
+
+for ax, key in zip(axes.flat, sorted(grouped_array.keys())):
+    sns.histplot(grouped_array[key], bins=30, ax=ax)
+    ax.axvline(pest_data[pest_data['building_id']==key].complaints.mean(), color='r', linewidth=2)
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=4))
+    ax.set(ylabel='', title=f"Bulding = {key}")
+    ax.yaxis.set_ticks([])
+
+plt.show()
+plt.close()
+```
+
+We weren't doing terribly with the building-specific means before, but now they are all well-captured by our model. The model is also able to do a decent job estimating within-building variability:
+
+```{python}
+plt.clf()
+
+grouped_indices = defaultdict(list)
+for idx, building_id in enumerate(pest_data['building_id']):
+    grouped_indices[building_id].append(idx)
+
+grouped_array = {bldg_id: y_rep[:, :, idx_list].std(axis=2).to_numpy().flatten() for bldg_id, idx_list in grouped_indices.items()}
+
+_, axes = plt.subplots(2, 5, figsize=(7,4))
+
+for ax, key in zip(axes.flat, sorted(grouped_array.keys())):
+    sns.histplot(grouped_array[key], bins=30, ax=ax)
+    ax.axvline(pest_data[pest_data['building_id']==key].complaints.std(), color='r', linewidth=2)
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=4))
+    ax.set(ylabel='', title=f"Bulding = {key}")
+    ax.yaxis.set_ticks([])
+
+plt.show()
+plt.close()
+```
+
+Predictions by number of traps:
+
+```{python}
+plt.clf()
+_, ax = plt.subplots()
+
+ax.plot(stan_dat_hier['traps'], stan_dat_hier['complaints'], 'o', fillstyle='none')
+
+grouped_indices = defaultdict(list)
+for idx, trap in enumerate(stan_dat_hier['traps']):
+    grouped_indices[trap].append(idx)
+
+grouped_array = {trap: y_rep[:, :, idx_list].to_numpy().flatten() for trap, idx_list in grouped_indices.items()}
+
+for traps_x, complaints_y in grouped_array.items():
+    inner_prob = np.array([np.quantile(complaints_y, 0.75), np.quantile(complaints_y, 0.25)])
+    outer_prob = np.array([np.quantile(complaints_y, 0.95), np.quantile(complaints_y, 0.05)])
+    ax.plot(np.full(inner_prob.shape, traps_x), inner_prob, 'k', linewidth=2)
+    ax.plot(np.full(outer_prob.shape, traps_x), outer_prob, 'k', linewidth=0.5)
+    ax.plot(traps_x, np.mean(complaints_y), 'ko')
+
+plt.show()
+plt.close()
+```
+
+Standardized residuals:
+
+```{python}
+mean_inv_phi = az_samps_hier_NB_hier_ncp.posterior.inv_phi.mean(dim=['chain', 'draw'])
+mean_y_rep = y_rep.mean(dim=['chain', 'draw'])
+std_resid = (stan_dat_hier['complaints'] - mean_y_rep) / np.sqrt(mean_y_rep + mean_y_rep**2 * mean_inv_phi)
+
+plt.clf()
+plt.plot(mean_y_rep, std_resid, 'o', alpha=0.5)
+plt.axhline(2, linestyle='--')
+plt.axhline(-2, linestyle='--')
+plt.xlabel('mean_y_rep')
+plt.ylabel('std_resid')
+plt.show()
+plt.close()
+```
+
+Rootogram:
+
+```{python}
+plt.clf()
+fig, ax = plt.subplots()
+vals, counts = np.unique(y_rep, return_counts=True)
+hist_range = (min(vals), max(vals))
+az.plot_dist(stan_dat_hier['complaints'], kind='hist', ax=ax, 
+             hist_kwargs={'bins': np.arange(hist_range[0], hist_range[1] + 1, 1), 'range': hist_range})
+
+secax = ax.twinx()
+secax.plot(vals, counts, color='red', linewidth=1.5)
+
+ax.set_xlim(hist_range[0]-0.5, hist_range[1]+0.5)
+
+secax.set_yticklabels([])
+secax.yaxis.set_ticks([])
+
+ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
+
+plt.show()
+plt.close()
+```
+
+### Varying intercepts _and_ varying slopes
+
+We've gotten some new data that extends the number of time points for which we have observations for each building. This will let us explore how to expand the model a bit more with varying _slopes_ in addition to the varying intercepts and also, later, also model temporal variation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
