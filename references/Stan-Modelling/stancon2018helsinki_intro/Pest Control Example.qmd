@@ -2296,7 +2296,7 @@ profit_df = pd.DataFrame({
 ```{python}
 plt.clf()
 
-fig, axes = plt.subplots(5, 2, figsize=(4,9), sharex=True)
+fig, axes = plt.subplots(5, 2, figsize=(5,11), sharex=True)
 
 for idx, ax in enumerate(axes.flat):
   data = profit_df[profit_df['building'] == idx+1]
