@@ -1,10 +1,10 @@
-import cmdstanpy
-from cmdstanpy import CmdStanModel
+from cmdstanpy import CmdStanModel, CmdStanMCMC
 import pandas as pd
 import numpy as np
 import pymc as pm
 import arviz as az
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+
 import os
 import gc
 
@@ -158,3 +158,44 @@ def crosstab(x: np.array, y: np.array, labels: list[str] = None):
         ct.index = labels
         ct.columns = labels
     return ct
+
+# ----------------------- Garbage Collect -----------------------
+def clear_memory(exceptions=None, targeted_types=None):
+    """Clears memory by deleting global variables except those in exceptions.
+    
+    Args:
+        exceptions (list, optional): List of variable names to exclude from deletion.
+        targeted_types (list, optional): List of data types to delete.
+    """
+
+    # Default exceptions
+    default_exceptions = ['exceptions', 'active_variables']
+    if exceptions:
+        default_exceptions.extend(exceptions)  # Append user-provided exceptions
+
+    # Default targeted types
+    default_types = [CmdStanModel, CmdStanMCMC, plt.Axes, az.InferenceData, 
+                     pd.DataFrame, pd.Series, dict, list, int, float, str, 
+                     tuple, plt.Figure, defaultdict, np.ndarray, np.int64, 
+                     np.float32]
+    if targeted_types:
+        default_types.extend(targeted_types)  # Append user-provided types
+
+    # Identify variables to delete
+    active_variables = [
+        var for var, value in globals().items()
+        if not var.startswith('_')  # Exclude private/internal variables
+        and var not in default_exceptions  # Exclude user-specified exceptions
+        and isinstance(value, tuple(default_types))  # Check against expanded type list
+    ]
+
+    # Delete identified variables
+    for var in active_variables:
+        del globals()[var]
+
+    # Cleanup references
+    del active_variables, default_exceptions, default_types
+
+    # Run garbage collection
+    gc.collect()
+
