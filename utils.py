@@ -150,6 +150,27 @@ class QuadraticApproximation(ArrayStep):
         sample = np.random.multivariate_normal(self.mode, self.covariance)
         return sample, []
 
+# ----------------- Quarto Inline Plotting -----------------
+def inline_plot(plot_func, *args, **kwargs):
+    """
+    A helper function to display plots inline in Quarto (RStudio).
+
+    Parameters:
+    - plot_func: Function that generates the plot (e.g., plt.plot).
+    - *args, **kwargs: Arguments to pass to the plot function.
+    """
+    plt.clf()  # Clear any existing plot
+    plot_func(*args, **kwargs)  # Call the plotting function with arguments
+    plt.show()  # Show the plot inline
+    plt.close()  # Close the plot to avoid display issues
+
+# Example Use:
+# def my_custom_plot():
+#     plt.plot([1, 2, 3, 4], [10, 20, 25, 30], marker='o')
+#     plt.title("My Custom Plot")
+# 
+# inline_plot(my_custom_plot)
+
 # ----------------------- Crosstable -----------------------
 def crosstab(x: np.array, y: np.array, labels: list[str] = None):
     """Simple cross tabulation of two discrete vectors x and y"""

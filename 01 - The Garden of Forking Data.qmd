@@ -1,37 +1,277 @@
 ---
 title: 01 - The Garden of Forking Data
-jupyter: main
+date: today
 ---
 
+**Sources**:
 
+-   [Statistical Rethinking - Chapter 2: Small Worlds and Large Worlds](https://www.routledge.com/Statistical-Rethinking-A-Bayesian-Course-with-Examples-in-R-and-STAN/McElreath/p/book/9780367139919)
 
-**Sources**: 
-- [Video: Statistical Rethinking 2023 - 02 - The Garden of Forking Data](https://youtu.be/R1vcdhPBlXA?si=rL3BOz9hHxkPt79m)
+-   [Video: Statistical Rethinking 2023 - 02 - The Garden of Forking Data](https://youtu.be/R1vcdhPBlXA?si=rL3BOz9hHxkPt79m)
 
 #### Imports
 
 ```{python}
-# %run init_notebook.py
-# %load_ext autoreload
-# %autoreload 2
+from init import *
+```
 
-# ruff: noqa: F405
-from init_notebook import *
+## Introduction
 
-%config InlineBackend.figure_formats = ['svg']
+The **small world** is the self-contained logical world of the model. Within the small world , all possibilities are nominated. There are no pure surprises. Within the small world of the model, it is important to be able to verify the model’s logic, making sure that it performs as expected under favorable assumptions. Bayesian models have some advantages in this regard, as they have reasonable claims to optimality: No alternative model could make better use of the information in the data and support better decisions, assuming the small world is an accurate description of the real world.
+
+The **large world** is the broader context in which one deploys a model. In the large world, there may be events that were not imagined in the small world. Moreover, the model is always an incomplete representation of the large world, and so will make mistakes, even if all kinds of events have been properly nominated. The logical consistency of a model in the small world is no guarantee that it will be optimal in the large world. But it is certainly a warm comfort.
+
+In this chapter, we will begin to build Bayesian models. The way that Bayesian models learn from evidence is arguably optimal in the small world. When their assumptions approximate reality, they also perform well in the large world. But large world performance has to be demonstrated rather than logically deduced. Passing back and forth between these two worlds allows both formal methods, like Bayesian inference, and informal methods, like peer review, to play an indispensable role.
+
+This chapter focuses on the small world. It explains probability theory in its essential form: counting the ways things can happen. Bayesian inference arises automatically from this perspective. Then the chapter presents the stylized components of a Bayesian statistical model, a model for learning from data. Then it shows you how to animate the model, to produce estimates.
+
+## The Garden of Forking Data
+
+Our goal in this section will be to build Bayesian inference up from humble beginnings, so there is no superstition about it. Bayesian inference is really just counting and comparing of possibilities. Consider by analogy Jorge Luis Borges’ short story “The Garden of Forking Paths.” The story is about a man who encounters a book filled with contradictions. In most books, characters arrive at plot points and must decide among alternative paths. A protagonist may arrive at a man’s home. She might kill the man, or rather take a cup of tea. Only one of these paths is taken—murder or tea. But the book within Borges’ story explores all paths, with each decision branching outward into an expanding garden of forking paths.
+
+This is the same device that Bayesian inference offers. In order to make good inference about what actually happened, it helps to consider everything that could have happened. A Bayesian analysis is a garden of forking data, in which alternative sequences of events are cultivated. As we learn about what did happen, some of these alternative sequences are pruned. In the end, what remains is only what is logically consistent with our knowledge.
+
+This approach provides a quantitative ranking of hypotheses, a ranking that is maximally conservative, given the assumptions and data that go into it. The approach cannot guarantee a correct answer, on large world terms. But it can guarantee the best possible answer, on small world terms, that could be derived from the information fed into it.
+
+Consider the following toy example.
+
+### Counting Possibilities
+
+Suppose there’s a bag, and it contains four marbles. These marbles come in two colors: blue and white. We know there are four marbles in the bag, but we don’t know how many are of each color. We do know that there are five possibilities: (1) \['W', 'W', 'W', 'W'\], (2) \['B', 'W', 'W', 'W'\], (3) \['B', 'B', 'W', 'W'\], (4) \['B', 'B', 'B', 'W'\], (5) \['B', 'B', 'B', 'B'\]. These are the only possibilities consistent with what we know about the contents of the bag. Call these five possibilities the ***conjectures***.
+
+Our goal is to figure out which of these conjectures is most plausible, given some evidence about the contents of the bag. We do have some evidence: A sequence of three marbles is pulled from the bag, one at a time, replacing the marble each time and shaking the bag before drawing another marble. The sequence that emerges is: \['B', 'W', 'B'\], in that order. These are the data.
+
+So now let’s plant the garden and see how to use the data to infer what’s in the bag. Let’s begin by considering just the single conjecture, \['B', 'W', 'W', 'W'\], that the bag contains one blue and three white marbles. On the first draw from the bag, one of four things could happen, corresponding to one of four marbles in the bag. So we can visualize the possibilities branching outward:
+
+![](images/marble-conjecture-2.png){fig-align="center" width="170"}
+
+Notice that even though the three white marbles look the same from a data perspective— we just record the color of the marbles, after all—they are really different events. This is important, because it means that there are three more ways to see W than to see B.
+
+Now consider the garden as we get another draw from the bag. It expands the garden out one layer:
+
+![](images/marble-tree-1.png){fig-align="center" width="270"}
+
+Now there are 16 possible paths through the garden, one for each pair of draws. On the second draw from the bag, each of the paths above again forks into four possible paths. Why?
+
+Because we believe that our shaking of the bag gives each marble a fair chance at being drawn, regardless of which marble was drawn previously. The third layer is built in the same way, and the full garden is shown below. There are $4^3 = 64$ possible paths in total.
+
+![](images/marble-tree-2.png){fig-align="center" width="270"}
+
+As we consider each draw from the bag, some of these paths are logically eliminated. The first draw tuned out to be 'B', recall, so the three white paths at the bottom of the garden are eliminated right away. If you imagine the real data tracing out a path through the garden, it must have passed through the one blue path near the origin. The second draw from the bag produces 'W', so three of the paths forking out of the first blue marble remain. As the data trace out a path, we know it must have passed through one of those three white paths (after the first blue path), but we don’t know which one, because we recorded only the color of each marble. Finally, the third draw is 'B'. Each of the remaining three paths in the middle layer sustain one blue path, leaving a total of three ways for the sequence to appear, assuming the bag contains \['B', 'W', 'W', 'W'\].
+
+![](images/marble-tree-3.png){fig-align="center" width="270"}
+
+Figure above shows the garden again, now with logically eliminated paths grayed out. We can’t be sure which of those three paths the actual data took. But as long as we’re considering only the possibility that the bag contains one blue and three white marbles, we can be sure that the data took one of those three paths. Those are the only paths consistent with both our knowledge of the bag’s contents (four marbles, white or blue) and the data ('B', 'W', 'B').
+
+This demonstrates that there are three (out of 64) ways for a bag containing \['B', 'W', 'W', 'W'\] to produce the data . We have no way to decide among these three ways. The inferential power comes from comparing this count to the numbers of ways each of the other conjectures of the bag’s contents could produce the same data. For example, consider the conjecture \['W', 'W', 'W', 'W'\]. There are zero ways for this conjecture to produce the observed data, because even one is logically incompatible with it. The conjecture \['B', 'B', 'B', 'B'\] is likewise logically incompatible with the data. So we can eliminate these two conjectures, because neither provides even a single path that is consistent with the data.
+
+The figure below displays the full garden now, for the remaining three conjectures: \['B', 'W', 'W', 'W'\], \['B', 'B', 'W', 'W'\], and \['B', 'B', 'B', 'W'\]. The upper-left wedge displays the same garden as earlier. The upper-right shows the analogous garden for the conjecture that the bag contains three blue marbles and one white marble. And the bottom wedge shows the garden for two blue and two white marbles. Now we count up all of the ways each conjecture could produce the observed data. For one blue and three white, there are three ways, as we counted already. For two blue and two white, there are eight paths forking through the garden that are logically consistent with the observed sequence. For three blue and one white, there are nine paths that survive.
+
+![](images/garden_of_forking_data.PNG){alt="garden_of_forking_data" fig-align="center" width="270"}
+
+To summarize, we’ve considered five different conjectures about the contents of the bag, ranging from zero blue marbles to four blue marbles. For each of these conjectures, we’ve counted up how many sequences, paths through the garden of forking data, could potentially produce the observed data, ('B', 'W', 'B'):
+
+| Conjecture     | Ways to Produce (B, W, B) |
+|----------------|---------------------------|
+| \[B, W, W, W\] | 0 x 4 x 0 = 0             |
+| \[B, B, W, W\] | 1 x 3 x 1 = 3             |
+| \[B, B, B, W\] | 3 x 1 x 3 = 9             |
+| \[B, B, B, B\] | 4 x 0 x 4 = 0             |
+
+Notice that the number of ways to produce the data, for each conjecture, can be computed by first counting the number of paths in each “ring” of the garden and then by multiplying these counts together. This is just a computational device. It tells us the same thing as the figure above but without having to draw the garden. The fact that numbers are multiplied during calculation doesn’t change the fact that this is still just counting of logically possible paths. This point will come up again, when you meet a formal representation of Bayesian inference.
+
+So what good are these counts? By comparing these counts, we have part of a solution for a way to rate the relative plausibility of each conjectured bag composition. But it’s only a part of a solution, because in order to compare these counts we first have to decide *how many ways each conjecture could itself be realized.* We might argue that when we have no reason to assume otherwise, we can just consider *each conjecture equally plausible and compare the counts directly*. But often we do have reason to assume otherwise.
+
+### **Combining Other Information**
+
+We may have additional information about the relative plausibility of each conjecture. This information could arise from knowledge of how the contents of the bag were generated. It could also arise from previous data. Whatever the source, it would help to have a way to combine different sources of information to update the plausibilities. Luckily there is a natural solution: Just multiply the counts.
+
+To grasp this solution, suppose we’re willing to say each conjecture is equally plausible at the start. So we just compare the counts of ways in which each conjecture is compatible with the observed data. This comparison suggests that \['B', 'B', 'B', 'W'\] is slightly more plausible than \['B', 'B', 'W', 'W'\], and both are about three times more plausible than \['B', 'W', 'W', 'W'\]. Since these are our initial counts, and we are going to update them next, let’s label them *priors*.
+
+Now suppose we draw another marble from the bag to get another observation: 'B'. Now you have two choices. You could start all over again, making a garden with four layers to trace out the paths compatible with the data sequence \['B', 'W', 'B', 'B'\]. Or you could take the previous counts—the prior counts—over conjectures (0, 3, 8, 9, 0) and just update them in light of the new observation. It turns out that these two methods are mathematically identical, as long as the *new observation is logically independent of the previous observations*.
+
+Here’s how to do it. First we count the numbers of ways each conjecture could produce the new observation, 'B'. Then we multiply each of these new counts by the prior numbers of ways for each conjecture. In table form:
+
+| Conjecture     | Ways to Produce B | Prior Counts | New Count  |
+|----------------|-------------------|--------------|------------|
+| \[W, W, W, W\] | 0                 | 0            | 0 x 0 = 0  |
+| \[B, W, W, W\] | 1                 | 3            | 1 x 3 = 3  |
+| \[B, B, W, W\] | 2                 | 8            | 2 x 8 = 16 |
+| \[B, B, B, W\] | 3                 | 9            | 3 x 9 = 27 |
+| \[B, B, B, B\] | 4                 | 0            | 4 x 0 = 0  |
+
+The new counts in the right-hand column above summarize all the evidence for each conjecture. As new data arrive, and provided those data are independent of previous observations, then the number of logically possible ways for a conjecture to produce all the data up to that point can be computed just by multiplying the new count by the old count.
+
+This updating approach amounts to nothing more than asserting that (1) when we have previous information suggesting there are $W_{prior}$ ways for a conjecture to produce a previous observation $D_{prior}$ and (2) we acquire new observation $D_{new}$ that the same conjecture can produce in $W_{new}$ ways, then (3) the number of ways the conjecture can account for both $D_{prior}$ as well as $D_{new}$ is just product of $W_{prior} \times W_{new}$. For example, in the table above the conjecture \['B', 'B', 'W', 'W'\] has $W_{prior}=8$ ways to produce $D_{prior}=$ \['B', 'W', 'B'\]. It also has $W_{new} = 2$ ways to produce the new observation $D_{new}=$ 'B'. So there are $8 \times 2 = 16$ ways for the conjecture to produce both $D_{prior}$ and $D_{new}$. Why multiply? Multiplication is just a shortcut to enumerating and counting up all of the paths through the garden that could produce all the observations.
+
+In this example, the prior data and new data are of the same type: marbles drawn from the bag. But in general, the prior data and new data can be of different types. Suppose for example that someone from the marble factory tells you that blue marbles are rare. So for every bag containing \['B', 'B', 'B', 'W'\], they made two bags containing \['B', 'B', 'W', 'W'\] and three bags containing \['B', 'W', 'W', 'W'\]. They also ensured that every bag contained at least one blue and one white marble. We can update our counts again:
+
+| Conjecture     | Prior Counts | Factory Count | New Count   |
+|----------------|--------------|---------------|-------------|
+| \[W, W, W, W\] | 0            | 0             | 0 x 0 = 0   |
+| \[B, W, W, W\] | 3            | 3             | 3 x 3 = 9   |
+| \[B, B, W, W\] | 16           | 2             | 16 x 2 = 32 |
+| \[B, B, B, W\] | 27           | 1             | 27 x 1 = 27 |
+| \[B, B, B, B\] | 0            | 0             | 4 x 0 = 0   |
+
+Now the conjecture \['B', 'B', 'W', 'W'\] is most plausible, but barely better than \['B', 'B', 'B', 'W'\]. Is there a threshold difference in these counts at which we can safely decide that one of the conjectures is the correct one? You’ll spend the next chapter exploring that question.
+
+------------------------------------------------------------------------
+
+**Original Ignorance**
+
+Which assumption should we use, when there is no previous information about the conjectures? The most common solution is to assign an equal number of ways that each conjecture could be correct, before seeing any data. This is sometimes known as the **principle of indifference:** When there is no reason to say that one conjecture is more plausible than another, weigh all of the conjectures equally. This book does not use nor endorse “ignorance” priors. As we’ll see in later chapters, the structure of the model and the scientific context always provide information that allows us to do better than ignorance.
+
+For the sort of problems we examine in this book, the principle of indifference results in inferences very comparable to mainstream non-Bayesian approaches, most of which contain implicit equal weighting of possibilities. For example a typical non-Bayesian confidence interval weighs equally all of the possible values a parameter could take, regardless of how implausible some of them are. In addition, many non-Bayesian procedures have moved away from equal weighting, through the use of penalized likelihood and other methods.
+
+------------------------------------------------------------------------
+
+### **From Counts to Probability**
+
+It is helpful to think of this strategy as adhering to a principle of honest ignorance: *When we don't know what caused the data, potential causes that may produce the data in more ways are more plausible*. This leads us to count paths through the garden of forking data. We’re counting the implications of assumptions.
+
+It’s hard to use these counts though, so we almost always standardize them in a way that transforms them into probabilities. Why is it hard to work with the counts? First, since relative value is all that matters, the size of the counts 3, 8, and 9 contain no information of value. They could just as easily be 30, 80, and 90. The meaning would be the same. It’s just the relative values that matter. Second, as the amount of data grows, the counts will very quickly grow very large and become difficult to manipulate. By the time we have 10 data points, there are already more than one million possible sequences. We’ll want to analyze data sets with thousands of observations, so explicitly counting these things isn’t practical.
+
+Luckily, there’s a mathematical way to compress all of this. Specifically, we define the updated plausibility of each possible composition of the bag, after seeing the data, as:
+
+$$
+\text{Plausibility of ['B', 'W', 'W', 'W'] after seeing ['B', 'W', 'B']} \\
+\propto \\
+\text{ways ['B', 'W', 'W', 'W'] can produce ['B', 'W', 'B']} \\
+\times \\
+\text{prior plausibility ['B', 'W', 'W', 'W']}
+$$
+
+That little $\propto$ means *proportional to.* We want to compare the plausibility of each possible composition. So it’ll be helpful to define $p$ as the proportion of the marbles that is blue. For \['B', 'W', 'W', 'W'\], $p = 1/4 = 0.25$. And so we can not write:
+
+$$
+\text{plausibility of } p \text{ after } D_{new} \propto \text{ways } p \text{ can produce } D_{new} \times \text{prior plausibility of } p
+$$
+
+The above just means that for any value $p$ can take, we judge the plausibility of that value $p$ as proportional to the number of ways it can get through the garden of forking data. This expression just summarizes the calculations you did in the tables of the previous section.
+
+Finally, we construct probabilities by standardizing the plausibility so that the sum of the plausibilities for all possible conjectures will be one. All you need to do in order to standardize is to add up all of the products, one for each value $p$ can take, and then divide each product by the sum of products:
+
+$$
+\text{plausibility of } p \text{ after } D_{new} = \frac{\text{ways }p\text{ can produce } D_{new} \times \text{prior plausibility }p}{\text{sum of products}}
+$$
+
+A worked example is needed for this to really make sense. So consider again the table from before, now updated using our definitions of $p$ and "plausibility":
+
+| Possible Compositions | p    | Ways to Produce Data | New Count |
+|-----------------------|------|----------------------|-----------|
+| \[W, W, W, W\]        | 0    | 0                    | 0.00      |
+| \[B, W, W, W\]        | 0.25 | 3                    | 0.15      |
+| \[B, B, W, W\]        | 0.5  | 8                    | 0.40      |
+| \[B, B, B, W\]        | 0.75 | 9                    | 0.45      |
+| \[B, B, B, B\]        | 1    | 0                    | 0.00      |
+
+You can quickly compute these plausibilities in Python:
+
+```{python}
+ways = np.array([0, 3, 8, 9, 0])
+ways/np.sum(ways)
+```
+
+The values in `ways` are the products mentioned before. And `np.sum(ways)` is the denominator "sum of products" in the expression near the top of the page.
+
+These plausibilities are also *probabilities—*they are non-negative (zero or positive) real numbers that sum to one. And all of the mathematical things you can do with probabilities you can also do with these values. Specifically, each piece of the calculation has a direct partner in applied probability theory. These partners have stereotyped names, so it’s worth learning them, as you’ll see them again and again.
+
+-   A conjectured proportion of blue marbles, *p*, is usually called a **parameter** value. It's just a way of indexing possible explanations of the data.
+
+-   The relative number of ways that a value *p* can produce the data is usually called a **likelihood**. It is derived by enumerating all the possible data sequences that could have happened and then eliminating those sequences inconsistent with the data.
+
+-   The prior plausibility of any specific *p* is usually called the **prior probability**.
+
+-   The new, updated plausibility of any specific *p* is usually called the **posterior probability**.
+
+In the next major section, you’ll meet the more formal notation for these objects and see how they compose a simple statistical model.
+
+------------------------------------------------------------------------
+
+#### Randomization
+
+When you shuffle a deck of cards or assign subjects to treatments by flipping a coin, it is common to say that the resulting deck and treatment assignments are *randomized*. What does it mean to randomize something? It just means that we have processed the thing so that we know almost nothing about its arrangement. Shuffling a deck of cards changes our state of knowledge, so that we no longer have any specific information about the ordering of cards. However, the bonus that arises from this is that, if we really have shuffled enough to erase any prior knowledge of the ordering, then the order the cards end up in is very likely to be one of the many orderings with high **information entropy**.
+
+------------------------------------------------------------------------
+
+## Building a Model
+
+By working with probabilities instead of raw counts, Bayesian inference is made much easier, but it looks much harder. So in this section, we follow up on the garden of forking data by presenting the conventional form of a Bayesian statistical model. The toy example we’ll use here has the anatomy of a typical statistical analysis, so it’s the style that you’ll grow accustomed to. But every piece of it can be mapped onto the garden of forking data. The logic is the same.
+
+Suppose you have a globe representing our planet, the Earth. This version of the world is small enough to hold in your hands. You are curious how much of the surface is covered in water. You adopt the following strategy: You will toss the globe up in the air. When you catch it, you will record whether or not the surface under your right index finger is water or land. Then you toss the globe up in the air again and repeat the procedure. This strategy generates a sequence of samples from the globe. The first nine samples might look like:
+
+$$
+W \space L \space W \space W \space W \space L \space W \space L \space W
+$$ 
+
+where W indicates water and L indicates land. So in this example you observe six W (water) observations and three L (land) observations. Call this sequence of observations the *data*.
+
+To get the logic moving, we need to make assumptions, and these assumptions constitute the model. Designing a simple Bayesian model benefits from a design loop with three steps:
+
+1.  **Data Story:** Motivate the model by narrating how the data might arise.
+
+2.  **Update**: Educate your model by feeding it the data.
+
+3.  **Evaluate**: All statistical models require supervision, leading to model revision.
+
+The next sections walk through these steps, in the context of the globe tossing evidence.
+
+### A Data Story
+
+Bayesian data analysis usually means producing a story for how the data came to be. This story may be *descriptive*, specifying associations that can be used to predict outcomes, given observations. Or it may be *causal*, a theory of how some events produce other events. Typically, any story you intend to be causal may also be descriptive. But many descriptive stories are hard to interpret causally. But all data stories are complete, in the sense that they are sufficient for specifying an algorithm for simulating new data. In the next chapter, you’ll see examples of doing just that, as simulating new data is useful not only for model criticism but also for model construction.
+
+You can motivate your data story by trying to explain how each piece of data is born. This usually means describing aspects of the underlying reality as well as the sampling process. The data story in this case is simply a restatement of the sampling process:
+
+1.  The true proportion of water covering the globe is $p$.
+
+2.  A single toss of the globe has a probability $p$ of producing a water (W) observation. It has a probability $1 - p$ of producing a land (L) observation.
+
+3.  Each toss of the globe is independent of the others.
+
+The data story is then translated into a formal probability model. This probability model is easy to build, because the construction process can be usefully broken down into a series of component decisions. Before meeting these components, however, it’ll be useful to visualize how a Bayesian model behaves. After you’ve become acquainted with how such a model learns from data, we’ll pop the machine open and investigate its engineering.
+
+------------------------------------------------------------------------
+
+#### The value of storytelling
+
+The data story has value, even if you quickly abandon it and never use it to build a model or simulate new observations. Indeed, it is important to eventually discard the story, because many different stories correspond to the same model. As a result, showing that a model does a good job does not in turn uniquely support our data story. Still, the story has value because in trying to outline the story, often one realizes that additional questions must be answered. Most data stories are much more specific than are the verbal hypotheses that inspire data collection. Hypotheses can be vague, such as “it’s more likely to rain on warm days.” When you are forced to consider sampling and measurement and make a precise statement of how temperature predicts rain, many stories and resulting models will be consistent with the same vague hypothesis. Resolving that ambiguity often leads to important realizations and model revisions, before any model is fit to data.
+
+------------------------------------------------------------------------
+
+### Bayesian Updating
+
+Our problem is one of using the evidence—the sequence of globe tosses—to decide among different possible proportions of water on the globe. These proportions are like the conjectured marbles inside the bag, from earlier in the chapter. Each possible proportion may be more or less plausible, given the evidence. A Bayesian model begins with one set of plausibilities assigned to each of these possibilities. These are the prior plausibilities. Then it updates them in light of the data, to produce the posterior plausibilities. This updating process is a kind of learning, called **Bayesian updating**. The details of this updating—how it is mechanically achieved—can wait until later in the chapter. For now, let’s look only at how such a machine behaves.
+
+```{python}
+# Binomial Discrete - Probability mass function
+stats.binom.pmf(6, 9, 0.5)
+
+plt.clf()
+
+plot_beta_posterior(k, n, )
+
+# Globe Tossing Simulation
+observations = "WLWWWLWLW"
+_, axes = plt.subplots(3, 3, figsize=(8, 8))
+for i, ax in enumerate(axes.flat):
+    if i > 0:
+      
+
+plt.show()
 ```
 
 #### Bayesian data analysis
 
-> - For each possible explanation of the sample
-> - Count all the ways the sample could occur
-> - The explanations with the largest number of ways to produce the observed sample are more plausible
+> -   For each possible explanation of the sample
+> -   Count all the ways the sample could occur
+> -   The explanations with the largest number of ways to produce the observed sample are more plausible
 
 Basis of Applied Probability: Things that can happen more ways are more plausible
 
 The target of inference in Bayesian inference is a posterior probability distribution. Posterior probabilities state the relative numbers of ways each conjectured cause of the data could have produced the data. These relative numbers indicate plausibilities of the different conjectures. These plausibilities are updated in light of observations through Bayesian updating.
 
-More mechanically, a Bayesian model is a composite of variables and distributional definitions for these variables. The probability of the data, often called the likelihood, provides the plausibility of an observation (data), given a fixed value for the parameters. The prior provides the plausibility of each possible value of the parameters, before accounting for the data. The rules of probability tell us that the logical way to compute the plausibilities, after accounting for the data, is to use Bayes’ theorem. This results in the posterior distribution. 
+More mechanically, a Bayesian model is a composite of variables and distributional definitions for these variables. The probability of the data, often called the likelihood, provides the plausibility of an observation (data), given a fixed value for the parameters. The prior provides the plausibility of each possible value of the parameters, before accounting for the data. The rules of probability tell us that the logical way to compute the plausibilities, after accounting for the data, is to use Bayes’ theorem. This results in the posterior distribution.
 
 In practice, Bayesian models are fit to data using numerical techniques, like grid approximation, quadratic approximation, and Markov chain Monte Carlo.
 
@@ -39,18 +279,18 @@ In practice, Bayesian models are fit to data using numerical techniques, like gr
 
 #### Workflow (Drawing the Owl)
 
-1. Define **generative model** of tossing the globe
-2. Define an **estimand** -- in this case, the proportion of globe covered in water
-3. **Design a statistical procedure** to produce an estimate of the estimand
-4. **Validate the statistical procedure** (3) using the generative model -- can we recover an accurate estimate of (2) from data generated by (1)
-5. **Apply statistical procedure** (3) to real data
+1.  Define **generative model** of tossing the globe
+2.  Define an **estimand** -- in this case, the proportion of globe covered in water
+3.  **Design a statistical procedure** to produce an estimate of the estimand
+4.  **Validate the statistical procedure** (3) using the generative model -- can we recover an accurate estimate of (2) from data generated by (1)
+5.  **Apply statistical procedure** (3) to real data
 
 #### 1. Define generative model of globe tossing
 
-- $p$: true proportion of water covering the globe -- this is the **estimand**, what we'd like to estimate
-- $N$: number of tosses  -- we control this via experiment
-- $W$: number of `Water` observations
-- $L$: number of `Land` observations
+-   $p$: true proportion of water covering the globe -- this is the **estimand**, what we'd like to estimate
+-   $N$: number of tosses -- we control this via experiment
+-   $W$: number of `Water` observations
+-   $L$: number of `Land` observations
 
 ```{python}
 import daft
@@ -87,9 +327,9 @@ pgm.add_edge('N', 'W')
 pgm.render();
 ```
 
-- This graph defines a **causal model**, of how $p, N$ effect the values of $W, L$. This is the same as saying it defines some function $f$ that maps $p, N$ onto the values of $W, L$, i.e.  
-  $$W, L = f(p, N)$$
-- Scientific knowledge defines what $f$ is or can be
+-   This graph defines a **causal model**, of how $p, N$ effect the values of $W, L$. This is the same as saying it defines some function $f$ that maps $p, N$ onto the values of $W, L$, i.e.\
+    $$W, L = f(p, N)$$
+-   Scientific knowledge defines what $f$ is or can be
 
 The unglamourous basis of applied probability:
 
@@ -99,52 +339,21 @@ The unglamourous basis of applied probability:
 
 ##### Running Simulation
 
-Following the Bayesian data analysis structure:
-- For each possible **proportion of water** on the globe, $p$,
-- count all the ways the sample of tosses could have occurred.
-- Proportions, $p$, with more ways to produce the sample are more plausible.
+Following the Bayesian data analysis structure: - For each possible **proportion of water** on the globe, $p$, - count all the ways the sample of tosses could have occurred. - Proportions, $p$, with more ways to produce the sample are more plausible.
 
 The code below simulates and evaluates the likelihood of observing a sequence of outcomes (`observations`, e.g., "WLW") from a globe divided into water (`W`) and land (`L`) regions. The globe can have a configurable number of sides (`resolution`), and the proportion of water varies.
 
-**`plausibility_count(observations, globe)`**:
-1. The number of ways to match the observation sequence (`n_ways`).
-2. The proportion of water on the globe (`p_water`).
+**`plausibility_count(observations, globe)`**: 1. The number of ways to match the observation sequence (`n_ways`). 2. The proportion of water on the globe (`p_water`).
 
-**Steps**:
-  1. Convert Strings to Arrays:
-     - `observations` and `globe` are converted into NumPy arrays for efficient element-wise operations.
-  2. Count Matches:
-     - For each observation (`'W'` or `'L'`), the number of matching sides on the globe is counted using `np.sum(globe == obs)`.
-     - This produces an array (`ways`) where each element represents the number of ways the corresponding observation can occur.
-  3. Compute Total Ways:
-     - The product of all values in `ways` represents the total ways to produce the observation sequence. This is calculated in log space (`np.log`) to improve numerical stability, especially for large values.
-     - `np.exp` and `np.round` convert the log product back to the total count.
-  4. Compute Water Proportion:
-     - `p_water` is the proportion of water sides on the globe, calculated as the count of `'W'` divided by the total sides.
+**Steps**: 1. Convert Strings to Arrays: - `observations` and `globe` are converted into NumPy arrays for efficient element-wise operations. 2. Count Matches: - For each observation (`'W'` or `'L'`), the number of matching sides on the globe is counted using `np.sum(globe == obs)`. - This produces an array (`ways`) where each element represents the number of ways the corresponding observation can occur. 3. Compute Total Ways: - The product of all values in `ways` represents the total ways to produce the observation sequence. This is calculated in log space (`np.log`) to improve numerical stability, especially for large values. - `np.exp` and `np.round` convert the log product back to the total count. 4. Compute Water Proportion: - `p_water` is the proportion of water sides on the globe, calculated as the count of `'W'` divided by the total sides.
 
-Return Values:
-  - `n_ways`: The total number of ways to produce the observation sequence.
-  - `p_water`: The proportion of water on the globe.
+Return Values: - `n_ways`: The total number of ways to produce the observation sequence. - `p_water`: The proportion of water on the globe.
 
 **`toss_simulation(observations, resolution)`**
 
 This function iterates through all possible globe configurations, simulates the observation process, and prints the results.
 
-Steps:
-  1. Print Observations:
-     - Outputs the input observation sequence (`observations`).
-  2. Iterate Over Globe Configurations:
-     - For each possible number of water sides (`n_W`), create a globe configuration with `n_W` `'W'` sides and the rest `'L'` sides.
-     - Example: For `resolution=4`, the possible configurations are:
-       ```
-       LLLL, WLLL, WWLL, WWWL, WWWW
-       ```
-  3. Call `plausibility_count`:
-     - Computes `n_ways` (ways to produce the observations) and `p_water` (water proportion) for each configuration.
-  4. Store Results:
-     - Append `n_ways` and `p_water` to their respective lists.
-  5. Print Results:
-     - Prints the globe configuration, water proportion, and ways to produce the observations.
+Steps: 1. Print Observations: - Outputs the input observation sequence (`observations`). 2. Iterate Over Globe Configurations: - For each possible number of water sides (`n_W`), create a globe configuration with `n_W` `'W'` sides and the rest `'L'` sides. - Example: For `resolution=4`, the possible configurations are: `LLLL, WLLL, WWLL, WWWL, WWWW` 3. Call `plausibility_count`: - Computes `n_ways` (ways to produce the observations) and `p_water` (water proportion) for each configuration. 4. Store Results: - Append `n_ways` and `p_water` to their respective lists. 5. Print Results: - Prints the globe configuration, water proportion, and ways to produce the observations.
 
 ```{python}
 def plausibility_count(observations: str, globe: str):
@@ -199,17 +408,7 @@ observations = "WLW"
 n_possible_ways, p_water = toss_simulation(observations, resolution=RESOLUTION)
 ```
 
-![garden_of_forking_data](images/garden_of_forking_data.PNG)
-
-So what good are these counts? By comparing these counts, we have part of a solution for a way to rate the relative plausibility of each conjectured bag composition. But it’s only a part of a solution, because **in order to compare these counts we first have to decide how many ways each conjecture could itself be realized**. We might argue that when we have no reason to assume otherwise, we can just consider each conjecture equally plausible and compare the counts directly. But often we do have reason to assume otherwise.
-
-Suppose we’re willing to say each conjecture is equally plausible at the start. So we just compare the counts of ways in which each conjecture is compatible with the observed data. This comparison suggests that ['W', 'W', 'W', 'L'] is slightly more plausible than ['W', 'W', 'L', 'L'], and both are about three times more plausible than ['W', 'L', 'L', 'L']. Since these are our initial counts, and we are going to update them next, let’s label them **prior**.
-
 **Bayesian (online) Updating**
-
-Suppose we toss the globe again to get another observation: 'W'. Now you have two choices. You could start all over again, making a garden with four layers to trace out the paths compatible with the data sequence ['W', 'L', 'W', 'W']. Or you could take the previous counts—the prior counts—over conjectures (0, 3, 8, 9, 0) and just update them in light of the new observation. It turns out that these two methods are mathematically identical, as long as the new observation is logically independent of the previous observations.
-
-This updating approach amounts to nothing more than asserting that (1) when we have previous information suggesting there are $W_{prior}$ ways for a conjecture to produce a previous observation $D_{prior}$ and (2) we acquire new observations $D_{new}$ that the same conjecture can produce in $W_{new}$ ways, then (3) the number of ways the conjecture can account for both $D_{prior}$ as well as $D_{new}$ is just the product $W_{prior} × W_{new}$.
 
 A Bayesian model begins with one set of plausibilities assigned to each of these possibilities. These are the **prior plausibilities**. Then it updates them in light of the data, to produce the **posterior plausibilities**.
 
@@ -237,14 +436,12 @@ n_possible_ways, p_water = toss_simulation(observations, resolution=RESOLUTION)
 
 ##### Analytical Solution
 
-- A single toss of the globe has a probability $p$ of producing a water ($W$) observation. It has a probability $1−p$ of producing a land ($L$) observation. 
-- Each toss of the globe is independent of the others.
+-   A single toss of the globe has a probability $p$ of producing a water ($W$) observation. It has a probability $1−p$ of producing a land ($L$) observation.
+-   Each toss of the globe is independent of the others.
 
 We can get identical answers with an analytical solution:
 
-Results suggest the following analytical solution 
-$$W,L = (Rp)^W \times ((1 - p)R)^L$$
-where $R$ is the number of possible globes, in this case 4
+Results suggest the following analytical solution $$W,L = (Rp)^W \times ((1 - p)R)^L$$ where $R$ is the number of possible globes, in this case 4
 
 ```{python}
 def plausibility_count(p, n_W, n_L, resolution=RESOLUTION):
@@ -268,34 +465,8 @@ n_possible_ways = np.vectorize(plausibility_count)(p_water, n_W, n_L)
 
 ##### Probability
 
-**From counts to probability**. It is helpful to think of this strategy as adhering to a principle of honest ignorance: *When we don’t know what caused the data, potential causes that may produce the data in more ways are more plausible*. This leads us to count paths through the garden of forking data. We’re counting the implications of assumptions.
-
-We define the updated plausibility of each possible composition of the bag, after seeing the data, as:
-
-<center>Plausibility of ['W', 'L', 'L', 'L'] after seeing ['W', 'L', 'W']</center>
-
-$$\propto$$
-
-<center>ways ['W', 'L', 'L', 'L'] can produce ['W', 'L', 'W']</center>
-
-$$\times$$
-
-<center>prior plausibility ['W', 'L', 'L', 'L']</center>
-
-We want to compare the plausibility of each possible composition. So it’ll be helpful to define $p$ as the proportion of the earth that is water. For ['W', 'L', 'L', 'L'], $p = 1/4 = 0.25$
-
-We can not write:
-
-plausibility of $p$ after $D_{new}$ $\propto$ ways $p$ can produce $D_{new}$ $\times$ prior plausibility of $p$
-
-The above just means that for any value $p$ can take, we judge the plausibility of that value $p$ as proportional to the number of ways it can get through the garden of forking data.
-
-- non-negative values that sum to 1
-- normalizes large sums by the total counts
-
-We construct probabilities by standardizing the plausibility so that the sum of the plausibilities for all possible conjectures will be one. All you need to do in order to standardize is to add up all of the products, one for each value p can take, and then divide each product by the sum of products:
-
-$$\text{plausibility of } p \text{ after } D_{new} = \frac{\text{ways }p\text{ can produce } D_{new} \times \text{prior plausibility }p}{\text{sum of products}}$$
+-   non-negative values that sum to 1
+-   normalizes large sums by the total counts
 
 ```{python}
 n_possible_probabilities = n_possible_ways / n_possible_ways.sum()
@@ -313,19 +484,16 @@ plt.ylabel("probability")
 plt.xlabel("proportion water");
 ```
 
-These plausibilities are also probabilities—they are non-negative (zero or positive) real numbers that sum to one. 
+These plausibilities are also probabilities—they are non-negative (zero or positive) real numbers that sum to one.
 
-- A conjectured proportion of water on earth, $p$, is usually called a **parameter** value. It’s just a way of indexing possible explanations of the data.
-- The relative number of ways that a value $p$ can produce the data is usually called a **likelihood**. It is derived by enumerating all the possible data sequences that could have happened and then eliminating those sequences inconsistent with the data.
-- The prior plausibility of any specific $p$ is usually called the **prior probability**.
-- The new, updated plausibility of any specific $p$ is usually called the **posterior probability**.
+-   A conjectured proportion of water on earth, $p$, is usually called a **parameter** value. It’s just a way of indexing possible explanations of the data.
+-   The relative number of ways that a value $p$ can produce the data is usually called a **likelihood**. It is derived by enumerating all the possible data sequences that could have happened and then eliminating those sequences inconsistent with the data.
+-   The prior plausibility of any specific $p$ is usually called the **prior probability**.
+-   The new, updated plausibility of any specific $p$ is usually called the **posterior probability**.
 
 #### 3. Validate Statistical Procedure using Generative Model
 
-**Test Before You Est(imate) 🐤**
-1. Code generative simulation (1)
-2. Code an estimator (2)
-3. Test (3) with (1); you should get expected output
+**Test Before You Est(imate) 🐤** 1. Code generative simulation (1) 2. Code an estimator (2) 3. Test (3) with (1); you should get expected output
 
 ##### (1) Generative Simulation
 
@@ -406,9 +574,7 @@ plt.legend();
 
 Moving from an N-sided globe to an infinitely-sided globe.
 
-As we increase resolution of globe
-- there are more bars/finer-grained resolution along the proportion axis
-- bars get shorter with more possibilities -- they must sum to 1
+As we increase resolution of globe - there are more bars/finer-grained resolution along the proportion axis - bars get shorter with more possibilities -- they must sum to 1
 
 ```{python}
 np.random.seed(12)
@@ -438,67 +604,57 @@ Probability mass function:
 
 $$Pr(W \mid n, p) =  \frac{n!}{W!(n − W)!} p^W (1 − p)^{n−W}$$
 
-
 The probability of observing specified W’s in $n$ tosses — below a value of $p$.
 
 **Difference Between Binomial and Beta Functions**
 
-1. **Binomial Function - Likelihood Function**:
-   - The binomial distribution models the number of successes $k$ in $n$ independent trials, where each trial has a probability $p$ of success.
-   - It is a **discrete distribution** and is used when the data consists of counts (e.g., number of heads in coin tosses).
-   - Probability mass function (PMF):
-     $$
-     P(k \mid n, p) = \binom{n}{k} p^k (1-p)^{n-k}
-     $$
-   - The binomial distribution is used when you want to calculate the probability of observing $k$ successes in $n$ trials for a fixed $p$.
-
-2. **Beta Function - Posterior Function**:
-   - The beta distribution is a **continuous distribution** defined on the interval $[0, 1]$.
-   - It is often used as a prior distribution for the probability parameter $p$ in a binomial distribution because it is conjugate to the binomial likelihood.
-   - Probability density function (PDF):
-     $$
-     P(p \mid \alpha, \beta) = \frac{p^{\alpha-1} (1-p)^{\beta-1}}{B(\alpha, \beta)}
-     $$
-     where $B(\alpha, \beta)$ is the beta function.
-   - The beta distribution is used to model uncertainty about a probability $p$.
+1.  **Binomial Function - Likelihood Function**:
+    -   The binomial distribution models the number of successes $k$ in $n$ independent trials, where each trial has a probability $p$ of success.
+    -   It is a **discrete distribution** and is used when the data consists of counts (e.g., number of heads in coin tosses).
+    -   Probability mass function (PMF): $$
+        P(k \mid n, p) = \binom{n}{k} p^k (1-p)^{n-k}
+        $$
+    -   The binomial distribution is used when you want to calculate the probability of observing $k$ successes in $n$ trials for a fixed $p$.
+2.  **Beta Function - Posterior Function**:
+    -   The beta distribution is a **continuous distribution** defined on the interval $[0, 1]$.
+    -   It is often used as a prior distribution for the probability parameter $p$ in a binomial distribution because it is conjugate to the binomial likelihood.
+    -   Probability density function (PDF): $$
+        P(p \mid \alpha, \beta) = \frac{p^{\alpha-1} (1-p)^{\beta-1}}{B(\alpha, \beta)}
+        $$ where $B(\alpha, \beta)$ is the beta function.
+    -   The beta distribution is used to model uncertainty about a probability $p$.
 
 **Relationship Between Binomial and Beta Functions**
 
-- The binomial distribution describes the likelihood of observing $k$ successes in $n$ trials for a fixed $p$.
-- The beta distribution describes the probability distribution of $p$ itself.
-- When you use a beta prior with a binomial likelihood, the posterior distribution of $p$ is also a beta distribution. This is called **conjugacy**:
-  $$
-  \text{Posterior} \propto \text{Likelihood} \times \text{Prior}
-  $$
-  For a binomial likelihood and beta prior, the posterior is:
-  $$
-  \text{Beta}(\alpha + k, \beta + n - k)
-  $$
+-   The binomial distribution describes the likelihood of observing $k$ successes in $n$ trials for a fixed $p$.
+-   The beta distribution describes the probability distribution of $p$ itself.
+-   When you use a beta prior with a binomial likelihood, the posterior distribution of $p$ is also a beta distribution. This is called **conjugacy**: $$
+    \text{Posterior} \propto \text{Likelihood} \times \text{Prior}
+    $$ For a binomial likelihood and beta prior, the posterior is: $$
+    \text{Beta}(\alpha + k, \beta + n - k)
+    $$
 
 **When to Use Binomial vs. Beta**
 
-- Use the **binomial distribution** when:
-  - You have a fixed number of trials $n$.
-  - You want to calculate the probability of observing $k$ successes.
-  - The probability $p$ is known or fixed.
-
-- Use the **beta distribution** when:
-  - You want to model uncertainty about the probability $p$.
-  - You are performing Bayesian inference and need a prior or posterior distribution for $p$.
-  - You are combining a binomial likelihood with a beta prior to obtain a posterior distribution.
+-   Use the **binomial distribution** when:
+    -   You have a fixed number of trials $n$.
+    -   You want to calculate the probability of observing $k$ successes.
+    -   The probability $p$ is known or fixed.
+-   Use the **beta distribution** when:
+    -   You want to model uncertainty about the probability $p$.
+    -   You are performing Bayesian inference and need a prior or posterior distribution for $p$.
+    -   You are combining a binomial likelihood with a beta prior to obtain a posterior distribution.
 
 **Conjugacy**
 
-- Source: [Conjugate Prior](https://en.wikipedia.org/wiki/Conjugate_prior)
+-   Source: [Conjugate Prior](https://en.wikipedia.org/wiki/Conjugate_prior)
 
 if, given a likelihood function $p(x\mid \theta)$, the posterior distribution $p(\theta \mid x)$ is in the same probability distribution family as the prior probability distribution $p(\theta)$, the prior and posterior are then called **conjugate distributions** with respect to that likelihood function and the prior is called a **conjugate prior** for the likelihood function $p(x\mid \theta)$.
 
 A conjugate prior is an algebraic convenience, giving a closed-form expression for the posterior; otherwise, numerical integration may be necessary. Further, conjugate priors may give intuition by more transparently showing how a likelihood function updates a prior distribution.
 
-The form of the conjugate prior can generally be determined by inspection of the probability density or probability mass function of a distribution. For example, consider a random variable which consists of the number of successes $s$ in $n$ Bernoulli trials with unknown probability of success $q$ in [0,1]. This random variable will follow the binomial distribution, with a probability mass function of the form
-$$p(s)={n \choose s}q^{s}(1-q)^{n-s}$$
+The form of the conjugate prior can generally be determined by inspection of the probability density or probability mass function of a distribution. For example, consider a random variable which consists of the number of successes $s$ in $n$ Bernoulli trials with unknown probability of success $q$ in \[0,1\]. This random variable will follow the binomial distribution, with a probability mass function of the form $$p(s)={n \choose s}q^{s}(1-q)^{n-s}$$
 
-The usual conjugate prior is the beta distribution with parameters $\alpha$, $\beta$: 
+The usual conjugate prior is the beta distribution with parameters $\alpha$, $\beta$:
 
 $$p(q)={q^{\alpha -1}(1-q)^{\beta -1} \over \mathrm {B} (\alpha ,\beta )}$$
 
@@ -557,7 +713,7 @@ The observed variables $W$ and $L$ are given relative counts through the binomia
 
 $$W \sim \text{Binomial}(N,p)$$
 
-where $N =W +L$. The above is just a convention for communicating the assumption that the relative counts of ways to realize $W$ in $N$ trials with probability $p$ on each trial comes from the binomial distribution. 
+where $N =W +L$. The above is just a convention for communicating the assumption that the relative counts of ways to realize $W$ in $N$ trials with probability $p$ on each trial comes from the binomial distribution.
 
 The unobserved parameter p similarly gets:
 
@@ -567,119 +723,97 @@ This means that p has a uniform—flat—prior over its entire possible range, f
 
 The terms **PMF**, **CDF**, **PDF**, and **PPF** are fundamental concepts in probability and statistics, each describing different aspects of probability distributions. Here's a detailed explanation of each:
 
-1. **PMF (Probability Mass Function)**
-- **What it is**:
-  - The PMF is used for **discrete random variables**.
-  - It gives the probability that a discrete random variable takes on a specific value.
-- **Mathematical Definition**:
-  $$
-  P(X = x)
-  $$
-  where $X$ is a discrete random variable, and $x$ is a specific value.
-- **Properties**:
-  - The sum of the PMF over all possible values of $X$ is 1:
-    $$
-    \sum_{x} P(X = x) = 1
-    $$
-  - $P(X = x) \geq 0$ for all $x$.
-- **Example**:
-  - For a fair six-sided die, the PMF is:
-    $$
-    P(X = x) = \frac{1}{6} \quad \text{for } x = 1, 2, 3, 4, 5, 6.
-    $$
+1.  **PMF (Probability Mass Function)**
 
-2. **CDF (Cumulative Distribution Function)**
-- **What it is**:
-  - The CDF is used for both **discrete and continuous random variables**.
-  - It gives the probability that a random variable $X$ takes on a value less than or equal to a specific value $x$.
-- **Mathematical Definition**:
-  $$
-  F(x) = P(X \leq x)
-  $$
-- **Properties**:
-  - The CDF is a non-decreasing function.
-  - It ranges from 0 to 1:
-    $$
-    \lim_{x \to -\infty} F(x) = 0 \quad \text{and} \quad \lim_{x \to \infty} F(x) = 1.
-    $$
-- **Example**:
-  - For a fair six-sided die, the CDF at $x = 3$ is:
-    $$
-    F(3) = P(X \leq 3) = \frac{1}{6} + \frac{1}{6} + \frac{1}{6} = \frac{1}{2}.
-    $$
+-   **What it is**:
+    -   The PMF is used for **discrete random variables**.
+    -   It gives the probability that a discrete random variable takes on a specific value.
+-   **Mathematical Definition**: $$
+    P(X = x)
+    $$ where $X$ is a discrete random variable, and $x$ is a specific value.
+-   **Properties**:
+    -   The sum of the PMF over all possible values of $X$ is 1: $$
+        \sum_{x} P(X = x) = 1
+        $$
+    -   $P(X = x) \geq 0$ for all $x$.
+-   **Example**:
+    -   For a fair six-sided die, the PMF is: $$
+        P(X = x) = \frac{1}{6} \quad \text{for } x = 1, 2, 3, 4, 5, 6.
+        $$
 
-3. **PDF (Probability Density Function)**
-- **What it is**:
-  - The PDF is used for **continuous random variables**.
-  - It describes the relative likelihood of a continuous random variable taking on a specific value.
-- **Mathematical Definition**:
-  $$
-  f(x)
-  $$
-  where $f(x)$ is the PDF of a continuous random variable $X$.
-- **Properties**:
-  - The PDF is non-negative:
-    $$
-    f(x) \geq 0 \quad \text{for all } x.
-    $$
-  - The total area under the PDF curve is 1:
-    $$
-    \int_{-\infty}^{\infty} f(x) \, dx = 1.
-    $$
-  - The probability of $X$ taking on a specific value is 0 (since the area under a single point is 0). Instead, probabilities are calculated over intervals:
-    $$
-    P(a \leq X \leq b) = \int_{a}^{b} f(x) \, dx.
-    $$
-- **Example**:
-  - For a normal distribution with mean $\mu$ and standard deviation $\sigma$, the PDF is:
-    $$
-    f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}.
-    $$
+2.  **CDF (Cumulative Distribution Function)**
 
-4. **PPF (Percent-Point Function) or Quantile Function**
-- **What it is**:
-  - The PPF is the **inverse of the CDF**.
-  - It gives the value $x$ such that the probability of the random variable $X$ being less than or equal to $x$ is a specified probability $p$.
-- **Mathematical Definition**:
-  $$
-  x = F^{-1}(p)
-  $$
-  where $F^{-1}$ is the PPF, and $p$ is the probability.
-- **Properties**:
-  - The PPF is used to find percentiles or quantiles of a distribution.
-  - For example, the 0.5 quantile (median) is the value $x$ such that $P(X \leq x) = 0.5$.
-- **Example**:
-  - For a standard normal distribution, the PPF at $p = 0.975$ is approximately 1.96, meaning:
+-   **What it is**:
+    -   The CDF is used for both **discrete and continuous random variables**.
+    -   It gives the probability that a random variable $X$ takes on a value less than or equal to a specific value $x$.
+-   **Mathematical Definition**: $$
+    F(x) = P(X \leq x)
     $$
-    P(X \leq 1.96) = 0.975.
-    $$
+-   **Properties**:
+    -   The CDF is a non-decreasing function.
+    -   It ranges from 0 to 1: $$
+        \lim_{x \to -\infty} F(x) = 0 \quad \text{and} \quad \lim_{x \to \infty} F(x) = 1.
+        $$
+-   **Example**:
+    -   For a fair six-sided die, the CDF at $x = 3$ is: $$
+        F(3) = P(X \leq 3) = \frac{1}{6} + \frac{1}{6} + \frac{1}{6} = \frac{1}{2}.
+        $$
+
+3.  **PDF (Probability Density Function)**
+
+-   **What it is**:
+    -   The PDF is used for **continuous random variables**.
+    -   It describes the relative likelihood of a continuous random variable taking on a specific value.
+-   **Mathematical Definition**: $$
+    f(x)
+    $$ where $f(x)$ is the PDF of a continuous random variable $X$.
+-   **Properties**:
+    -   The PDF is non-negative: $$
+        f(x) \geq 0 \quad \text{for all } x.
+        $$
+    -   The total area under the PDF curve is 1: $$
+        \int_{-\infty}^{\infty} f(x) \, dx = 1.
+        $$
+    -   The probability of $X$ taking on a specific value is 0 (since the area under a single point is 0). Instead, probabilities are calculated over intervals: $$
+        P(a \leq X \leq b) = \int_{a}^{b} f(x) \, dx.
+        $$
+-   **Example**:
+    -   For a normal distribution with mean $\mu$ and standard deviation $\sigma$, the PDF is: $$
+        f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}.
+        $$
+
+4.  **PPF (Percent-Point Function) or Quantile Function**
+
+-   **What it is**:
+    -   The PPF is the **inverse of the CDF**.
+    -   It gives the value $x$ such that the probability of the random variable $X$ being less than or equal to $x$ is a specified probability $p$.
+-   **Mathematical Definition**: $$
+    x = F^{-1}(p)
+    $$ where $F^{-1}$ is the PPF, and $p$ is the probability.
+-   **Properties**:
+    -   The PPF is used to find percentiles or quantiles of a distribution.
+    -   For example, the 0.5 quantile (median) is the value $x$ such that $P(X \leq x) = 0.5$.
+-   **Example**:
+    -   For a standard normal distribution, the PPF at $p = 0.975$ is approximately 1.96, meaning: $$
+        P(X \leq 1.96) = 0.975.
+        $$
 
 **Key Differences**
 
-| **Term** | **Full Name**               | **Applies To**         | **Description**                                                                 |
-|----------|-----------------------------|------------------------|---------------------------------------------------------------------------------|
-| PMF      | Probability Mass Function   | Discrete random variables | Probability that a discrete random variable takes on a specific value.          |
-| CDF      | Cumulative Distribution Function | Discrete and continuous random variables | Probability that a random variable is less than or equal to a specific value.   |
-| PDF      | Probability Density Function | Continuous random variables | Relative likelihood of a continuous random variable taking on a specific value. |
-| PPF      | Percent-Point Function      | Discrete and continuous random variables | Value $x$ such that $P(X \leq x) = p$ (inverse of CDF).                     |
+| **Term** | **Full Name** | **Applies To** | **Description** |
+|------------------|------------------|------------------|------------------|
+| PMF | Probability Mass Function | Discrete random variables | Probability that a discrete random variable takes on a specific value. |
+| CDF | Cumulative Distribution Function | Discrete and continuous random variables | Probability that a random variable is less than or equal to a specific value. |
+| PDF | Probability Density Function | Continuous random variables | Relative likelihood of a continuous random variable taking on a specific value. |
+| PPF | Percent-Point Function | Discrete and continuous random variables | Value $x$ such that $P(X \leq x) = p$ (inverse of CDF). |
 
-**Relationship Between CDF and PDF/PMF**
-- For **discrete random variables**:
-  $$
+**Relationship Between CDF and PDF/PMF** - For **discrete random variables**: $$
   F(x) = \sum_{k \leq x} P(X = k)
-  $$
-  where $P(X = k)$ is the PMF.
-- For **continuous random variables**:
-  $$
+  $$ where $P(X = k)$ is the PMF. - For **continuous random variables**: $$
   F(x) = \int_{-\infty}^{x} f(t) \, dt
-  $$
-  where $f(t)$ is the PDF.
+  $$ where $f(t)$ is the PDF.
 
-**When to Use Each**
-- Use **PMF** when working with discrete data (e.g., counts, categories).
-- Use **CDF** to calculate cumulative probabilities (e.g., $P(X \leq x)$).
-- Use **PDF** when working with continuous data (e.g., measurements, time).
-- Use **PPF** to find percentiles or critical values (e.g., median, 95th percentile).
+**When to Use Each** - Use **PMF** when working with discrete data (e.g., counts, categories). - Use **CDF** to calculate cumulative probabilities (e.g., $P(X \leq x)$). - Use **PDF** when working with continuous data (e.g., measurements, time). - Use **PPF** to find percentiles or critical values (e.g., median, 95th percentile).
 
 ##### Tossing the Globe
 
@@ -721,7 +855,7 @@ Likewise, the plausibility of $p >0.5$ has increased. This is because there is n
 
 Every time a “$W$” is seen, the peak of the plausibility curve moves to the right, towards larger values of $p$. Every time an “$L$” is seen, it moves the other direction. The maximum height of the curve increases with each sample, meaning that fewer values of $p$ amass more plausibility as the amount of evidence increases. As each new observation is added, the curve is updated consistent with all previous observations.
 
-This updating process works backwards, as well as forwards. Given the final set of plausibilities in the bottom-right plot, and knowing the final observation (W), it is possible to mathematically divide out the observation, to infer the previous plausibility curve. 
+This updating process works backwards, as well as forwards. Given the final set of plausibilities in the bottom-right plot, and knowing the final observation (W), it is possible to mathematically divide out the observation, to infer the previous plausibility curve.
 
 #### From Prior to Posterior
 
@@ -729,7 +863,7 @@ Once you have named all the variables and chosen definitions for each, a Bayesia
 
 **Probability Rules Summary**:
 
-- [Sum Rule, Product Rule, Joint & Marginal Probability](https://www.youtube.com/watch?v=xjLqawhT3bY)
+-   [Sum Rule, Product Rule, Joint & Marginal Probability](https://www.youtube.com/watch?v=xjLqawhT3bY)
 
 **Sum Rule**:
 
@@ -753,8 +887,7 @@ $$P(X \mid Y) = \frac{P(Y \mid X)P(X)}{P(Y)}$$
 
 The mathematical definition of the posterior distribution arises from Bayes’ theorem.
 
-The **joint probability** of the data $W$ and $L$ and any particular value of $p$ is: 
-$$Pr(W, L, p) = Pr(W, L \mid p)Pr(p)$$
+The **joint probability** of the data $W$ and $L$ and any particular value of $p$ is: $$Pr(W, L, p) = Pr(W, L \mid p)Pr(p)$$
 
 This just says that the probability of $W$, $L$ and $p$ is the product of $Pr(W,L \mid p)$ and the prior probability $Pr(p)$. This is like saying that the probability of rain and cold on the same day is equal to the probability of rain, when it’s cold, times the probability that it’s cold. This much is just definition. But it’s just as true that:
 
@@ -774,9 +907,7 @@ This is Bayes’ theorem. It says that the probability of any particular value o
 
 $$\text{Posterior} = \frac{\text{Probability of the data} \times \text{Prior}}{\text{Average Probability of the data}}$$
 
-The **average probability of the data**, $Pr(W,L)$, can be confusing. It is commonly called the **“evidence”** or the “**average likelihood**,” neither of which is a transparent name. The probability Pr(W,L)is literally the average probability of the data. Averaged over what? Averaged
-over the prior. It’s job is just to standardize the posterior, to ensure it sums (integrates) to
-one. In mathematical form:
+The **average probability of the data**, $Pr(W,L)$, can be confusing. It is commonly called the **“evidence”** or the “**average likelihood**,” neither of which is a transparent name. The probability Pr(W,L)is literally the average probability of the data. Averaged over what? Averaged over the prior. It’s job is just to standardize the posterior, to ensure it sums (integrates) to one. In mathematical form:
 
 $$Pr(W,L) = E(Pr(W,L \mid p)) = \int Pr(W,L\mid p)Pr(p)dp$$
 
@@ -887,23 +1018,23 @@ However, knowing the mathematical rule is often of little help, because many of 
 
 What this means is that various numerical techniques are needed to approximate the mathematics that follows from the definition of Bayes’ theorem. In this book, you’ll meet three different conditioning engines, numerical techniques for computing posterior distributions:
 
-1) Grid approximation
+1)  Grid approximation
 2)  Quadratic approximation
-3) Markov chain Monte Carlo (MCMC)
+3)  Markov chain Monte Carlo (MCMC)
 
 ##### Grid Approximation
 
 One of the simplest conditioning techniques is grid approximation. While most parameters are continuous, capable of taking on an infinite number of values, it turns out that we can achieve an excellent approximation of the continuous posterior distribution by considering only a finite grid of parameter values. At any particular value of a parameter, $p'$, it’s a simple matter to compute the posterior probability: just multiply the prior probability of $p'$ by the likelihood at $p'$. Repeating this procedure for each value in the grid generates an approximate picture of the exact posterior distribution. This procedure is called **grid approximation**.
 
-Grid approximation will mainly be useful as a pedagogical tool, as learning it forces the user to really understand the nature of Bayesian updating. But in most of your real modeling, grid approximation isn’t practical. The reason is that it scales very poorly, as the number of parameters increases. So in later chapters, grid approximation will fade away, to be replaced by other, more efficient techniques. 
+Grid approximation will mainly be useful as a pedagogical tool, as learning it forces the user to really understand the nature of Bayesian updating. But in most of your real modeling, grid approximation isn’t practical. The reason is that it scales very poorly, as the number of parameters increases. So in later chapters, grid approximation will fade away, to be replaced by other, more efficient techniques.
 
 In the context of the globe tossing problem, grid approximation works extremely well. So let’s build a grid approximation for the model we’ve constructed so far. Here is the recipe:
 
-1) Define the grid. This means you decide how many points to use in estimating the posterior, and then you make a list of the parameter values on the grid.
-2) Compute the value of the prior at each parameter value on the grid.
-3) Compute the likelihood at each parameter value.
-4) Compute the unstandardized posterior at each parameter value, by multiplying the prior by the likelihood.
-5) Finally, standardize the posterior, by dividing each value by the sum of all values.
+1)  Define the grid. This means you decide how many points to use in estimating the posterior, and then you make a list of the parameter values on the grid.
+2)  Compute the value of the prior at each parameter value on the grid.
+3)  Compute the likelihood at each parameter value.
+4)  Compute the unstandardized posterior at each parameter value, by multiplying the prior by the likelihood.
+5)  Finally, standardize the posterior, by dividing each value by the sum of all values.
 
 ```{python}
 def binom_post_grid_approx(prior_func, grid_points=5, success=6, tosses=9):
@@ -963,8 +1094,8 @@ A **Gaussian approximation** is called “quadratic approximation” because the
 
 For many of the most common procedures in applied statistics—linear regression, for example—the approximation works very well. Often, it is even exactly correct, not actually an approximation at all. Computationally, quadratic approximation is very inexpensive, at least compared to grid approximation and MCMC (discussed next). The procedure contains two steps.
 
-1) Find the posterior mode. This is usually accomplished by some optimization algorithm, a procedure that virtually “climbs” the posterior distribution, as if it were a mountain. The algorithm doesn’t know where the peak is, but it does know the slope under its feet. There are many well-developed optimization procedures, most of them more clever than simple hill climbing. But all of them try to find peaks.
-2) Once you find the peak of the posterior, you must estimate the curvature near the peak. This curvature is sufficient to compute a quadratic approximation of the entire posterior distribution. In some cases, these calculations can be done analytically, but usually your computer uses some numerical technique instead.
+1)  Find the posterior mode. This is usually accomplished by some optimization algorithm, a procedure that virtually “climbs” the posterior distribution, as if it were a mountain. The algorithm doesn’t know where the peak is, but it does know the slope under its feet. There are many well-developed optimization procedures, most of them more clever than simple hill climbing. But all of them try to find peaks.
+2)  Once you find the peak of the posterior, you must estimate the curvature near the peak. This curvature is sufficient to compute a quadratic approximation of the entire posterior distribution. In some cases, these calculations can be done analytically, but usually your computer uses some numerical technique instead.
 
 ```{python}
 data = np.repeat((0, 1), (3, 6))
@@ -1069,34 +1200,24 @@ We nearly always work directly with these samples, rather than first constructin
 
 The below code implements a simple **Metropolis-Hastings algorithm**, a Markov Chain Monte Carlo (MCMC) method, to approximate the posterior distribution of a probability parameter $p$, given a likelihood defined by a binomial model.
 
-**Key Components**:
-1. **Inputs**:
-   - `W = 6`: Number of "wins" (successes).
-   - `L = 3`: Number of "losses" (failures).
-   - `n_samples = 1000`: Total number of samples to generate for the Markov chain.
-   - Initial probability, `p[0] = 0.5`.
+**Key Components**: 1. **Inputs**: - `W = 6`: Number of "wins" (successes). - `L = 3`: Number of "losses" (failures). - `n_samples = 1000`: Total number of samples to generate for the Markov chain. - Initial probability, `p[0] = 0.5`.
 
-2. **Model**:
-   - $p$ represents the probability of success (e.g., win rate) in a binomial distribution. The algorithm explores possible values for $p$ to estimate its posterior distribution.
-   - The likelihood is computed using the binomial probability mass function (`stats.binom.pmf`).
+2.  **Model**:
+    -   $p$ represents the probability of success (e.g., win rate) in a binomial distribution. The algorithm explores possible values for $p$ to estimate its posterior distribution.
+    -   The likelihood is computed using the binomial probability mass function (`stats.binom.pmf`).
+3.  **Proposal Distribution**:
+    -   A new candidate value, $p_{\text{new}}$, is proposed at each step, sampled from a normal distribution centered at the current value $p[i-1]$ with a small standard deviation (`0.1`).
+4.  **Reflection Boundary**:
+    -   To ensure $p_{\text{new}}$ stays in the valid range $[0, 1]$:
+        -   If $p_{\text{new}} < 0$, it is reflected back: $p_{\text{new}} = -p_{\text{new}}$.
+        -   If $p_{\text{new}} > 1$, it is reflected back: $p_{\text{new}} = 2 - p_{\text{new}}$.
+5.  **Acceptance Step**:
+    -   The acceptance ratio, $\frac{q_1}{q_0}$, is calculated, where:
+        -   $q_0$: Likelihood of observing `W` successes given $p[i-1]$.
+        -   $q_1$: Likelihood of observing `W` successes given $p_{\text{new}}$.
+    -   A random number from a uniform distribution is drawn, and if it is less than $\frac{q_1}{q_0}$, the new value is accepted ($p[i] = p_{\text{new}}$). Otherwise, the chain retains the previous value ($p[i] = p[i-1]$).
 
-3. **Proposal Distribution**:
-   - A new candidate value, $p_{\text{new}}$, is proposed at each step, sampled from a normal distribution centered at the current value $p[i-1]$ with a small standard deviation (`0.1`).
-
-4. **Reflection Boundary**:
-   - To ensure $p_{\text{new}}$ stays in the valid range $[0, 1]$:
-     - If $p_{\text{new}} < 0$, it is reflected back: $p_{\text{new}} = -p_{\text{new}}$.
-     - If $p_{\text{new}} > 1$, it is reflected back: $p_{\text{new}} = 2 - p_{\text{new}}$.
-
-5. **Acceptance Step**:
-   - The acceptance ratio, $\frac{q_1}{q_0}$, is calculated, where:
-     - $q_0$: Likelihood of observing `W` successes given $p[i-1]$.
-     - $q_1$: Likelihood of observing `W` successes given $p_{\text{new}}$.
-   - A random number from a uniform distribution is drawn, and if it is less than $\frac{q_1}{q_0}$, the new value is accepted ($p[i] = p_{\text{new}}$). Otherwise, the chain retains the previous value ($p[i] = p[i-1]$).
-
-**Outcome**:
-- The algorithm generates a sequence of 1000 samples (`p`) that approximate the posterior distribution of the probability parameter $p$.
-- Over many iterations, the chain will converge to the posterior distribution of $p$, allowing statistical inference about the probability of success given the observed data ($W = 6$, $L = 3$).
+**Outcome**: - The algorithm generates a sequence of 1000 samples (`p`) that approximate the posterior distribution of the probability parameter $p$. - Over many iterations, the chain will converge to the posterior distribution of $p$, allowing statistical inference about the probability of success given the observed data ($W = 6$, $L = 3$).
 
 This is a simple example of Bayesian inference using MCMC to estimate a posterior distribution for a parameter in a binomial model.
 
@@ -1129,18 +1250,18 @@ plt.legend();
 
 #### From Posterior to Prediction
 
-- To make predictions, we must average (i.e. integrate) over the entire posterior -- this averages over the uncertainty in the posterior
-- We could do this with integral calculus
-- OR, we could just **take samples from the posterior and average over those**
+-   To make predictions, we must average (i.e. integrate) over the entire posterior -- this averages over the uncertainty in the posterior
+-   We could do this with integral calculus
+-   OR, we could just **take samples from the posterior and average over those**
 
 **Note**: Turn a calculus problem into a data summary problem
 
 ##### On Bayesian Inference
 
-- **There is no minimun sample size** -- fewer samples fall back to prior
-- **Posterior shape embodies the sample size** -- more data makes the posterior more precise
-- There is no point estimates -- **the estimate is the entire posterior distribution**
-- There is no true interval -- there are an infinite number of intervals one could draw, each is arbitrary and depends on what you're trying to communicate/summarize
+-   **There is no minimun sample size** -- fewer samples fall back to prior
+-   **Posterior shape embodies the sample size** -- more data makes the posterior more precise
+-   There is no point estimates -- **the estimate is the entire posterior distribution**
+-   There is no true interval -- there are an infinite number of intervals one could draw, each is arbitrary and depends on what you're trying to communicate/summarize
 
 ##### Sampling from Posterior Distribution
 
@@ -1237,23 +1358,20 @@ plt.show()
 
 The simulation demonstrates **Bayesian posterior and prior predictive distributions**:
 
-1. **Bayesian Updating**:  
-   - The posterior distribution $P(p | \text{data})$ is updated using observed data (6 water, 3 land) and a prior belief (Beta(1,1)).
-   - The simulation samples $p$ from the posterior distribution $Beta(a, b)$, showing how evidence refines our belief about $p$.
-
-2. **Posterior Predictive Checks**:  
-   - Predicting future data based on posterior samples of $p$.  
-   - The middle plot shows the sampling distribution of outcomes ($W$) given a specific sampled $p$ (likelihood).
-
-3. **Accumulated Posterior Predictive Distribution**:  
-   - The rightmost plot aggregates predictions over multiple posterior samples, representing the range of plausible future outcomes under the posterior.
-
-4. **MCMC-like Simulation**:  
-   - The process mimics a **Markov Chain Monte Carlo (MCMC)** approach:
-     - Sampling $p$ (parameter space).
-     - Simulating $w$ (data space) based on $p$.
-     - Repeating this many times to approximate distributions of interest.
-   - This highlights how Bayesian inference relies on sampling to explore posterior and predictive distributions, especially when analytical solutions are infeasible.
+1.  **Bayesian Updating**:
+    -   The posterior distribution $P(p | \text{data})$ is updated using observed data (6 water, 3 land) and a prior belief (Beta(1,1)).
+    -   The simulation samples $p$ from the posterior distribution $Beta(a, b)$, showing how evidence refines our belief about $p$.
+2.  **Posterior Predictive Checks**:
+    -   Predicting future data based on posterior samples of $p$.\
+    -   The middle plot shows the sampling distribution of outcomes ($W$) given a specific sampled $p$ (likelihood).
+3.  **Accumulated Posterior Predictive Distribution**:
+    -   The rightmost plot aggregates predictions over multiple posterior samples, representing the range of plausible future outcomes under the posterior.
+4.  **MCMC-like Simulation**:
+    -   The process mimics a **Markov Chain Monte Carlo (MCMC)** approach:
+        -   Sampling $p$ (parameter space).
+        -   Simulating $w$ (data space) based on $p$.
+        -   Repeating this many times to approximate distributions of interest.
+    -   This highlights how Bayesian inference relies on sampling to explore posterior and predictive distributions, especially when analytical solutions are infeasible.
 
 In summary, the simulation demonstrates **how Bayesian inference uses observed data to update beliefs about parameters** (posterior) and **predict future data** (posterior predictive), which are key principles of Bayesian data analysis and MCMC methods.
 
@@ -1263,10 +1381,7 @@ The horizontal axis here goes from zero to nine and we count the number of water
 
 ##### Sampling from Posterior Predictive Distribution
 
-**Posterior Prediction**: a prediction for out-of-sample data based on the current posterior estimate
-- 1. Draw a sample of model parameters from the posterior (i.e. proportions)
-- 2. Generate/simulate data predictions using our generative model and the sampled parameters
-- 3. The resulting probability distribution is our prediction
+**Posterior Prediction**: a prediction for out-of-sample data based on the current posterior estimate - 1. Draw a sample of model parameters from the posterior (i.e. proportions) - 2. Generate/simulate data predictions using our generative model and the sampled parameters - 3. The resulting probability distribution is our prediction
 
 ```{python}
 # 1. Sample parameters values from posterior
@@ -1297,17 +1412,15 @@ plt.legend();
 
 ### Practice Problems
 
-1) *The probability of rain on Monday*:
-   -  Pr(rain|Monday) 
-   -  Pr(rain,Monday)/Pr(Monday) = Pr(rain|Monday) 
-
-2) Pr(Monday|rain):
-   - The probability that it is Monday, given that it is raining
-
-3) The probability that it is Monday, given that it is raining:
-   - Pr(Monday|rain)
-   - Pr(rain|Monday)Pr(Monday)/Pr(rain): the product Pr(rain|Monday) Pr(Monday) is just the joint probability of rain and Monday, Pr(rain,Monday). Then dividing by the probability of rain provides the conditional probability
-4) Compute and plot the grid approximate posterior distribution for each of the following sets of observations. In each case, assume a uniform prior for $p$.
+1)  *The probability of rain on Monday*:
+    -   Pr(rain\|Monday)
+    -   Pr(rain,Monday)/Pr(Monday) = Pr(rain\|Monday)
+2)  Pr(Monday\|rain):
+    -   The probability that it is Monday, given that it is raining
+3)  The probability that it is Monday, given that it is raining:
+    -   Pr(Monday\|rain)
+    -   Pr(rain\|Monday)Pr(Monday)/Pr(rain): the product Pr(rain\|Monday) Pr(Monday) is just the joint probability of rain and Monday, Pr(rain,Monday). Then dividing by the probability of rain provides the conditional probability
+4)  Compute and plot the grid approximate posterior distribution for each of the following sets of observations. In each case, assume a uniform prior for $p$.
 
 ```{python}
 # W, W, W             - (3,3)
@@ -1324,7 +1437,7 @@ for idx, (w, n) in enumerate(tosses):
     ax[idx].set_title(f"Water = {w}, Land = {n-w}")
 ```
 
-5. Now assume a prior for p that is equal to zero when $p <0.5$ and is a positive constant when $p ≥ 0.5$. Again compute and plot the grid approximate posterior distribution for each of the sets of observations in the problem just above.
+5.  Now assume a prior for p that is equal to zero when $p <0.5$ and is a positive constant when $p ≥ 0.5$. Again compute and plot the grid approximate posterior distribution for each of the sets of observations in the problem just above.
 
 ```{python}
 fig, ax = plt.subplots(1, 3, figsize=(12, 4))
@@ -1336,7 +1449,7 @@ for idx, (w, n) in enumerate(tosses):
     ax[idx].set_title(f"Water = {w}, Land = {n-w}")
 ```
 
-6. Suppose there are two globes, one for Earth and one for Mars. The Earth globe is 70% covered in water. The Mars globe is 100% land. Further suppose that one of these globes—you don’t know which—was tossed in the air and produced a “land” observation. Assume that each globe was equally likely to be tossed. Show that the posterior probability that the globe was the Earth, conditional on seeing “land” (Pr(Earth|land)), is 0.23.
+6.  Suppose there are two globes, one for Earth and one for Mars. The Earth globe is 70% covered in water. The Mars globe is 100% land. Further suppose that one of these globes—you don’t know which—was tossed in the air and produced a “land” observation. Assume that each globe was equally likely to be tossed. Show that the posterior probability that the globe was the Earth, conditional on seeing “land” (Pr(Earth\|land)), is 0.23.
 
 ![prob-tree](images/earth-mars-probability-tree.png)
 
@@ -1352,14 +1465,11 @@ We can think of $P(Land)$ as the marginal (average) probability of land, averagi
 
 You can think of this **posterior probability** as an **updated prior**. The prior probability was 0.5. Since there is more land coverage on Mars than on Earth, the posterior probability after observing land is smaller than the prior.
 
-7. Suppose you have a deck with only three cards. Each card has two sides, and each side is either black or white. One card has two black sides. The second card has one black and one white side. The third card has two white sides. Now suppose all three cards are placed in a bag and shuffled. Someone reaches into the bag and pulls out a card and places it flat on a table. A black side is shown facing up, but you don’t know the color of the side facing down. Show that the probability that the other side is also black is 2/3. Use the counting method (Section 2 of the chapter) to approach this problem. This means counting up the ways that each card could produce the observed data (a black side facing up on the table)
+7.  Suppose you have a deck with only three cards. Each card has two sides, and each side is either black or white. One card has two black sides. The second card has one black and one white side. The third card has two white sides. Now suppose all three cards are placed in a bag and shuffled. Someone reaches into the bag and pulls out a card and places it flat on a table. A black side is shown facing up, but you don’t know the color of the side facing down. Show that the probability that the other side is also black is 2/3. Use the counting method (Section 2 of the chapter) to approach this problem. This means counting up the ways that each card could produce the observed data (a black side facing up on the table)
 
 p = probability of 'B'
 
-Observed: 'B'
-- ['B', 'B'], p(B) = 1.0, ways to produce = 2
-- ['B', 'W'], p(B) = 0.5, ways to produce = 1
-- ['W', 'W'], p(B) = 0.0, ways to produce = 0
+Observed: 'B' - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 0
 
 Total Ways to produce black side up = 2 + 1 + 0 = 3
 
@@ -1377,17 +1487,13 @@ $Pr(DB|B) = \frac{Pr(B|DB)Pr(DB)}{Pr(B)} = \frac{(1)(1/3)}{1/2} = 2/3$
 
 Pr(B) = 1/2 as half that you might pick are indeed black
 
-Pr(DB|B) = 1 as if you pick the double black card, you have to see a black face
+Pr(DB\|B) = 1 as if you pick the double black card, you have to see a black face
 
 Pr(DB) = 1/3 as there are 3 possible cards you might choose
 
-8. Now suppose there are four cards: B/B, B/W, W/W, and another B/B. Again suppose a card is drawn from the bag and a black side appears face up. Again calculate the probability that the other side is black.
+8.  Now suppose there are four cards: B/B, B/W, W/W, and another B/B. Again suppose a card is drawn from the bag and a black side appears face up. Again calculate the probability that the other side is black.
 
-Observed: 'B'
-- ['B', 'B'], p(B) = 1.0, ways to produce = 2
-- ['B', 'B'], p(B) = 1.0, ways to produce = 2
-- ['B', 'W'], p(B) = 0.5, ways to produce = 1
-- ['W', 'W'], p(B) = 0.0, ways to produce = 0
+Observed: 'B' - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 0
 
 Total Ways to produce black side up = 2 + 2 + 1 + 0 = 5
 
@@ -1407,12 +1513,9 @@ $Pr(DB|B) = \frac{Pr(B|DB)Pr(DB)}{Pr(B)} = \frac{(1)(1/2)}{5/8} = 4/5$
 
 as 4/5 of the faces are black and you have a 50-50 chance of picking a double black card in this set-up
 
-9. Imagine that black ink is heavy, and so cards with black sides are heavier than cards with white sides. As a result, it’s less likely that a card with black sides is pulled from the bag. So again assume there are three cards: B/B, B/W, and W/W. After experimenting a number of times, you conclude that for every way to pull the B/B card from the bag, there are 2 ways to pull the B/W card and 3 ways to pull the W/W card. Again suppose that a card is pulled and a black side appears face up. Show that the probability the other side is black is now 0.5. Use the counting method, as before.
+9.  Imagine that black ink is heavy, and so cards with black sides are heavier than cards with white sides. As a result, it’s less likely that a card with black sides is pulled from the bag. So again assume there are three cards: B/B, B/W, and W/W. After experimenting a number of times, you conclude that for every way to pull the B/B card from the bag, there are 2 ways to pull the B/W card and 3 ways to pull the W/W card. Again suppose that a card is pulled and a black side appears face up. Show that the probability the other side is black is now 0.5. Use the counting method, as before.
 
-Observed: 'B'
-- ['B', 'B'], p(B) = 1.0, prior count = 2, likelihood = 1, new count = 2*1
-- ['B', 'W'], p(B) = 0.5, prior count = 1, likelihood = 2, new count = 1*2
-- ['W', 'W'], p(B) = 0.0, prior count = 0, likelihood = 3, new count = 0*3
+Observed: 'B' - \['B', 'B'\], p(B) = 1.0, prior count = 2, likelihood = 1, new count = 2*1 - \['B', 'W'\], p(B) = 0.5, prior count = 1, likelihood = 2, new count = 1*2 - \['W', 'W'\], p(B) = 0.0, prior count = 0, likelihood = 3, new count = 0\*3
 
 Total Ways to produce black side up = 2 + 2 + 0 = 4
 
@@ -1420,7 +1523,7 @@ Way to produce B/B = 2
 
 1/2 probability that the other side is black
 
-This problem introduces uneven numbers of ways to draw each card from the bag. So while in the two previous problems we could treat each card as equally likely, prior to the observation, now we need to employ the prior odds explicitly. 
+This problem introduces uneven numbers of ways to draw each card from the bag. So while in the two previous problems we could treat each card as equally likely, prior to the observation, now we need to employ the prior odds explicitly.
 
 There are still 2 ways for B/B to produce a black side up, 1 way for B/W, and zero ways for W/W. But now there is 1 way to get the B/B card, 2 ways to get the B/W card, and 3 ways to get the W/W card. So there are, in total, 1 ×2 =2 ways for the B/B card to produce a black side up and 2 × 1 = 2 ways for the B/W card to produce a black side up. This means there are 4 ways total to see a black side up, and 2 of these are from the B/B card. 2/4 ways means probability 0.5.
 
@@ -1442,10 +1545,7 @@ $Pr(DB|B) = \frac{Pr(B|DB)Pr(DB)}{Pr(B)} =  \frac{1 \times 1/6}{1/3} = 1/2$
 
 10. Assume again the original card problem, with a single card showing a black side face up. Before looking at the other side, we draw another card from the bag and lay it face up on the table. The face that is shown on the new card is white. Show that the probability that the first card, the one showing a black side, has black on its other side is now 0.75. Use the counting method, if you can. Hint: Treat this like the sequence of globe tosses, counting all the ways to see each observation, for each possible first card.
 
-Observed: 'B'
-- ['B', 'B'], p(B) = 1.0, ways to produce = 2
-- ['B', 'W'], p(B) = 0.5, ways to produce = 1
-- ['W', 'W'], p(B) = 0.0, ways to produce = 0
+Observed: 'B' - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 0
 
 Total Ways to produce black side up = 2 + 1 + 0 = 3
 
@@ -1453,26 +1553,21 @@ Way to produce B/B = 2
 
 2/3 **prior probability** that the other side is black
 
-Observed New: 'W'
-- ['B', 'B'], p(B) = 1.0, ways to produce = 0
-- ['B', 'W'], p(B) = 0.5, ways to produce = 1
-- ['W', 'W'], p(B) = 0.0, ways to produce = 2
+Observed New: 'W' - \['B', 'B'\], p(B) = 1.0, ways to produce = 0 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 2
 
 Total Ways to produce white side up = 0 + 1 + 2 = 3
 
-Given that the first draw has at least 1 side black and the second draw has at least 1 side white, the first draw cannot be card W/W and second card cannot be B/B. Either the first draw is B/W or B/B or the second draw is B/W or W/W. 
+Given that the first draw has at least 1 side black and the second draw has at least 1 side white, the first draw cannot be card W/W and second card cannot be B/B. Either the first draw is B/W or B/B or the second draw is B/W or W/W.
 
-Observing (1) B then (2) W
-- Scenario 1: **B**/**B** then B/**W** or **W**/**W** = 2 * 3 = 6 
-- Scenario 2: **B**/W then **W**/**W** = 1 * 2 = 2
+Observing (1) B then (2) W - Scenario 1: **B**/**B** then B/**W** or **W**/**W** = 2 \* 3 = 6 - Scenario 2: **B**/W then **W**/**W** = 1 \* 2 = 2
 
 Ways to create the sequence = 6 + 2 = 8
 
 Posterior probability of sequence where B/B is first draw = 6/8 = 0.75
 
-The observation is now the sequence: black side up then white side up. We’re still interested in the probability the other side of the first card is black. Let’s take each possible card in turn. 
+The observation is now the sequence: black side up then white side up. We’re still interested in the probability the other side of the first card is black. Let’s take each possible card in turn.
 
-First the B/B card. There are $2$ ways for it to produce the first observation, the black side up. This leaves the B/W card and W/W card to produce the next observation. Each card is equally likely (has same number of ways to get drawn from the bag). But the B/W card has only $1$ way to produce a white side up, while the W/W card has $2$ ways. So $3$ ways in total to get the second card to show white side up. All together, assuming the first card is B/B, there are $2×3=6$ ways to see the BW sequence of sides up. 
+First the B/B card. There are $2$ ways for it to produce the first observation, the black side up. This leaves the B/W card and W/W card to produce the next observation. Each card is equally likely (has same number of ways to get drawn from the bag). But the B/W card has only $1$ way to produce a white side up, while the W/W card has $2$ ways. So $3$ ways in total to get the second card to show white side up. All together, assuming the first card is B/B, there are $2×3=6$ ways to see the BW sequence of sides up.
 
 Now consider the B/W card being drawn first. There is $1$ way for it to show black side up. This leaves the B/B and W/W cards to produce the second side up. B/B cannot show white up, so zero ways there. W/W has $2$ ways to show white up. All together, that’s $1×2=2$ ways to see the sequence BW, when the first card is B/W. The final card, W/W, cannot produce the sequence when drawn first. So zero ways. Now let’s bring it all together. Among all three cards, there are $6+2=8$ ways to produce the sequence BW. $6$ of these are from the B/B being drawn first. So that’s $6/8=0.75$ probability that the first card is B/B.
 
@@ -1486,11 +1581,11 @@ $Pr(B_1,W_2) = Pr(B_1,W_2|B/B)Pr(B/B) + Pr(B_1,W_2|B/W)Pr(B/W)$
 
 (We can ignore conditioning on the W/W event, as it's impossible to observe a black face if this was the first card you picked)
 
-$ = Pr(W_2|B_1,B/B)Pr(B_1|B/B)Pr(B/B) + Pr(W_2|B_1,B/W)Pr(B_1|B/W)Pr(B/W)$
+\$ = Pr(W_2\|B_1,B/B)Pr(B_1\|B/B)Pr(B/B) + Pr(W_2\|B_1,B/W)Pr(B_1\|B/W)Pr(B/W)\$
 
-$ = 3/4 \times 1 \times 1/3 + 1/2 \times 1/2 \times 1/3$
+\$ = 3/4 \times 1 \times 1/3 + 1/2 \times 1/2 \times 1/3\$
 
-$ Pr(B_1,W_2) = 1/3$
+\$ Pr(B_1,W_2) = 1/3\$
 
 Plugging in, we get
 
@@ -1498,13 +1593,11 @@ $\frac{Pr(B_1,W_2|B/B)Pr(B/B)}{Pr(B_1,W_2)} = \frac{3/4 \times 1/3}{1/3} = 3/4$
 
 11. Suppose there are two species of panda bear. Both are equally common in the wild and live in the same places. They look exactly alike and eat the same food, and there is yet no genetic assay capable of telling them apart. They differ however in their family sizes. Species A gives birth to twins 10% of the time, otherwise birthing a single infant. Species B births twins 20% of the time, otherwise birthing singleton infants. Assume these numbers are known with certainty, from many years of field research. Now suppose you are managing a captive panda breeding program. You have a new female panda of unknown species, and she has just given birth to twins. What is the probability that her next birth will also be twins?
 
-To solve this problem, realize first that it is asking for a conditional probability:
-$$P(Twins_{2} \mid Twins_{1})$$
+To solve this problem, realize first that it is asking for a conditional probability: $$P(Twins_{2} \mid Twins_{1})$$
 
-the probability the second birth is twins, conditional on the first birth being twins. Remember the definition of conditional probability:
-$$P(Twins_{2} \mid Twins_{1})=\frac{P(Twins_{1}, Twins_{2})}{P(Twins)}$$
+the probability the second birth is twins, conditional on the first birth being twins. Remember the definition of conditional probability: $$P(Twins_{2} \mid Twins_{1})=\frac{P(Twins_{1}, Twins_{2})}{P(Twins)}$$
 
-So our job is to define $P(Twin_{1}, Twin_{2})$, the joint probability that both births are twins, and $P(Twins)$, the unconditioned probability of twins. 
+So our job is to define $P(Twin_{1}, Twin_{2})$, the joint probability that both births are twins, and $P(Twins)$, the unconditioned probability of twins.
 
 $P(Twins)$ is easier, so let’s do that one first. The “unconditioned” probability just means that we have to average over the possibilities. In this case, that means the species have to averaged over. The problem implies that both species are equally common, so there’s a half chance that any given panda is of either species. This gives us
 
@@ -1514,8 +1607,7 @@ Now for $P(Twins_{1},Twins_{2})$. The probability that a female from species A h
 
 $$P(Twins_{1}, Twins_{2}) = 0.5(0.01) + 0.5(0.04) = 0.025$$
 
-Finally, we combine these probabilities to get the answer:
-$$P(Twins_{2} \mid Twins_{1}) = \frac{0.025}{0.15} = \frac{1}{6} \approx 0.17$$
+Finally, we combine these probabilities to get the answer: $$P(Twins_{2} \mid Twins_{1}) = \frac{0.025}{0.15} = \frac{1}{6} \approx 0.17$$
 
 Note that this is higher than $P(twins)$. This is because the first set of twins provides some information about which species we have, and this information was automatically used in the calculation.
 
@@ -1531,7 +1623,7 @@ So the posterior probability of species A, after observing twins, falls to 1/3, 
 
 13. Continuing on from the previous problem, suppose the same panda mother has a second birth and that it is not twins, but a singleton infant. Compute the posterior probability that this panda is species A.
 
-Given the new information, we are computing 
+Given the new information, we are computing
 
 $$\text{Posterior} = \frac{\text{Probability of the data} \times \text{Prior}}{\text{Average Probability of the data}}$$
 
@@ -1541,15 +1633,13 @@ The probability of this data for a species A pandas is $P(Singleton \mid Species
 
 Whereas, the prior is the probability computed earlier $P(Species_{A} \mid Twins) = \frac{1}{3}$.
 
-The average/marginal probability of the data = $P(Singleton) = P(Singleton \mid (Species_{A} \mid Twins))P(Species_{A} \mid Twins) + P(Singleton \mid (Species_{B} \mid Twins))P(Species_{B} \mid Twins)$. 
+The average/marginal probability of the data = $P(Singleton) = P(Singleton \mid (Species_{A} \mid Twins))P(Species_{A} \mid Twins) + P(Singleton \mid (Species_{B} \mid Twins))P(Species_{B} \mid Twins)$.
 
 Given that $P(Species_{A} \mid Twins) = 1/3$, $P(Species_{B} \mid Twins) = 1 - 1/3$
 
-Therefore, 
-$$P(Singleton) = P(Singleton \mid A)P(A) + P(Singleton \mid B)P(B) = (0.9)\times\frac{1}{3} + (0.8)\times\frac{2}{3} = \frac{5}{6}$$
+Therefore, $$P(Singleton) = P(Singleton \mid A)P(A) + P(Singleton \mid B)P(B) = (0.9)\times\frac{1}{3} + (0.8)\times\frac{2}{3} = \frac{5}{6}$$
 
-Combining everything, we get: 
-$$P(A\mid Singleton)= \frac{(0.9)(1/3)}{5/6}=\frac{9}{25} = 0.36$$
+Combining everything, we get: $$P(A\mid Singleton)= \frac{(0.9)(1/3)}{5/6}=\frac{9}{25} = 0.36$$
 
 This is a modest increase in posterior probability of species A, an increase from about 0.33 to 0.36.
 
@@ -1569,17 +1659,17 @@ And the second likelihood is similar, but for species B:
 
 $$P(T,S \mid B) = (0.2)(0.8) = 0.16$$
 
-The priors are both 0.5, so all together:
-$$P(T,S) = (0.09)(0.5) + (0.16)(0.5) = 0.125$$
+The priors are both 0.5, so all together: $$P(T,S) = (0.09)(0.5) + (0.16)(0.5) = 0.125$$
 
 We already have the likelihood needed for the numerator, so we can go to the final answer now:
 
 $$P(A\mid T, S) = \frac{(0.09)(0.5)}{0.125} = 0.36$$
 
 14. A common boast of Bayesian statisticians is that Bayesian inference makes it easy to use all of the data, even if the data are of different types. So suppose now that a veterinarian comes along who has a new genetic test that she claims can identify the species of our mother panda. But the test, like all tests, is imperfect. This is the information you have about the test:
-    - The probability it correctly identifies a species A panda is 0.8.
-    - The probability it correctly identifies a species B panda is 0.65.
-  
+
+    -   The probability it correctly identifies a species A panda is 0.8.
+    -   The probability it correctly identifies a species B panda is 0.65.
+
     The vet administers the test to your panda and tells you that the test is positive for species A. First ignore your previous information from the births and compute the posterior probability that your panda is species A. Then redo your calculation, now using the birth data as well.
 
 |        | Species A | Species B |
@@ -1589,9 +1679,9 @@ $$P(A\mid T, S) = \frac{(0.09)(0.5)}{0.125} = 0.36$$
 
 Posterior Probability That Panda is Species A:
 
-- $P(A) = 0.5$
-- $P(Test_A \mid A) = 0.8$
-- $P(Test_A \mid B) = 1 - 0.65 = 0.35$ (False Negative)
+-   $P(A) = 0.5$
+-   $P(Test_A \mid A) = 0.8$
+-   $P(Test_A \mid B) = 1 - 0.65 = 0.35$ (False Negative)
 
 We use the original prior, Pr(A)=0.5. Plugging everything into Bayes’ theorem:
 
@@ -1606,4 +1696,3 @@ $$P(A \mid Test_A) = \frac{P(Test_A \mid A)P(A)}{P(Test_A)}$$
 $$P(A \mid Test_A) = \frac{(0.8)(0.36)}{(0.36)(0.8) + (1-0.36)(0.35)} \approx 0.56$$
 
 And since this posterior uses all of the data, the two births and the genetic test, it would be honest to label it as $P(A|Test_A, Twins, Singleton) \approx 0.56$.
-
