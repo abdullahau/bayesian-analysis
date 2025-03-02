@@ -59,7 +59,7 @@ Because we believe that our shaking of the bag gives each marble a fair chance a
 
 As we consider each draw from the bag, some of these paths are logically eliminated. The first draw tuned out to be 'B', recall, so the three white paths at the bottom of the garden are eliminated right away. If you imagine the real data tracing out a path through the garden, it must have passed through the one blue path near the origin. The second draw from the bag produces 'W', so three of the paths forking out of the first blue marble remain. As the data trace out a path, we know it must have passed through one of those three white paths (after the first blue path), but we don’t know which one, because we recorded only the color of each marble. Finally, the third draw is 'B'. Each of the remaining three paths in the middle layer sustain one blue path, leaving a total of three ways for the sequence to appear, assuming the bag contains \['B', 'W', 'W', 'W'\].
 
-![](images/marble-tree-3.png){fig-align="center" width="270"}
+![](images/marble-tree-3.png){fig-align="center" width="290"}
 
 Figure above shows the garden again, now with logically eliminated paths grayed out. We can’t be sure which of those three paths the actual data took. But as long as we’re considering only the possibility that the bag contains one blue and three white marbles, we can be sure that the data took one of those three paths. Those are the only paths consistent with both our knowledge of the bag’s contents (four marbles, white or blue) and the data ('B', 'W', 'B').
 
@@ -203,7 +203,7 @@ Suppose you have a globe representing our planet, the Earth. This version of the
 
 $$
 W \space L \space W \space W \space W \space L \space W \space L \space W
-$$ 
+$$
 
 where W indicates water and L indicates land. So in this example you observe six W (water) observations and three L (land) observations. Call this sequence of observations the *data*.
 
@@ -243,22 +243,562 @@ The data story has value, even if you quickly abandon it and never use it to bui
 
 Our problem is one of using the evidence—the sequence of globe tosses—to decide among different possible proportions of water on the globe. These proportions are like the conjectured marbles inside the bag, from earlier in the chapter. Each possible proportion may be more or less plausible, given the evidence. A Bayesian model begins with one set of plausibilities assigned to each of these possibilities. These are the prior plausibilities. Then it updates them in light of the data, to produce the posterior plausibilities. This updating process is a kind of learning, called **Bayesian updating**. The details of this updating—how it is mechanically achieved—can wait until later in the chapter. For now, let’s look only at how such a machine behaves.
 
+For the sake of the example only, let’s program our Bayesian machine to initially assign the same plausibility to every proportion of water, every value of p. We’ll do better than this later. Now look at the top-left plot below. The dashed horizontal line represents this initial plausibility of each possible value of $p$. After seeing the first toss, which is a “W,” the model updates the plausibilities to the solid line. The plausibility of $p=0$ has now fallen to exactly zero—the equivalent of “impossible.” Why? Because we observed at least one speck of water on the globe, so now we know there is some water. The model executes this logic automatically. You don’t have it instruct it to account for this consequence. Probability theory takes care of it for you, because it is essentially counting paths through the garden of forking data, as in the previous section.
+
+Likewise, the plausibility of $p > 0.5$ has increased. This is because there is not yet any evidence that there is land on the globe, so the initial plausibilities are modified to be consistent with this. Note however that the relative plausibilities are what matter, and there isn’t yet much evidence. So the differences in plausibility are not yet very large. In this way, the amount of evidence seen so far is embodied in the plausibilities of each value of $p$.
+
+In the remaining plots in below, the additional samples from the globe are introduced to the model, one at a time. Each dashed curve is just the solid curve from the previous plot, moving left to right and top to bottom. Every time a “W” is seen, the peak of the plausibility curve moves to the right, towards larger values of $p$. Every time an “L” is seen, it moves the other direction. The maximum height of the curve increases with each sample, meaning that fewer values of $p$ amass more plausibility as the amount of evidence increases. As each new observation is added, the curve is updated consistent with all previous observations.
+
+Notice that every updated set of plausibilities becomes the initial plausibilities for the next observation. Every conclusion is the starting point for future inference. However, this updating process works backwards, as well as forwards. Given the final set of plausibilities in the bottom-right plot, and knowing the final observation (W), it is possible to mathematically divide out the observation, to infer the previous plausibility curve. So the data could be presented to your model in any order, or all at once even. In most cases, you will present the data all at once, for the sake of convenience. But it’s important to realize that this merely represents abbreviation of an iterated learning process.
+
 ```{python}
-# Binomial Discrete - Probability mass function
-stats.binom.pmf(6, 9, 0.5)
+def globe_toss_plot(observations):
+  
+    def plot_beta_posterior(ax, k, n, **kwargs):
+        p = np.linspace(0,1)
+        # Beta Continuous - Probability density function
+        pmf = stats.beta.pdf(p, k+1, n-k+1)
+        return ax.plot(p, pmf, **kwargs) 
 
-plt.clf()
-
-plot_beta_posterior(k, n, )
+    fig, axes = plt.subplots(3, 3, figsize=(8, 8))
+    for i, ax in enumerate(axes.flat):
+        obs_prev, obs_new = observations[:i], observations[:i+1]
+        n, k = len(obs_prev), np.sum(obs_prev)
+        plot_beta_posterior(ax, k, n, linestyle='--')
+        n, k = len(obs_new), np.sum(obs_new)    
+        color = 'C1' if observations[i] == 1 else 'C0'
+        plot_beta_posterior(ax, k, n, color=color, linewidth=2, alpha=.5)
+        obs_str = ''.join("W" if x == 1 else "L" for x in obs_new)
+        ax.set(title=obs_str)
+        ax.set_yticks([])
+    fig.supxlabel('Proportion of Water')
+    fig.supylabel('Plausibility')
 
 # Globe Tossing Simulation
-observations = "WLWWWLWLW"
-_, axes = plt.subplots(3, 3, figsize=(8, 8))
-for i, ax in enumerate(axes.flat):
-    if i > 0:
-      
+# W = 1, L = 0
+observations = np.array([1,0,1,1,1,0,1,0,1])
+utils.inline_plot(globe_toss_plot, observations)
+```
 
-plt.show()
+------------------------------------------------------------------------
+
+#### Sample Size and Reliable Inference
+
+It is common to hear that there is a minimum num- ber of observations for a useful statistical estimate. For example, there is a widespread superstition that 30 observations are needed before one can use a Gaussian distribution. Why? In non-Bayesian statistical inference, procedures are often justified by the method’s behavior at very large sample sizes, so-called *asymptotic* behavior. As a result, performance at small samples sizes is questionable.
+
+In contrast, Bayesian estimates are valid for any sample size. This does not mean that more data isn’t helpful—it certainly is. Rather, the estimates have a clear and valid interpretation, no matter the sample size. But the price for this power is dependency upon the initial plausibilities, the prior. If the prior is a bad one, then the resulting inference will be misleading. There’s no free lunch, when it comes to learning about the world. A Bayesian golem must choose an initial plausibility, and a non-Bayesian golem must choose an estimator. Both golems pay for lunch with their assumptions.
+
+------------------------------------------------------------------------
+
+### Evaluate
+
+The Bayesian model learns in a way that is demonstrably optimal, provided that it accurately describes the real, large world. This is to say that your Bayesian machine guarantees perfect inference within the small world. No other way of using the available information, beginning with the same state of information, could do better.
+
+Don’t get too excited about this logical virtue, however. The calculations may malfunction, so results always have to be checked. And if there are important differences between the model and reality, then there is no logical guarantee of large world performance. And even if the two worlds did match, any particular sample of data could still be misleading. So it’s worth keeping in mind at least two cautious principles.
+
+First, the model’s certainty is no guarantee that the model is a good one. As the amount of data increases, the globe tossing model will grow increasingly sure of the proportion of water. This means that the curves in the plot above will become increasingly narrow and tall, restricting plausible values within a very narrow range. But models of all sorts—Bayesian or not—can be very confident about an inference, even when the model is seriously misleading. This is because the inferences are conditional on the model. What your model is telling you is that, given a commitment to this particular model, it can be very sure that the plausible values are in a narrow range. Under a different model, things might look differently.
+
+Second, it is important to supervise and critique your model’s work. Consider again the fact that the updating in the previous section works in any order of data arrival. We could shuffle the order of the observations, as long as six W’s and three L’s remain, and still end up with the same final plausibility curve. That is only true, however, because the model assumes that order is irrelevant to inference. When something is irrelevant to the machine, it won’t affect the inference directly. But it may affect it indirectly, because the data will depend upon order. So it is important to check the model’s inferences in light of aspects of the data it does not know about. Such checks are an inherently creative enterprise, left to the analyst and the scientific community.
+
+For now, note that the goal is not to test the truth value of the model’s assumptions. We know the model’s assumptions are never exactly right, in the sense of matching the true data generating process. Therefore there’s no point in checking if the model is true. Failure to conclude that a model is false must be a failure of our imagination, not a success of the model. Moreover, models do not need to be exactly true in order to produce highly precise and useful inferences. All manner of small world assumptions about error distributions and the like can be violated in the large world, but a model may still produce a perfectly useful estimate. This is because models are essentially information processing machines, and there are some surprising aspects of information that cannot be easily captured by framing the problem in terms of the truth of assumptions.
+
+Instead, the objective is to check the model’s adequacy for some purpose. This usually means asking and answering additional questions, beyond those that originally constructed the model. Both the questions and answers will depend upon the scientific context. So it’s hard to provide general advice. There will be many examples, throughout the book, and of course the scientific literature is replete with evaluations of the suitability of models for different jobs—prediction, comprehension, measurement, and persuasion.
+
+------------------------------------------------------------------------
+
+#### Deflationary Statistics
+
+It may be that Bayesian inference is the best general purpose method of inference known. However, Bayesian inference is much less powerful than we’d like it to be. There is no approach to inference that provides universal guarantees. No branch of applied mathematics has unfettered access to reality, because math is not discovered, like the proton. Instead it is invented, like the shovel.
+
+------------------------------------------------------------------------
+
+## Components of the Model
+
+Now that you’ve seen how the Bayesian model behaves, it’s time to open up the machine and learn how it works. Consider three different things that we counted in the previous sections.
+
+1.  The number of ways each conjecture could produce an observation
+
+2.  The accumulated number of ways each conjecture could produce the entire data
+
+3.  The initial plausibility of each conjectured cause of the data
+
+Each of these things has a direct analog in conventional probability theory. And so the usual way we build a statistical model involves choosing distributions and devices for each that represent the relative numbers of ways things can happen.
+
+In this section, you’ll meet these components in some detail and see how each relates to the counting you did earlier in the chapter. The job in front of us is really nothing more than naming all of the variables and defining each. We’ll take these tasks in turn.
+
+### Variables
+
+Variables are just symbols that can take on different values. In a scientific context, variables include things we wish to infer, such as proportions and rates, as well as things we might observe, the data. In the globe tossing model, there are three variables.
+
+The first variable is our target of inference, $p$, the proportion of water on the globe. This variable cannot be observed. Unobserved variables are usually called **parameters**. But while $p$ itself is unobserved, we can infer it from the other variables.
+
+The other variables are the observed variables, the counts of water and land. Call the count of water $W$ and the count of land $L$. The sum of these two variables is the number of globe tosses: $N= W + L$.
+
+### Definitions
+
+Once we have the variables listed, we then have to define each of them. In defining each, we build a model that relates the variables to one another. Remember, the goal is to count all the ways the data could arise, given the assumptions. This means, as in the globe tossing model, that for each possible value of the unobserved variables, such as p, we need to define the relative number of ways—the probability—that the values of each observed variable could arise. And then for each unobserved variable, we need to define the prior plausibility of each value it could take. I appreciate that this is all a bit abstract. So here are the specifics, for the globe.
+
+#### Observed Variable
+
+For the count of water $W$ and land $L$, we define how plausible any combination of $W$ and $L$ would be, for a specific value of $p$. This is very much like the marble counting we did earlier in the chapter. Each specific value of p corresponds to a specific plausibility of the data, as in the plot above.
+
+So that we don’t have to literally count, we can use a mathematical function that tells us the right plausibility. In conventional statistics, a distribution function assigned to an observed variable is usually called a **likelihood**. That term has special meaning in non- Bayesian statistics, however. We will be able to do things with our distributions that non- Bayesian models forbid. So I will sometimes avoid the term likelihood and just talk about distributions of variables. But when someone says, “likelihood,” they will usually mean a distribution function assigned to an observed variable.
+
+In the case of the globe tossing model, the function we need can be derived directly from the data story. Begin by nominating all of the possible events. There are two: *water* ($W$) and *land* ($L$). There are no other events. The globe never gets stuck to the ceiling, for example. When we observe a sample of $W$’s and $L$’s of length $N$ (nine in the actual sample), we need to say how likely that exact sample is, out of the universe of potential samples of the same length. That might sound challenging, but it’s the kind of thing you get good at very quickly, once you start practicing.
+
+In this case, once we add our assumptions that (1) every toss is independent of the other tosses and (2) the probability of W is the same on every toss, probability theory provides a unique answer, known as the *binomial distribution*. This is the common “coin tossing” distribution. And so the probability of observing $W$ waters and $L$ lands, with a probability $p$ of water on each toss, is:
+
+$$
+\text{Posterior probability of }p = Pr(W,L \mid p) = \frac{(W + L + 1)!}{W!L!} p^W(1-p)^L
+$$
+
+The function is read as: *The counts of “water”* $W$ *and “land’* $L$ *are distributed binomially, with probability* $p$ *of “water” on each toss.*
+
+And the binomial distribution formula is built into `scipy.stats`, so you can easily compute the likelihood of the data—six $W$’s in nine tosses—under any value of $p$ with:
+
+```{python}
+stats.binom.pmf(k=6, n=9, p=0.5)
+```
+
+That number is the relative number of ways to get six water, holding $p$ at 0.5 and $N= W + L$ at nine. So it does the job of counting relative number of paths through the garden. Change the 0.5 to any other value, to see how the value changes.
+
+Later, we’ll see that the binomial distribution is rather special, because it represents the **maximum entropy** way to count binary events. “Maximum entropy” might sound like a bad thing. Isn’t entropy disorder? Doesn’t “maximum entropy” mean the death of the universe? Actually it means that the distribution contains no additional information other than: There are two events, and the probabilities of each in each trial are $p$ and $1−p$.
+
+------------------------------------------------------------------------
+
+#### Binomial & Beta Distribution
+
+The binomial *probability mass function* (pmf) has the form:
+
+$$
+P(k, n \mid p) = \binom{n}{k} p^k (1-p)^{n-k}
+$$
+
+This is an analytical function that gives us the pmf as the limit as number of possibilities $\rightarrow \infty$, where $\binom{n}{k}$ is a normalizing constant to make the distribution sum to 1. The binomial function is a likelihood function that models/describes the number of successes (likelihood of observing) $k$ in $n$ independent, Bernoulli trials, where each trial has a probability $p$ of success. It is a discrete distribution and is used when the data consists of counts (e.g., number of heads in coin tosses).
+
+The p*robability density function* (pdf) for beta is $f(x, a, b)$, where $\alpha = k + 1$ and $\beta = n - k + 1$.
+
+Beta probability density function (pdf) has the form:
+
+$$
+P(p \mid \alpha, \beta) =  \frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha)\Gamma(\beta)} p^{\alpha-1} (1 − p)^{\beta-1}
+$$
+
+This function gives us the pdf and is used as a posterior function for a continuous distribution.
+
+The beta distribution is a conjugate prior of the binomial likelihood. The beta distribution is used to model uncertainty about a probability $p$, and describes the probability distribution of $p$ itself.
+
+When you use a beta prior with a binomial likelihood, the posterior distribution of $p$ is also a beta distribution. This is called **conjugacy**:
+
+$$
+\text{Posterior} \propto \text{Likelihood} \times \text{Prior}
+$$
+
+For a binomial likelihood and beta prior, the posterior is:
+
+$$
+\text{Beta}(\alpha + k, \beta + n - k)
+$$
+
+-   Use the **binomial distribution** when:
+    -   You have a fixed number of trials $n$.
+    -   You want to calculate the probability of observing $k$ successes.
+    -   The probability $p$ is known or fixed.
+-   Use the **beta distribution** when:
+    -   You want to model uncertainty about the probability $p$.
+    -   You are performing Bayesian inference and need a prior or posterior distribution for $p$.
+    -   You are combining a binomial likelihood with a beta prior to obtain a posterior distribution.
+
+------------------------------------------------------------------------
+
+### A central role for likelihood
+
+The most influential assumptions in both Bayesian and many non-Bayesian models are the distributions assigned to data, the likelihood functions. The likelihoods influence inference for every piece of data, and as sample size increases, the likelihood matters more and more. This helps to explain why Bayesian and non-Bayesian inferences are often so similar. If we had to explain Bayesian inference using only one aspect of it, we should describe likelihood, not priors.
+
+------------------------------------------------------------------------
+
+#### Unobserved variables.
+
+The distributions we assign to the observed variables typically have their own variables. In the binomial above, there is $p$, the probability of sampling water. Since $p$ is not observed, we usually call it a **parameter**. Even though we cannot observe $p$, we still have to define it.
+
+Later, there will be more parameters in your models. In statistical modeling, many of the most common questions we ask about data are answered directly by parameters:
+
+-   What is the average difference between treatment groups?
+
+-   How strong is the association between a treatment and an outcome?
+
+-   Does the effect of the treatment depend upon a covariate?
+
+-   How much variation is there among groups?
+
+You’ll see how these questions become extra parameters inside the distribution function we assign to the data.
+
+You’ll see how these questions become extra parameters inside the distribution function we assign to the data.
+
+For every parameter you intend your Bayesian machine to consider, you must provide a distribution of prior plausibility, its prior. A Bayesian machine must have an initial plausibility assignment for each possible value of the parameter, and these initial assignments do useful work. When you have a previous estimate to provide to the machine, that can become the prior, as in the steps in in the plot above. Back in the associated code of the plot, the machine did its learning one piece of data at a time. As a result, each estimate becomes the prior for the next step. But this doesn’t resolve the problem of providing a prior, because at the dawn of time, when $N= 0$, the machine still had an initial state of information for the parameter $p$: a flat line specifying equal plausibility for every possible value.
+
+So where do priors come from? They are both engineering assumptions, chosen to help the machine learn, and scientific assumptions, chosen to reflect what we know about a phenomenon. The flat prior in the plot above is very common, but it is hardly ever the best prior. Later chapters will focus on prior choice a lot more.
+
+There is a school of Bayesian inference that emphasizes choosing priors based upon the personal beliefs of the analyst. While this **subjective Bayesian** approach thrives in some statistics and philosophy and economics programs, it is rare in the sciences. Within Bayesian data analysis in the natural and social sciences, the prior is considered to be just part of the model. As such it should be chosen, evaluated, and revised just like all of the other components of the model. In practice, the subjectivist and the non-subjectivist will often analyze data in nearly the same way.
+
+None of this should be understood to mean that any statistical analysis is not inherently subjective, because of course it is—lots of little subjective decisions are involved in all parts of science. It’s just that priors and Bayesian data analysis are no more inherently subjective than are likelihoods and the repeat sampling assumptions required for significance testing. Anyone who has visited a statistics help desk at a university has probably experienced this subjectivity—statisticians do not in general exactly agree on how to analyze anything but the simplest of problems. The fact that statistical inference uses mathematics does not imply that there is only one reasonable or useful way to conduct an analysis. Engineering uses math as well, but there are many ways to build a bridge.
+
+Beyond all of the above, there’s no law mandating we use only one prior. If you don’t have a strong argument for any particular prior, then try different ones. Because the prior is an assumption, it should be interrogated like other assumptions: by altering it and checking how sensitive inference is to the assumption. No one is required to swear an oath to the assumptions of a model, and no set of assumptions deserves our obedience.
+
+------------------------------------------------------------------------
+
+#### Prior as Probability Distribution
+
+You could write the prior in the example here as:
+
+$$
+Pr(p) = \frac{1}{1-0} = 1
+$$
+
+The prior is a probability distribution for the parameter. In general, for a uniform prior from a to b, the probability of any point in the interval is $1/(b−a)$. If you’re bothered by the fact that the probability of every value of $p$ is 1, remember that every probability distribution must sum (integrate) to 1. The expression $1/(b−a)$ ensures that the area under the flat line from a to b is equal to 1. There will be more to say about this later.
+
+------------------------------------------------------------------------
+
+#### Datum or parameter?
+
+It is typical to conceive of data and parameters as completely different kinds of entities. Data are measured and known; parameters are unknown and must be estimated from data. Usefully, in the Bayesian framework the distinction between a datum and a parameter is not so fundamental. Sometimes we observe a variable, but sometimes we do not. In that case, the same distribution function applies, even though we didn’t observe the variable. As a result, the same assumption can look like a “likelihood” or a “prior,” depending upon context, without any change to the model. Much later, you’ll see how to exploit this deep identity between certainty (data) and uncertainty (parameters) to incorporate measurement error and missing data into your modeling.
+
+------------------------------------------------------------------------
+
+#### Prior, prior pants on fire
+
+Historically, some opponents of Bayesian inference objected to the arbitrariness of priors. It’s true that priors are very flexible, being able to encode many different states of information. If the prior can be anything, isn’t it possible to get any answer you want? Indeed it is. Regardless, after a couple hundred years of Bayesian calculation, it hasn’t turned out that people use priors to lie. If your goal is to lie with statistics, you’d be a fool to do it with priors, because such a lie would be easily uncovered. Better to use the more opaque machinery of the likelihood. Or better yet—don’t actually take this advice!—massage the data, drop some “outliers,” and otherwise engage in motivated data transformation.
+
+It is true though that choice of the likelihood is much more conventionalized than choice of prior. But conventional choices are often poor ones, smuggling in influences that can be hard to discover. In this regard, both Bayesian and non-Bayesian models are equally harried, because both traditions depend heavily upon likelihood functions and conventionalized model forms. And the fact that the non-Bayesian procedure doesn’t have to make an assumption about the prior is of little comfort. This is because non-Bayesian procedures need to make choices that Bayesian ones do not, such as choice of estimator or likelihood penalty. Often, such choices can be shown to be equivalent to some Bayesian choice of prior or rather choice of loss function.
+
+------------------------------------------------------------------------
+
+### A Model is Born
+
+With all the above work, we can now summarize our model. The observed variables $W$ and $L$ are given relative counts through the binomial distribution. So we can write, as a shortcut:
+
+$$
+W \sim \text{Binomial}(N,p)
+$$
+
+where $N =W +L$. The above is just a convention for communicating the assumption that the relative counts of ways to realize $W$ in $N$ trials with probability $p$ on each trial comes from the binomial distribution.
+
+The unobserved parameter p similarly gets:
+
+$$
+p \sim \text{Uniform}(0,1)
+$$
+
+This means that $p$ has a uniform—flat—prior over its entire possible range, from zero to one. This is obviously not the best we could do, since we know the Earth has more water than land, even if we do not know the exact proportion yet.
+
+Next, let’s see how to use these assumptions to generate inference.
+
+## Making the Model Go
+
+Once you have named all the variables and chosen definitions for each, a Bayesian model can update all of the prior distributions to their purely logical consequences: the **posterior distribution**. For every unique combination of data, likelihood, parameters, and prior, there is a unique posterior distribution. This distribution contains the relative plausibility of different parameter values, conditional on the data and model. The posterior distribution takes the form of the probability of the parameters, conditional on the data. In this case, it would be $Pr(p \mid W,L)$, the probability of each possible value of $p$, conditional on the specific W and L that we observed.
+
+### Bayes' Theorem
+
+The mathematical definition of the posterior distribution arises from Bayes’ theorem. This is the theorem that gives Bayesian data analysis its name. But the theorem itself is a trivial implication of probability theory. Here’s a quick derivation of it, in the context of the globe tossing example. Really this will just be a re-expression of the garden of forking data derivation from earlier in the chapter. What makes it look different is that it will use the rules of probability theory to coax out the updating rule. But it is still just counting.
+
+The **joint probability** of the data $W$ and $L$ and any particular value of $p$ is: $$Pr(W, L, p) = Pr(W, L \mid p)Pr(p)$$
+
+This just says that the probability of $W$, $L$ and $p$ is the product of $Pr(W,L \mid p)$ and the prior probability $Pr(p)$. This is like saying that the probability of rain and cold on the same day is equal to the probability of rain, when it’s cold, times the probability that it’s cold. This much is just definition. But it’s just as true that:
+
+$$
+Pr(W, L, p) = Pr(p \mid W, L)Pr(W,L)
+$$
+
+This is just the reverse of which probability is conditional, on the right-hand side. It is still a true definition. It’s like saying that the probability of rain and cold on the same day is equal to the probability that it’s cold, when it’s raining, times the probability of rain.
+
+Now since both right-hand sides above are equal to the same thing, $Pr(W,L,p)$, they are also equal to one another:
+
+$$
+Pr(W, L \mid p)Pr(p) = Pr(p \mid W, L)Pr(W,L)
+$$
+
+So we can now solve for the thing that we want, $Pr(p|W,L)$:
+
+$$
+Pr(p \mid W, L) = \frac{Pr(W, L \mid p)Pr(p)}{Pr(W,L)}
+$$
+
+This is Bayes’ theorem. It says that the probability of any particular value of $p$, considering the data, is equal to the product of the relative plausibility of the data, conditional on $p$, and the prior plausibility of $p$, divided by this thing $Pr(W,L)$, which I’ll call the average probability of the data.
+
+$$
+\text{Posterior} = \frac{\text{Probability of the data} \times \text{Prior}}{\text{Average Probability of the data}}
+$$
+
+The **average probability of the data**, $Pr(W,L)$, can be confusing. It is commonly called the **“evidence”** or the “**average likelihood**,” neither of which is a transparent name. The probability $Pr(W,L)$ is literally the average probability of the data. Averaged over what? Averaged over the prior. It’s job is just to standardize the posterior, to ensure it sums (integrates) to one. In mathematical form:
+
+$$
+Pr(W,L) = E(Pr(W,L \mid p)) = \int Pr(W,L\mid p)Pr(p)dp
+$$
+
+The operator $E$ means to take an *expectation*. Such averages are commonly called *marginals* in mathematical statistics, and so you may also see this same probability called a *marginal likelihood*. And the integral above just defines the proper way to compute the average over a continuous distribution of values, like the infinite possible values of $p$.
+
+The key lesson is that the **posterior is proportional to the product of the prior and the probability of the data**. Why? Because for each specific value of p, the number of paths through the garden of forking data is the product of the prior number of paths and the new number of paths. Multiplication is just compressed counting. The average probability on the bottom just standardizes the counts so they sum to one. So while Bayes’ theorem looks complicated, because the relationship with counting paths is obscured, it just **expresses the counting that logic demands**.
+
+```{python}
+def uniform_prior(grid_points):
+    """
+    Returns Uniform prior density
+    """
+    return np.repeat(5, grid_points)
+
+def truncated_prior(grid_points, trunc_point=0.5):
+    """
+    Returns Truncated prior density
+    """
+    return (np.linspace(0, 1, grid_points) >= trunc_point).astype(int)
+
+def double_exp_prior(grid_points):
+    """
+    Returns Double Exponential prior density
+    """
+    return np.exp(-5 * abs(np.linspace(0, 1, grid_points) - 0.5))
+
+def binom_grid_approx(prior_func, grid_points, k, n):
+    # define grid
+    p_grid = np.linspace(0, 1, grid_points)
+    
+    # define prior
+    prior = prior_func(grid_points)
+    
+    # compute likelihood at each point in the grid
+    likelihood = stats.binom.pmf(k, n, p_grid)
+    
+    # compute product of likelihood and prior
+    unstd_posterior = likelihood * prior
+    
+    # standardize the posterior, so it sums to 1
+    posterior = unstd_posterior / np.sum(unstd_posterior)
+    
+    return p_grid, likelihood, posterior
+```
+
+```{python}
+def example_plot():
+  w, n = 6, 9
+  priors = [uniform_prior, truncated_prior, double_exp_prior]
+  titles = ['Prior', 'Likelihood', 'Posterior']
+  
+  _, axs = plt.subplots(3, 3, figsize=(8, 8))
+  for i in range(3):
+      ax = axs[i]   
+      p_grid, likelihood, posterior = binom_grid_approx(priors[i], 100, w, n)
+      ax[0].plot(p_grid, priors[i](100), "k-")
+      ax[1].plot(p_grid, likelihood, "k-")
+      ax[2].plot(p_grid, posterior, "k-")
+      for ii in range(3):
+          ax[ii].axes.get_yaxis().set_visible(False)
+          if i == 0:
+              ax[ii].set_title(f"{titles[ii]}")  
+
+utils.inline_plot(example_plot)
+
+```
+
+The posterior distribution as a product of the prior distribution and likelihood. Top: A flat prior constructs a posterior that is simply proportional to the likelihood. Middle: A step prior, assigning zero probability to all values less than 0.5, results in a truncated posterior. Bottom: A peaked prior that shifts and skews the posterior, relative to the likelihood.
+
+The plot illustrates the multiplicative interaction of a prior and a probability of data. On each row, a prior on the left is multiplied by the probability of data in the middle to produce a posterior on the right. The probability of data in each case is the same. The priors however vary. As a result, the posterior distributions vary.
+
+------------------------------------------------------------------------
+
+#### Bayesian Data Analysis isn’t about Bayes’ Theorem
+
+A common notion about Bayesian data analysis, and Bayesian inference more generally, is that it is distinguished by the use of Bayes’ theorem. This is a mistake. Inference under any probability concept will eventually make use of Bayes’ theorem. Common introductory examples of “Bayesian” analysis using HIV and DNA testing are not uniquely Bayesian. Since all of the elements of the calculation are frequencies of observations, a non- Bayesian analysis would do exactly the same thing. Instead, Bayesian approaches get to use Bayes’ theorem more generally, to quantify uncertainty about theoretical entities that cannot be observed, like parameters and models. Powerful inferences can be produced under both Bayesian and non- Bayesian probability concepts, but different justifications and sacrifices are necessary.
+
+------------------------------------------------------------------------
+
+### Motors: Conditioning Engines
+
+The Bayesian model is a machine and it has built-in definitions for the likelihood, the parameters, and the prior. And then at its heart lies a motor that processes data, producing a posterior distribution. The action of this motor can be thought of as *conditioning* the prior on the data. As explained in the previous section, this conditioning is governed by the rules of probability theory, which defines a uniquely logical posterior for set of assumptions and observations.
+
+However, knowing the mathematical rule is often of little help, because many of the interesting models in contemporary science cannot be conditioned formally, no matter your skill in mathematics. And while some broadly useful models like linear regression can be conditioned formally, this is only possible if you constrain your choice of prior to special forms that are easy to do mathematics with. We’d like to avoid forced modeling choices of this kind, instead favoring conditioning engines that can accommodate whichever prior is most useful for inference.
+
+What this means is that various numerical techniques are needed to approximate the mathematics that follows from the definition of Bayes’ theorem. In this book, you’ll meet three different conditioning engines, numerical techniques for computing posterior distributions:
+
+1)  Grid approximation
+2)  Quadratic approximation
+3)  Markov chain Monte Carlo (MCMC)
+
+There are many other engines, and new ones are being invented all the time. But the three you’ll get to know here are common and widely useful. In addition, as you learn them, you’ll also learn principles that will help you understand other techniques.
+
+------------------------------------------------------------------------
+
+#### How you fit the model is part of the model
+
+Earlier, we implicitly defined the model as a composite of a prior and a likelihood. That definition is typical. But in practical terms, we should also consider how the model is fit to data as part of the model. In very simple problems, like the globe tossing example that consumes this chapter, calculation of the posterior density is trivial and foolproof. In even moderately complex problems, however, the details of fitting the model to data force us to recognize that our numerical technique influences our inferences. This is because different mistakes and compromises arise under different techniques. The same model fit to the same data using different techniques may produce different answers. When something goes wrong, every piece of the machine may be suspect. And so our golems carry with them their updating engines, as much slaves to their engineering as they are to the priors and likelihoods we program into them.
+
+------------------------------------------------------------------------
+
+### Grid Approximation
+
+One of the simplest conditioning techniques is grid approximation. While most parameters are continuous, capable of taking on an infinite number of values, it turns out that we can achieve an excellent approximation of the continuous posterior distribution by considering only a finite grid of parameter values. At any particular value of a parameter, $p'$, it’s a simple matter to compute the posterior probability: just multiply the prior probability of $p'$ by the likelihood at $p'$. Repeating this procedure for each value in the grid generates an approximate picture of the exact posterior distribution. This procedure is called **grid approximation**.
+
+Grid approximation will mainly be useful as a pedagogical tool, as learning it forces the user to really understand the nature of Bayesian updating. But in most of your real modeling, grid approximation isn’t practical. The reason is that it scales very poorly, as the number of parameters increases. So in later chapters, grid approximation will fade away, to be replaced by other, more efficient techniques.
+
+In the context of the globe tossing problem, grid approximation works extremely well. So let’s build a grid approximation for the model we’ve constructed so far. Here is the recipe:
+
+1)  Define the grid. This means you decide how many points to use in estimating the posterior, and then you make a list of the parameter values on the grid.
+2)  Compute the value of the prior at each parameter value on the grid.
+3)  Compute the likelihood at each parameter value.
+4)  Compute the unstandardized posterior at each parameter value, by multiplying the prior by the likelihood.
+5)  Finally, standardize the posterior, by dividing each value by the sum of all values.
+
+In the globe tossing context, here’s the code to complete all five of these steps:
+
+```{python}
+def binom_grid_approx(prior_func, grid_points, k, n):
+    # define grid
+    p_grid = np.linspace(0, 1, grid_points)
+    
+    # define prior
+    prior = prior_func(grid_points)
+    
+    # compute likelihood at each point in the grid
+    likelihood = stats.binom.pmf(k, n, p_grid)
+    
+    # compute product of likelihood and prior
+    unstd_posterior = likelihood * prior
+    
+    # standardize the posterior, so it sums to 1
+    posterior = unstd_posterior / np.sum(unstd_posterior)
+    
+    return p_grid, likelihood, posterior
+```
+
+The above code makes a grid of specified points. Let's display the posterior distribution with 5, 20, 100 points:
+
+```{python}
+def example_plot():
+    w, n = 6, 9
+    
+    points = (5, 20, 100)
+    
+    _, ax = plt.subplots(1, len(points), figsize=(4 * len(points), 4))
+    for idx, ps in enumerate(points):
+        p_grid, _, posterior = binom_grid_approx(uniform_prior, ps, w, n)
+        ax[idx].plot(p_grid, posterior, "o-", label=f"successes = {w}\ntosses = {n}")
+        ax[idx].set_xlabel("probability of water")
+        ax[idx].set_ylabel("posterior probability")
+        ax[idx].set_title(f"{ps} points")
+        ax[idx].legend(loc=0)
+
+utils.inline_plot(example_plot)
+```
+
+The correct density for your grid is determined by how accurate you want your approximation to be. More points means more precision. In this simple example, you can go crazy and use 100,000 points, but there won’t be much change in inference after the first 100.
+
+### Quadratic Approximation
+
+We’ll stick with the grid approximation to the globe tossing posterior, for the first few exercises. But before long we’ll have to resort to another approximation, one that makes stronger assumptions. The reason is that the number of unique values to consider in the grid grows rapidly as the number of parameters in your model increases. For the single-parameter globe tossing model, it’s no problem to compute a grid of 100 or 1000 values. But for two parameters approximated by 100 values each, that’s already $100^{2} =10,000$ values to compute. For 10 parameters, the grid becomes many billions of values. These days, it’s routine to have models with hundreds or thousands of parameters. The grid approximation strategy scales very poorly with model complexity, so it won’t get us very far.
+
+A useful approach is **quadratic approximation**. Under quite general conditions, the region near the peak of the posterior distribution will be nearly Gaussian—or “normal”—in shape. This means the posterior distribution can be usefully approximated by a Gaussian distribution. A Gaussian distribution is convenient, because it can be completely described by only two numbers: the location of its center (**mean**) and its spread (**variance**).
+
+A **Gaussian approximation** is called “quadratic approximation” because the logarithm of a Gaussian distribution forms a parabola. And a parabola is a quadratic function. So this approximation essentially represents any log-posterior with a parabola.
+
+For many of the most common procedures in applied statistics—linear regression, for example—the approximation works very well. Often, it is even exactly correct, not actually an approximation at all. Computationally, quadratic approximation is very inexpensive, at least compared to grid approximation and MCMC (discussed next). The procedure contains two steps.
+
+1)  Find the posterior mode. This is usually accomplished by some optimization algorithm, a procedure that virtually “climbs” the posterior distribution, as if it were a mountain. The algorithm doesn’t know where the peak is, but it does know the slope under its feet. There are many well-developed optimization procedures, most of them more clever than simple hill climbing. But all of them try to find peaks.
+2)  Once you find the peak of the posterior, you must estimate the curvature near the peak. This curvature is sufficient to compute a quadratic approximation of the entire posterior distribution. In some cases, these calculations can be done analytically, but usually your computer uses some numerical technique instead.
+
+To compute the quadratic approximation for the globe tossing data, we’ll use a mixture of tools from Stan:
+
+1.  Stan's Optimization Method: MAP estimation using `model.optimize()` and inverting Hessian matrix obtained from the `fit.hessian_matrix()`.
+
+2.  Laplace Approximation
+
+Let us compute the quadratic approximation to the globe tossing data using both the methods:
+
+```{python}
+#| output: false
+globe_qa = '''
+data {
+    int<lower=0> W; // Number of successes (Water)
+    int<lower=0> L; // Number of failures (Land)
+}
+parameters {
+    real<lower=0, upper=1> p; // Probability of water
+}
+model {
+    p ~ uniform(0, 1);      // Uniform prior
+    W ~ binomial(W + L, p);   // Binomial likelihood
+}
+'''
+
+globe_qa_model = utils.StanModel('stan_models/globe_qa', globe_qa)
+
+toss_data = {'W': 6, 'L': 3}
+
+# Optimize to get MAP estimate
+globe_fit_opt = globe_qa_model.optimize(data=toss_data)
+
+globe_fit_p = globe_fit_opt.stan_variables(inc_iterations=True)
+print(globe_fit_p)
+
+```
+
+```{python}
+globe_qa2 = '''
+data {
+  int W;
+  int L;
+}
+parameters {
+  real<lower=0,upper=1> p;
+}
+model {
+  // prior
+  target += uniform_lpdf(p | 0, 1);
+  
+  // likelihood 
+  target += binomial_lpmf( W | W + L,  p);
+}
+'''
+
+globe_qa_model = utils.StanModel('stan_models/globe_qa2', globe_qa2)
+
+toss_data = {'W': 6, 'L': 3}
+
+# Optimize to get MAP estimate
+globe_fit_opt = globe_qa_model.optimize(data=toss_data, jacobian=False)
+
+laplace = globe_qa_model.laplace_sample(data=toss_data, mode=globe_fit_opt, draws=1000, jacobian=False)
+
+laplace.stan_variables()['p'].std()
+
+globe_fit_opt.optimized_params_pd
+
+```
+
+```{python}
+toss_data = {'W': 6, 'L': 3}
+
+sample_mcmc_globe = globe_qa_model.sample(data=toss_data, show_progress=False)
+sample_mcmc_globe.summary()
+```
+
+Stan's Optimization Method:
+
+We have presented a brief summary of the quadratic approximation. In this case, it shows the posterior mean value of $p=0.67$, which it calls the “Mean.” The curvature is labeled “StdDev” This stands for *standard deviation*. This value is the standard deviation of the posterior distribution, while the mean value is its peak. Finally, the last two values in the output show the 89% percentile interval, which you’ll learn more about later. You can read this kind of approximation like: *Assuming the posterior is Gaussian, it is maximized at 0.67, and its standard deviation is 0.16*.
+
+Since we already know the posterior, let’s compare to see how good the approximation is. We will use the analytical approach here, which uses `stats.beta.pdf`.
+
+```{python}
+# analytical posterior calculation
+w, n = 6, 9
+x = np.linspace(0, 1, 100)
+
+plt.plot(x, stats.beta.pdf(x, w + 1, n - w + 1), color='k', label="True posterior")
+
+# quadratic approximation
+plt.plot(x, stats.norm.pdf(x, mean_q["p"], std_q), color='k', linestyle='--', label="Quadratic approximation")
+plt.legend(loc=2)
+
+plt.title(f"n = {n}")
+plt.xlabel("Proportion water");
 ```
 
 #### Bayesian data analysis
@@ -586,64 +1126,6 @@ for ii, possibilities in enumerate([5, 10, 20, 30]):
     axs[ii].set_title(f"{possibilities} possibilities")
 ```
 
-##### Binomial & Beta Distribution
-
-Once we add our assumptions that (1) every toss is independent of the other tosses and (2) the probability of W is the same on every toss, probability theory provides a unique answer, known as the binomial distribution. This is the common “coin tossing” distribution. And so the probability of observing $W$ waters and $L$ lands, with a probability $p$ of water on each toss, is:
-
-$$
-\text{Posterior probability of }p = Pr(W,L \mid p) = \frac{(W + L + 1)!}{W!L!} p^W(1-p)^L
-$$
-
-*The function is read as*: The counts of “water” $W$ and “land’ $L$ are distributed binomially, with probability $p$ of “water” on each toss
-
-This is an analytical function that gives us the pdf as the limit as number of possibilities $\rightarrow \infty$, where $\frac{(W + L + 1)!}{W!L!}$ is a normalizing constant to make the distribution sum to 1.
-
-Probability density function (pdf) for beta is $f(x, a, b)$, where $a = W + 1$ and $b = L + 1$.
-
-Probability mass function:
-
-$$Pr(W \mid n, p) =  \frac{n!}{W!(n − W)!} p^W (1 − p)^{n−W}$$
-
-The probability of observing specified W’s in $n$ tosses — below a value of $p$.
-
-**Difference Between Binomial and Beta Functions**
-
-1.  **Binomial Function - Likelihood Function**:
-    -   The binomial distribution models the number of successes $k$ in $n$ independent trials, where each trial has a probability $p$ of success.
-    -   It is a **discrete distribution** and is used when the data consists of counts (e.g., number of heads in coin tosses).
-    -   Probability mass function (PMF): $$
-        P(k \mid n, p) = \binom{n}{k} p^k (1-p)^{n-k}
-        $$
-    -   The binomial distribution is used when you want to calculate the probability of observing $k$ successes in $n$ trials for a fixed $p$.
-2.  **Beta Function - Posterior Function**:
-    -   The beta distribution is a **continuous distribution** defined on the interval $[0, 1]$.
-    -   It is often used as a prior distribution for the probability parameter $p$ in a binomial distribution because it is conjugate to the binomial likelihood.
-    -   Probability density function (PDF): $$
-        P(p \mid \alpha, \beta) = \frac{p^{\alpha-1} (1-p)^{\beta-1}}{B(\alpha, \beta)}
-        $$ where $B(\alpha, \beta)$ is the beta function.
-    -   The beta distribution is used to model uncertainty about a probability $p$.
-
-**Relationship Between Binomial and Beta Functions**
-
--   The binomial distribution describes the likelihood of observing $k$ successes in $n$ trials for a fixed $p$.
--   The beta distribution describes the probability distribution of $p$ itself.
--   When you use a beta prior with a binomial likelihood, the posterior distribution of $p$ is also a beta distribution. This is called **conjugacy**: $$
-    \text{Posterior} \propto \text{Likelihood} \times \text{Prior}
-    $$ For a binomial likelihood and beta prior, the posterior is: $$
-    \text{Beta}(\alpha + k, \beta + n - k)
-    $$
-
-**When to Use Binomial vs. Beta**
-
--   Use the **binomial distribution** when:
-    -   You have a fixed number of trials $n$.
-    -   You want to calculate the probability of observing $k$ successes.
-    -   The probability $p$ is known or fixed.
--   Use the **beta distribution** when:
-    -   You want to model uncertainty about the probability $p$.
-    -   You are performing Bayesian inference and need a prior or posterior distribution for $p$.
-    -   You are combining a binomial likelihood with a beta prior to obtain a posterior distribution.
-
 **Conjugacy**
 
 -   Source: [Conjugate Prior](https://en.wikipedia.org/wiki/Conjugate_prior)
@@ -708,18 +1190,6 @@ ax2.set_ylim(0,)
 fig.tight_layout() 
 plt.show()
 ```
-
-The observed variables $W$ and $L$ are given relative counts through the binomial distribution. So we can write, as a shortcut:
-
-$$W \sim \text{Binomial}(N,p)$$
-
-where $N =W +L$. The above is just a convention for communicating the assumption that the relative counts of ways to realize $W$ in $N$ trials with probability $p$ on each trial comes from the binomial distribution.
-
-The unobserved parameter p similarly gets:
-
-$$p \sim \text{Uniform}(0,1)$$
-
-This means that p has a uniform—flat—prior over its entire possible range, from zero to one. This is obviously not the best we could do, since we know the Earth has more water than land, even if we do not know the exact proportion yet.
 
 The terms **PMF**, **CDF**, **PDF**, and **PPF** are fundamental concepts in probability and statistics, each describing different aspects of probability distributions. Here's a detailed explanation of each:
 
@@ -815,51 +1285,7 @@ The terms **PMF**, **CDF**, **PDF**, and **PPF** are fundamental concepts in pro
 
 **When to Use Each** - Use **PMF** when working with discrete data (e.g., counts, categories). - Use **CDF** to calculate cumulative probabilities (e.g., $P(X \leq x)$). - Use **PDF** when working with continuous data (e.g., measurements, time). - Use **PPF** to find percentiles or critical values (e.g., median, 95th percentile).
 
-##### Tossing the Globe
-
-```{python}
-def plot_beta_posterior_from_observations(observations: str, resolution: int = 50, **plot_kwargs) -> None:
-    """Calculates and plots the beta posterior for a string of observations"""
-    n_W = len(observations.replace("L", ""))
-    n_L = len(observations) - n_W
-    proportions = np.linspace(0, 1, resolution)
-        
-    probs = beta_posterior(n_W, n_L, proportions)
-    plt.plot(proportions, probs, **plot_kwargs)
-    plt.yticks([])
-    plt.title(observations)
-
-# Tossing the globe
-observations = "WLWWWLWLW"
-fig, axs = plt.subplots(3, 3, figsize=(8, 8))
-for ii in range(9):
-    ax = axs[ii // 3][ii % 3]
-    plt.sca(ax)
-    # Plot previous
-    if ii > 0:
-        plot_beta_posterior_from_observations(observations[:ii], color='k', linestyle='--')
-    else:
-        # First observation, no previous data
-        plot_beta_posterior_from_observations('', color='k', linestyle='--')
-        
-    color = 'C1' if observations[ii] == 'W' else 'C0'
-    plot_beta_posterior_from_observations(observations[:ii+1], color=color, linewidth=4, alpha=.5)
-    
-    if not ii % 3:
-        plt.ylabel("posterior probability")
-```
-
-The dashed horizontal line represents this initial plausibility of each possible value of $p$. After seeing the first toss, which is a “W”, the model updates the plausibilities to the solid line. The plausibility of $p=0$ has now fallen to exactly zero—the equivalent of “impossible.” Why? Because we observed at least one speck of water on the globe, so now we know there is some water. The model executes this logic automatically. You don’t have it instruct it to account for this consequence. Probability theory takes care of it for you, because it is essentially counting paths through the garden of forking data.
-
-Likewise, the plausibility of $p >0.5$ has increased. This is because there is not yet any evidence that there is land on the globe, so the initial plausibilities are modified to be consistent with this. Note however that the relative plausibilities are what matter, and there isn’t yet much evidence. So the differences in plausibility are not yet very large. In this way, the amount of evidence seen so far is embodied in the plausibilities of each value of $p$.
-
-Every time a “$W$” is seen, the peak of the plausibility curve moves to the right, towards larger values of $p$. Every time an “$L$” is seen, it moves the other direction. The maximum height of the curve increases with each sample, meaning that fewer values of $p$ amass more plausibility as the amount of evidence increases. As each new observation is added, the curve is updated consistent with all previous observations.
-
-This updating process works backwards, as well as forwards. Given the final set of plausibilities in the bottom-right plot, and knowing the final observation (W), it is possible to mathematically divide out the observation, to infer the previous plausibility curve.
-
 #### From Prior to Posterior
-
-Once you have named all the variables and chosen definitions for each, a Bayesian model can update all of the prior distributions to their purely logical consequences: the **posterior distribution**. For every unique combination of data, likelihood, parameters, and prior, there is a unique posterior distribution. This distribution contains the relative plausibility of different parameter values, conditional on the data and model. The posterior distribution takes the form of the probability of the parameters, conditional on the data. In this case, it would be $Pr(p \mid W,L)$, the probability of each possible value of $p$, conditional on the specific W and L that we observed.
 
 **Probability Rules Summary**:
 
@@ -883,269 +1309,11 @@ $$P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}$$
 
 $$P(X \mid Y) = \frac{P(Y \mid X)P(X)}{P(Y)}$$
 
-**Bayes' Theorem**
-
-The mathematical definition of the posterior distribution arises from Bayes’ theorem.
-
-The **joint probability** of the data $W$ and $L$ and any particular value of $p$ is: $$Pr(W, L, p) = Pr(W, L \mid p)Pr(p)$$
-
-This just says that the probability of $W$, $L$ and $p$ is the product of $Pr(W,L \mid p)$ and the prior probability $Pr(p)$. This is like saying that the probability of rain and cold on the same day is equal to the probability of rain, when it’s cold, times the probability that it’s cold. This much is just definition. But it’s just as true that:
-
-$$Pr(W, L, p) = Pr(p \mid W, L)Pr(W,L)$$
-
-This is just the reverse of which probability is conditional, on the right-hand side. It is still a true definition. It’s like saying that the probability of rain and cold on the same day is equal to the probability that it’s cold, when it’s raining, times the probability of rain.
-
-Now since both right-hand sides above are equal to the same thing, $Pr(W,L,p)$, they are also equal to one another:
-
-$$Pr(W, L \mid p)Pr(p) = Pr(p \mid W, L)Pr(W,L)$$
-
-So we can now solve for the thing that we want, $Pr(p|W,L)$:
-
-$$Pr(p \mid W, L) = \frac{Pr(W, L \mid p)Pr(p)}{Pr(W,L)}$$
-
-This is Bayes’ theorem. It says that the probability of any particular value of $p$, considering the data, is equal to the product of the relative plausibility of the data, conditional on $p$, and the prior plausibility of $p$, divided by this thing $Pr(W,L)$, which I’ll call the average probability of the data.
-
-$$\text{Posterior} = \frac{\text{Probability of the data} \times \text{Prior}}{\text{Average Probability of the data}}$$
-
-The **average probability of the data**, $Pr(W,L)$, can be confusing. It is commonly called the **“evidence”** or the “**average likelihood**,” neither of which is a transparent name. The probability Pr(W,L)is literally the average probability of the data. Averaged over what? Averaged over the prior. It’s job is just to standardize the posterior, to ensure it sums (integrates) to one. In mathematical form:
-
-$$Pr(W,L) = E(Pr(W,L \mid p)) = \int Pr(W,L\mid p)Pr(p)dp$$
-
-The operator $E$ means to take an *expectation*. Such averages are commonly called *marginals* in mathematical statistics, and so you may also see this same probability called a *marginal likelihood*. And the integral above just defines the proper way to compute the average over a continuous distribution of values, like the infinite possible values of $p$.
-
-The key lesson is that the **posterior is proportional to the product of the prior and the probability of the data**. Why? Because for each specific value of p, the number of paths through the garden of forking data is the product of the prior number of paths and the new number of paths. Multiplication is just compressed counting. The average probability on the bottom just standardizes the counts so they sum to one. So while Bayes’ theorem looks complicated, because the relationship with counting paths is obscured, it just **expresses the counting that logic demands**.
-
-```{python}
-def uniform_prior(grid_points):
-    """
-    Returns Uniform prior density
-
-            Parameters:
-                grid_points (numpy.array): Array of prior values
-
-            Returns:
-                density (numpy.array): Uniform density of prior values
-    """
-    return np.repeat(5, grid_points)
-
-def truncated_prior(grid_points, trunc_point=0.5):
-    """
-    Returns Truncated prior density
-
-            Parameters:
-                grid_points (numpy.array): Array of prior values
-                trunc_point (double): Value where the prior is truncated
-
-            Returns:
-                density (numpy.array): Truncated density of prior values
-    """
-    return (np.linspace(0, 1, grid_points) >= trunc_point).astype(int)
-
-
-def double_exp_prior(grid_points):
-    """
-    Returns Double Exponential prior density
-
-            Parameters:
-                grid_points (numpy.array): Array of prior values
-
-            Returns:
-                density (numpy.array): Double Exponential density of prior values
-    """
-    return np.exp(-5 * abs(np.linspace(0, 1, grid_points) - 0.5))
-
-
-def binom_post_grid_approx(prior_func, grid_points=5, success=6, tosses=9):
-    """
-    Returns the grid approximation of posterior distribution with binomial likelihood.
-
-            Parameters:
-                    prior_func (function): A function that returns the likelihood of the prior
-                    grid_points (int): Number of points in the prior grid
-                    successes (int): Number of successes
-                    tosses (int): number of tosses
-
-            Returns:
-                    p_grid (numpy.array): Array of prior values
-                    likelihood (numpy.array): array of likelihood at each point in the grid
-                    posterior (numpy.array): Likelihood (density) of prior values
-    """
-    # define grid
-    p_grid = np.linspace(0, 1, grid_points)
-
-    # define prior
-    prior = prior_func(grid_points)
-
-    # compute likelihood at each point in the grid
-    likelihood = stats.binom.pmf(success, tosses, p_grid)
-
-    # compute product of likelihood and prior
-    unstd_posterior = likelihood * prior
-
-    # standardize the posterior, so it sums to 1
-    posterior = unstd_posterior / unstd_posterior.sum()
-    return p_grid, likelihood, posterior
-```
-
-```{python}
-w, n = 6, 9
-
-priors = [uniform_prior, truncated_prior, double_exp_prior]
-titles = ['Prior', 'Likelihood', 'Posterior']
-
-_, axs = plt.subplots(3, 3, figsize=(8, 8))
-for ii in range(3):
-    ax = axs[ii]   
-    p_grid, likelihood, posterior = binom_post_grid_approx(priors[ii], 100, w, n)
-    ax[0].plot(p_grid, priors[ii](100), "k-")
-    ax[1].plot(p_grid, likelihood, "k-")
-    ax[2].plot(p_grid, posterior, "k-")
-    for i in range(3):
-        ax[i].axes.get_yaxis().set_visible(False)
-        if ii == 0:
-            ax[i].set_title(f"{titles[i]}")        
-```
-
-The posterior distribution as a product of the prior distribution and likelihood. Top: A flat prior constructs a posterior that is simply proportional to the likelihood. Middle: A step prior, assigning zero probability to all values less than 0.5, results in a truncated posterior. Bottom: A peaked prior that shifts and skews the posterior, relative to the likelihood.
-
-The plot illustrates the multiplicative interaction of a prior and a probability of data. On each row, a prior on the left is multiplied by the probability of data in the middle to produce a posterior on the right. The probability of data in each case is the same. The priors however vary. As a result, the posterior distributions vary.
-
-#### Conditioning Engines
-
-The Bayesian model is a machine and it has built-in definitions for the likelihood, the parameters, and the prior. And then at its heart lies a motor that processes data, producing a posterior distribution. The action of this motor can be thought of as conditioning the prior on the data. As explained in the previous section, this conditioning is governed by the rules of probability theory, which defines a uniquely logical posterior for set of assumptions and observations.
-
-However, knowing the mathematical rule is often of little help, because many of the interesting models in contemporary science cannot be conditioned formally, no matter your skill in mathematics. And while some broadly useful models like linear regression can be conditioned formally, this is only possible if you constrain your choice of prior to special forms that are easy to do mathematics with. We’d like to avoid forced modeling choices of this kind, instead favoring conditioning engines that can accommodate whichever prior is most useful for inference.
-
-What this means is that various numerical techniques are needed to approximate the mathematics that follows from the definition of Bayes’ theorem. In this book, you’ll meet three different conditioning engines, numerical techniques for computing posterior distributions:
-
-1)  Grid approximation
-2)  Quadratic approximation
-3)  Markov chain Monte Carlo (MCMC)
-
-##### Grid Approximation
-
-One of the simplest conditioning techniques is grid approximation. While most parameters are continuous, capable of taking on an infinite number of values, it turns out that we can achieve an excellent approximation of the continuous posterior distribution by considering only a finite grid of parameter values. At any particular value of a parameter, $p'$, it’s a simple matter to compute the posterior probability: just multiply the prior probability of $p'$ by the likelihood at $p'$. Repeating this procedure for each value in the grid generates an approximate picture of the exact posterior distribution. This procedure is called **grid approximation**.
-
-Grid approximation will mainly be useful as a pedagogical tool, as learning it forces the user to really understand the nature of Bayesian updating. But in most of your real modeling, grid approximation isn’t practical. The reason is that it scales very poorly, as the number of parameters increases. So in later chapters, grid approximation will fade away, to be replaced by other, more efficient techniques.
-
-In the context of the globe tossing problem, grid approximation works extremely well. So let’s build a grid approximation for the model we’ve constructed so far. Here is the recipe:
-
-1)  Define the grid. This means you decide how many points to use in estimating the posterior, and then you make a list of the parameter values on the grid.
-2)  Compute the value of the prior at each parameter value on the grid.
-3)  Compute the likelihood at each parameter value.
-4)  Compute the unstandardized posterior at each parameter value, by multiplying the prior by the likelihood.
-5)  Finally, standardize the posterior, by dividing each value by the sum of all values.
-
-```{python}
-def binom_post_grid_approx(prior_func, grid_points=5, success=6, tosses=9):
-    """
-    Returns the grid approximation of posterior distribution with binomial likelihood.
-
-            Parameters:
-                    prior_func (function): A function that returns the likelihood of the prior
-                    grid_points (int): Number of points in the prior grid
-                    successes (int): Number of successes
-                    tosses (int): number of tosses
-
-            Returns:
-                    p_grid (numpy.array): Array of prior values
-                    likelihood (numpy.array): array of likelihood at each point in the grid
-                    posterior (numpy.array): Likelihood (density) of prior values
-    """
-    # define grid
-    p_grid = np.linspace(0, 1, grid_points)
-
-    # define prior
-    prior = prior_func(grid_points)
-
-    # compute likelihood at each point in the grid
-    likelihood = stats.binom.pmf(success, tosses, p_grid)
-
-    # compute product of likelihood and prior
-    unstd_posterior = likelihood * prior
-
-    # standardize the posterior, so it sums to 1
-    posterior = unstd_posterior / unstd_posterior.sum()
-    return p_grid, likelihood, posterior
-```
-
-```{python}
-w, n = 6, 9
-
-points = (5, 20, 100)
-
-_, ax = plt.subplots(1, len(points), figsize=(4 * len(points), 4))
-for idx, ps in enumerate(points):
-    p_grid, _, posterior = binom_post_grid_approx(uniform_prior, ps, w, n)
-    ax[idx].plot(p_grid, posterior, "o-", label=f"successes = {w}\ntosses = {n}")
-    ax[idx].set_xlabel("probability of water")
-    ax[idx].set_ylabel("posterior probability")
-    ax[idx].set_title(f"{ps} points")
-    ax[idx].legend(loc=0)
-```
-
 ##### Quadratic Approximation
-
-We’ll stick with the grid approximation to the globe tossing posterior, for the first few exercises. But before long you’ll have to resort to another approximation, one that makes stronger assumptions. The reason is that the number of unique values to consider in the grid grows rapidly as the number of parameters in your model increases. For the single-parameter globe tossing model, it’s no problem to compute a grid of 100 or 1000 values. But for two parameters approximated by 100 values each, that’s already $100^{2} =10,000$ values to compute. For 10 parameters, the grid becomes many billions of values. These days, it’s routine to have models with hundreds or thousands of parameters. The grid approximation strategy scales very poorly with model complexity, so it won’t get us very far.
-
-A useful approach is **quadratic approximation**. Under quite general conditions, the region near the peak of the posterior distribution will be nearly Gaussian—or “normal”—in shape. This means the posterior distribution can be usefully approximated by a Gaussian distribution. A Gaussian distribution is convenient, because it can be completely described by only two numbers: the location of its center (**mean**) and its spread (**variance**).
-
-A **Gaussian approximation** is called “quadratic approximation” because the logarithm of a Gaussian distribution forms a parabola. And a parabola is a quadratic function. So this approximation essentially represents any log-posterior with a parabola.
-
-For many of the most common procedures in applied statistics—linear regression, for example—the approximation works very well. Often, it is even exactly correct, not actually an approximation at all. Computationally, quadratic approximation is very inexpensive, at least compared to grid approximation and MCMC (discussed next). The procedure contains two steps.
-
-1)  Find the posterior mode. This is usually accomplished by some optimization algorithm, a procedure that virtually “climbs” the posterior distribution, as if it were a mountain. The algorithm doesn’t know where the peak is, but it does know the slope under its feet. There are many well-developed optimization procedures, most of them more clever than simple hill climbing. But all of them try to find peaks.
-2)  Once you find the peak of the posterior, you must estimate the curvature near the peak. This curvature is sufficient to compute a quadratic approximation of the entire posterior distribution. In some cases, these calculations can be done analytically, but usually your computer uses some numerical technique instead.
-
-```{python}
-data = np.repeat((0, 1), (3, 6))
-with pm.Model() as normal_approximation:
-    p = pm.Uniform("p", 0, 1)  # uniform priors
-    w = pm.Binomial("w", n=len(data), p=p, observed=data.sum())  # binomial likelihood
-    mean_q = pm.find_MAP()
-
-    # Remove transform from the variable `p`
-    normal_approximation.rvs_to_transforms[p] = None
-
-    # Change name so that we can use `mean_q["p"]` value
-    p_value = normal_approximation.rvs_to_values[p]
-    p_value.name = p.name
-    
-    std_q = ((1 / pm.find_hessian(mean_q, vars=[p])) ** 0.5)[0]
-    
-    # Compute the 89% percentile interval
-    norm = stats.norm(mean_q, std_q)
-    prob = 0.89
-    z = stats.norm.ppf([(1 - prob) / 2, (1 + prob) / 2])
-    pi = mean_q["p"] + std_q * z    
-
-    # display summary of quadratic approximation
-    print("\tMean\tStDev\t5.5%\t94.5% ")
-    print(f"p\t{mean_q['p']:.3f}\t{std_q[0]:.3f}\t{pi[0]:.3f}\t{pi[1]:.3f}")
-```
 
 A Hessian is a square matrix of second derivatives. It is used for many purposes in mathematics, but in the quadratic approximation it is second derivatives of the log of posterior probability with respect to the parameters. It turns out that these derivatives are sufficient to describe a Gaussian distribution, because the logarithm of a Gaussian distribution is just a parabola. Parabolas have no derivatives beyond the second, so once we know the center of the parabola (the posterior mode) and its second derivative, we know everything about it. And indeed the second derivative (with respect to the outcome) of the logarithm of a Gaussian distribution is proportional to its **inverse squared standard deviation** (its “precision”). So knowing the standard deviation tells us everything about its shape.
 
 The standard deviation is typically computed from the Hessian, so computing the Hessian is nearly always a necessary step. For now it’s enough to recognize the term and associate it with an attempt to find the standard deviation for a quadratic approximation.
-
-We have presented a brief summary of the quadratic approximation. In this case, it shows the posterior mean value of p =0.67, which it calls the “Mean.” The curvature is labeled “StdDev” This stands for standard deviation. This value is the standard deviation of the posterior distribution, while the mean value is its peak. Finally, the last two values in the output show the 89% percentile interval, which you’ll learn more about later. You can read this kind of approximation like: *Assuming the posterior is Gaussian, it is maximized at 0.67, and its standard deviation is 0.16*.
-
-Since we already know the posterior, let’s compare to see how good the approximation is. We will use the analytical approach here, which uses `stats.beta.pdf`.
-
-```{python}
-# analytical posterior calculation
-w, n = 6, 9
-x = np.linspace(0, 1, 100)
-
-plt.plot(x, stats.beta.pdf(x, w + 1, n - w + 1), color='k', label="True posterior")
-
-# quadratic approximation
-plt.plot(x, stats.norm.pdf(x, mean_q["p"], std_q), color='k', linestyle='--', label="Quadratic approximation")
-plt.legend(loc=2)
-
-plt.title(f"n = {n}")
-plt.xlabel("Proportion water");
-```
 
 ```{python}
 # Figure 2.8
