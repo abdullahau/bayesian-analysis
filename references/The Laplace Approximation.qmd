@@ -1,0 +1,487 @@
+---
+title: "The Laplace Approximation"
+author: "Abdullah Mahmood"
+date: today
+format:
+    html:
+        toc: true
+        toc-depth: 3
+        code-fold: False
+        html-math-method:
+            method: mathjax
+            url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+editor: source
+jupyter: main
+---
+
+**Source**:
+
+-   [The Laplace approximation by James Brennan](https://james-brennan.github.io/posts/laplace_approximation/)
+
+-   [Laplace Approximation by J. Tyler Kirby](https://www.jtylerkirby.com/posts/2022-12-11-laplace.html)
+
+-   [Laplace method and Jacobian of parameter transformation](https://users.aalto.fi/~ave/casestudies/Jacobian/jacobian.html)
+
+-   [Easy Laplace Approximation of Bayesian Models in R](https://www.sumsar.net/blog/2013/11/easy-laplace-approximation/)
+
+## Introduction
+
+For any model more complex than [some](https://en.wikipedia.org/wiki/Linear_regression) [well](https://en.wikipedia.org/wiki/Kalman_filter) [studied](https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model) [examples](https://en.wikipedia.org/wiki/Conjugate_prior), an exact description of the posterior is computationally intractable. Beyond an exhaustive evaluation, approximate inference makes it possible to retrieve reasonable descriptions of a posterior or cost surface based on approximation methods. While for many models, [Markov chain Monte Carlo](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo) is the approximate inference method of choice, the Laplace approximation still provides the simplest deterministic method available.
+
+Simply put the Laplace approximation entails finding a Gaussian approximation to a continuous probability density. Let’s consider a univariate continuous variable $x$ whose distribution $p(x)$ is defined as:
+
+$$
+p(z) = \frac{1}{Z} f(z)
+$$
+
+where $Z$ is the normalization coefficient
+
+$$
+Z=∫f(z)dz
+$$
+
+which ensures the integral of distribution is 1. As with other approximate inference methods, the goal of the Laplace approximation is to find a Gaussian approximation $q(z)$ to the distribution $p(z)$. The mean of this approximation is specified to be the mode of the true distribution $p(z)$, the point $z_0$.
+
+We make a Taylor expansion of $\ln f(z)$ centered on $z_0$ to provide an approximation for $\ln f(x)$):
+
+$$
+\ln f(z) \approx \ln f(z_0) - \frac{1}{2} A (z-z_0)^2
+$$
+
+where
+
+$$
+A = - \left. \frac{d^2}{dz^2} \ln f(z) \right|_{z=z_{0}}
+$$
+
+Taking the exponential of $\ln f(z)$ provides an approximation to our function or likelihood $f(z)$:
+
+$$
+f(z) \approx f(z_0) \exp \left[-\frac{A}{2}(z-z_0)^2 \right]
+$$ We reach our proper approximate distribution $q(z)$ by making use of the standard normalization of a Gaussian so that $q(z)$ is:
+
+$$
+q(z) = \left(\frac{A}{2\pi}\right)^{1/2}\exp\left[-\frac{A}{2}(z-z_0)^2\right]
+$$
+
+Below illustrates the principle. The asymmetric distribution $q(z)$ can be approximated with a Gaussian distribution $p(z)$. The left figure shows the two distributions with $p(z)$ centered on the mode. The right figure shows the negative logarithms of each distribution, which highlights the inability of the approximation to represent the asymmetry of $q(z)$.
+
+![](images/laplace_approximation_1_1.png){fig-align="center" width="524"}
+
+## **Laplace approximation for multivariate inference**
+
+We can of course extend the Laplace approximation for a multivariate distribution. For the $M$-dimensional multivariate distribution $p(\textbf{z}), \textbf{z} ∈ R^M$ we can carry out a multivariate procedure. Taking the Taylor expansion at the mode $\textbf{z}_0$ again:
+
+$$
+\ln f(\textbf{z})\approx\ln f(\textbf{z}_0) - \frac{1}{2}(\textbf{z}-\textbf{z}_0)^T \textbf{H}(\textbf{z}-\textbf{z}_0)
+$$
+
+where $\textbf{H}$ is the [Hessian](https://en.wikipedia.org/wiki/Hessian_matrix) matrix, the matrix of second-order partial derivatives which describes the local curvature of $\ln f(\textbf{z})$ at $\textbf{z}_0$. As before exponentiating and including the normalization constant for a multivariate normal we have the approximate multivariate distribution:
+
+$$
+q(z) = \frac{|\textbf{H}|^{1/2}}{2\pi^{M/2}}\exp\left[-\frac{1}{2}(\textbf{z}-\textbf{z}_0)^T \textbf{H}(\textbf{z}-\textbf{z}_0)\right]
+$$
+
+Wrapping it up and turning to inference, the Laplace approximation provides a Gaussian approximation to the posterior of a model $p(\textbf{z} \mid \textbf{y})$ centered on the [Maximum a posteriori (MAP) estimate](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation):
+
+$$
+p(\textbf{z} \mid \textbf{y}) \approx \text{Normal}(\textbf{z} \mid \textbf{z}_0 \textbf{H}^{-1})
+$$
+
+## **Demonstration in Python & Stan**
+
+Stan recently got Laplace approximation algorithm (see [Stan Reference Manual](https://mc-stan.org/docs/reference-manual/laplace-approximation.html)). Specificlly Stan makes the normal approximation in the unconstrained space, samples from the approximation, transforms the sample to the constrained space, and returns the sample. The method has option `jacobian` that can be used to select whether the Jacobian adjustment is included or not.
+
+This case study provides visual illustration of Jacobian adjustment for a parameter transformation, why it is needed for the Laplace approximation, and effect of `jacobian` option in Stan `log_prob` and `log_prob_grad` functions.
+
+### **Load packages**
+
+```{python}
+from cmdstanpy import CmdStanModel
+import bridgestan as bs
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+
+SEED = 48927 # set random seed for reproducibility
+
+def StanModel(stan_file: str, stan_code: str) -> CmdStanModel:
+    """Load or compile a Stan model"""
+    stan_src = f"{stan_file}.stan"
+
+    if not os.path.isfile(stan_file):  
+        open(stan_src, 'w').write(stan_code) 
+        return CmdStanModel(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
+    
+    return CmdStanModel(stan_file=stan_src, exe_file=stan_file)
+```
+
+## **Example model and posterior**
+
+For the illustration Binomial model is used with observed data $N=10, y=9$.
+
+```{python}
+import json
+
+data_bin = {'N': 10, 'y': 9}
+
+with open('Stan-Modelling/stan_models/data.json', 'w') as json_file:
+    json.dump(data_bin, json_file, indent=4)
+```
+
+As Beta(1,1) prior is used the posterior is Beta(9+1,1+1), but for illustration we also use Stan to find the mode of the posterior, sample from the posterior, and compare different posterior density values that we can ask Stan to compute.
+
+```{python}
+code_binom = '''
+// Binomial model with beta(1,1) prior
+data {
+  int<lower=0> N;              // number of experiments
+  int<lower=0> y;              // number of successes
+}
+parameters {
+  real<lower=0,upper=1> theta; // probability of success in range (0,1)
+}
+model {
+  // model block creates the log density to be sampled
+  theta ~ beta(1, 1);          // prior
+  y ~ binomial(N, theta);      // observation model / likelihood
+  // the notation using ~ is syntactic sugar for
+  //  target += beta_lpdf(theta | 1, 1);     // lpdf for continuous theta
+  //  target += binomial_lpmf(y | N, theta); // lpmf for discrete y
+  // target is the log density to be sampled
+}
+'''
+
+model_bin = StanModel('Stan-Modelling/stan_models/code_binom', code_binom)
+```
+
+Default MCMC sampling (as this is an easy posterior we skip showing the results for the convergence diagnostics).
+
+```{python}
+fit_bin = model_bin.sample(data=data_bin, seed=SEED, show_progress=False)
+fit_bin.summary()
+```
+
+Default optimization finds the maximum of the posterior.
+
+```{python}
+opt_bin = model_bin.optimize(data=data_bin, seed=SEED, jacobian=False)
+variable_dict = opt_bin.stan_variables()
+
+print(variable_dict)
+model_bin.log_prob(variable_dict, data=data_bin, jacobian=False)
+```
+
+```{python}
+laplace_samp = model_bin.laplace_sample(data=data_bin, mode=opt_bin, jacobian=False)
+laplace_samp.stan_variables()['theta'].std()
+```
+
+The following plot shows the exact posterior (black) and grey vertical line shows the MAP, that is, posterior mode in the constrained space. Stan optimizing finds correctly the mode.
+
+```{python}
+from scipy.special import expit, logit
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+pdfbeta = stats.beta.pdf(theta, 9+1, 1+1)
+plt.plot(theta, pdfbeta, color='k', label=r'$p(\theta \mid y)$')
+plt.axvline(variable_dict['theta'], color='k', linestyle='--', linewidth=0.5, alpha=0.5, label='Mode')
+plt.xlabel(r'$\theta$')
+plt.legend()
+plt.show()
+plt.close()
+```
+
+## **Posterior `log_prob`**
+
+The CmdStanPy fit object `fit_bin` provides also access to `log_prob` that outputs log probability and gradient. The documentation of log_prob says
+
+```         
+Using model's log_prob and grad_log_prob take values from the
+unconstrained space of model parameters and (by default) return
+values in the same space.
+```
+
+And one of the options say
+
+```         
+jacobian_adjustment: (logical) Whether to include the log-density
+adjustments from un/constraining variables.
+```
+
+The functions accepts also `jacobian`. We can compute the exact posterior density values in grid using Stan and log_prob with `jacobian=False`. We create a helper function.
+
+```{python}
+def fit_pdf(th, model):
+    lp = model.log_prob(params={'theta': th}, data=data_bin, jacobian=False)['lp__'][0]
+    return np.exp(lp)
+
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+pdfbeta = stats.beta.pdf(theta, 9+1, 1+1)
+plt.plot(theta, pdfbeta, color='k', label=r'$p(\theta \mid y)$')
+plt.plot(theta, np.vectorize(fit_pdf)(theta, model_bin), color='r', label=r'$q(\theta \mid y)$=exp(lp__)')
+plt.axvline(variable_dict['theta'], color='k', linestyle='--', linewidth=0.5, alpha=0.5, label='Mode')
+plt.xlabel(r'$\theta$')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+```{python}
+def fit_pdf(th, model):
+    lp = model.log_prob(params={'theta': th}, data=data_bin, jacobian=False)['lp__'][0]
+    return np.exp(lp)
+
+theta = expit(np.linspace(-4, 6, 100))
+pdfbeta = stats.beta.pdf(theta, 9+1, 1+1)
+
+plt.clf()
+_, ax = plt.subplots()
+ax.plot(theta, pdfbeta, color='k', label=r'$p(\theta \mid y)$')
+ax.axvline(variable_dict['theta'], color='k', linestyle='--', linewidth=0.5, alpha=0.5, label='Mode')
+
+ax2 = ax.twinx()
+ax2.plot(theta, np.vectorize(fit_pdf)(theta, model_bin), color='r', linewidth=5, alpha=0.5, label=r'$q(\theta \mid y)$=exp(lp__)')
+
+ax.set_xlabel(r'$\theta$')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+The pdf from Stan is much lower than the true posterior, because it is unnormalized posterior as in general computing the normalization term is non-trivial. In this case the true posterior has analytic solution for the normalizing constant
+
+$$
+\frac{\Gamma(N+2)}{\Gamma(y+1)\Gamma(N-y+1)}=110
+$$
+
+and we get exact match by multiplying the density returned by Stan by 110.
+
+```{python}
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+pdfbeta = stats.beta.pdf(theta, 9+1, 1+1)
+plt.plot(theta, pdfbeta, color='k', label=r'$p(\theta \mid y)$')
+plt.plot(theta, np.vectorize(fit_pdf)(theta, model_bin)*110, color='r', label=r'$q(\theta \mid y) \cdot 110$')
+plt.axvline(variable_dict['theta'], color='k', linestyle='--', linewidth=0.5, alpha=0.5, label='Mode')
+plt.xlabel(r'$\theta$')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+Thus if someone cares about the posterior mode in the constrained space they need `jacobian=False`.
+
+Side note: the normalizing constant is not needed for MCMC and not needed when estimating various expectations using MCMC draws, but is used here for illustration.
+
+## **Constraint and parameter transformation**
+
+In this example, theta is constrained to be between 0 and 1
+
+```         
+real<lower=0,upper=1> theta; // probability of success in range (0,1)
+```
+
+To avoid problems with constraints in optimization and MCMC, Stan switches under the hood to unconstrained parameterization using logit transformation
+
+$$
+\text{logit}(\theta)=\log\left(\frac{\theta}{1-\theta}\right)
+$$
+
+In the above `fit_pdf` function we passed unconstrained theta parameters as `params` in the `log_prob` method, this transformed theta to logit(theta). In Python we can use `scipy.special.logit` function as the inverse of the logistic function.
+
+We now switch looking at the distributions in the unconstrained space.
+
+```{python}
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+pdfbeta = stats.beta.pdf(theta, 9+1, 1+1)
+plt.plot(logit(theta), pdfbeta, color='k', label=r'$p(\theta \mid y)$')
+plt.plot(logit(theta), np.vectorize(fit_pdf)(theta, model_bin)*110, color='r', label=r'$q(\theta \mid y) \cdot 110$')
+plt.axvline(logit(variable_dict['theta']), color='k', linestyle='--', linewidth=0.5, alpha=0.5, label='Mode')
+plt.xlabel(r'logit($\theta$)')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+The above plot shows now the function that Stan optimizing optimizes in the unconstrained space, and the MAP is the logit of the MAP in the constrained space. Thus if someone cares about the posterior mode in the constrained, but is doing the optimization in unconstrained space they still need `jacobian=False`.
+
+## **Parameter transformation and Jacobian adjustment**
+
+That function shown above is not the posterior of `logit(theta)`. As the transformation is non-linear we need to take into account the distortion caused by the transform. The density must be multiplied by a Jacobian adjustment equal to the absolute determinant of the Jacobian of the transform. See more in [Stan User’s Guide](https://mc-stan.org/docs/2_26/stan-users-guide/changes-of-variables.html). The Jacobian for lower and upper bounded scalar is given in [Stan Reference Manual](https://mc-stan.org/docs/2_25/reference-manual/logit-transform-jacobian-section.html), and for (0,1)-bounded it is
+
+$$
+\theta(1-\theta)
+$$
+
+Stan can do this transformation for us when we call log_prob with `jacobian=True`
+
+```{python}
+def fit_pdf_jacobian(th, model):
+    lp = model.log_prob(params={'theta': th}, data=data_bin, jacobian=True)['lp__'][0]
+    return np.exp(lp)
+```
+
+We compare the true adjusted posterior density in logit(theta) space to non-adjusted density function. For visualization purposes we scale the functions to have the same maximum, so they are not normalized distributions.
+
+```{python}
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+pdfstan_nonadjusted = np.vectorize(fit_pdf)(theta, model_bin)
+pdfstan_jacobian = np.vectorize(fit_pdf_jacobian)(theta, model_bin)
+plt.plot(logit(theta), pdfstan_nonadjusted/np.max(pdfstan_nonadjusted), color='r', label=r'$q(\theta \mid y) \neq q(\text{logit}(\theta)\mid y)$')
+plt.plot(logit(theta), pdfstan_jacobian/np.max(pdfstan_jacobian), color='b', label=r'$q(\text{logit}(\theta)\mid y) = q(\theta \mid y)\theta(1-\theta)$')
+plt.xlabel(r'logit($\theta$)')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+Stan MCMC samples from the blue distribution with `jacobian=True`. The mode of that distribution is different from the mode of `jacobian=False`. In general the mode is not invariant to transformations.
+
+## **Wrong normal approximation**
+
+Stan optimizing/optimize finds the mode of `jacobian=False`. rstanarm has had an option to do normal approximation at the mode `jacobian=False` in the unconstrained space by computing the Hessian of `jacobian=False` and then sampling independent draws from that normal distribution. We can do the same in CmdStanPywith `.laplace_sample()` method and option `jacobian=False`, but this is the wrong thing to do.
+
+```{python}
+lap_bin = model_bin.laplace_sample(data=data_bin, jacobian=False, seed=SEED, draws=4000)
+lap_draws = lap_bin.draws()
+lap_draws
+```
+
+We add the current normal approximation to the plot with dashed line.
+
+```{python}
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+logp = lap_draws[:, 0] - np.max(lap_draws[:, 0])
+logq = lap_draws[:, 1] - np.max(lap_draws[:, 1])
+
+pdfstan_nonadjusted = np.vectorize(fit_pdf)(theta, model_bin)
+pdfstan_jacobian = np.vectorize(fit_pdf_jacobian)(theta, model_bin)
+
+plt.plot(logit(theta), pdfstan_nonadjusted/np.max(pdfstan_nonadjusted), color='r', label=r'$q(\theta \mid y) \neq q(\text{logit}(\theta)\mid y)$')
+plt.plot(logit(theta), pdfstan_jacobian/np.max(pdfstan_jacobian), color='b', label=r'$q(\text{logit}(\theta)\mid y) = q(\theta \mid y)\theta(1-\theta)$')
+
+sorted_array = logit(lap_draws[:, 2]).argsort()
+sorted_theta = logit(lap_draws[:, 2])[sorted_array]
+sorted_exp_logq = np.exp(logq)[sorted_array]
+plt.plot(sorted_theta, sorted_exp_logq, 'r--')
+
+plt.xlabel(r'logit($\theta$)')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+The problem is that this normal approximation is quite different from the true posterior (with `jacobian=True`).
+
+## **Normal approximation**
+
+Recently the normal approximation method was implemented in Stan itself with the name `laplace`. This approximation uses by default `jacobian=TRUE`. We can use Laplace approximation with CmdStanPy method `.laplace()`, which by default is using he option `jacobian=True`, which is the correct thing to do.
+
+```{python}
+lap_bin2 = model_bin.laplace_sample(data=data_bin, jacobian=True, seed=SEED, draws=4000)
+lap_draws2 = lap_bin2.draws()
+lap_draws2
+```
+
+We add the second normal approximation to the plot dashed line.
+
+```{python}
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+logp = lap_draws[:, 0] - np.max(lap_draws[:, 0])
+logq = lap_draws[:, 1] - np.max(lap_draws[:, 1])
+
+logp2 = lap_draws2[:, 0] - np.max(lap_draws2[:, 0])
+logq2 = lap_draws2[:, 1] - np.max(lap_draws2[:, 1])
+
+pdfstan_nonadjusted = np.vectorize(fit_pdf)(theta, model_bin)
+pdfstan_jacobian = np.vectorize(fit_pdf_jacobian)(theta, model_bin)
+
+plt.plot(logit(theta), pdfstan_nonadjusted/np.max(pdfstan_nonadjusted), color='r', label=r'$q(\theta \mid y) \neq q(\text{logit}(\theta)\mid y)$')
+plt.plot(logit(theta), pdfstan_jacobian/np.max(pdfstan_jacobian), color='b', label=r'$q(\text{logit}(\theta)\mid y) = q(\theta \mid y)\theta(1-\theta)$')
+
+sorted_array = logit(lap_draws[:, 2]).argsort()
+sorted_theta = logit(lap_draws[:, 2])[sorted_array]
+sorted_exp_logq = np.exp(logq)[sorted_array]
+plt.plot(sorted_theta, sorted_exp_logq, 'r--')
+
+sorted_array = logit(lap_draws2[:, 2]).argsort()
+sorted_theta = logit(lap_draws2[:, 2])[sorted_array]
+sorted_exp_logq = np.exp(logq2)[sorted_array]
+plt.plot(sorted_theta, sorted_exp_logq, 'b--')
+
+plt.xlabel(r'logit($\theta$)')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+## **Transforming draws to the constrained space**
+
+The draws from the normal approximation (shown with rug lines in op and bottom) can be easily transformed back to the constrained space, and illustrated with kernel density estimates. Before that we plot the kernel density estimates of the draws in the unconstrained space to show that this estimate is reasonable.
+
+```{python}
+plt.clf()
+
+theta = expit(np.linspace(-4, 6, 100))
+logp = lap_draws[:, 0] - np.max(lap_draws[:, 0])
+logq = lap_draws[:, 1] - np.max(lap_draws[:, 1])
+
+logp2 = lap_draws2[:, 0] - np.max(lap_draws2[:, 0])
+logq2 = lap_draws2[:, 1] - np.max(lap_draws2[:, 1])
+
+pdfstan_nonadjusted = np.vectorize(fit_pdf)(theta, model_bin)
+pdfstan_jacobian = np.vectorize(fit_pdf_jacobian)(theta, model_bin)
+
+plt.plot(logit(theta), pdfstan_nonadjusted/np.max(pdfstan_nonadjusted), color='r', label=r'$q(\theta \mid y) \neq q(\text{logit}(\theta)\mid y)$')
+plt.plot(logit(theta), pdfstan_jacobian/np.max(pdfstan_jacobian), color='b', label=r'$q(\text{logit}(\theta)\mid y) = q(\theta \mid y)\theta(1-\theta)$')
+
+sorted_array = logit(lap_draws[:, 2]).argsort()
+sorted_theta = logit(lap_draws[:, 2])[sorted_array]
+sorted_exp_logq = np.exp(logq)[sorted_array]
+plt.plot(sorted_theta, sorted_exp_logq, 'r--')
+sns.rugplot(logit(lap_draws[0:400:,2]), color='r')
+
+sorted_array = logit(lap_draws2[:, 2]).argsort()
+sorted_theta = logit(lap_draws2[:, 2])[sorted_array]
+sorted_exp_logq = np.exp(logq2)[sorted_array]
+plt.plot(sorted_theta, sorted_exp_logq, 'b--')
+sns.rugplot(logit(lap_draws2[0:400:,2]), color='b')
+plt.ylim(-.06 * plt.ylim()[1])
+
+plt.xlabel(r'logit($\theta$)')
+plt.legend()
+
+plt.show()
+plt.close()
+```
+
+```{python}
+bs_model_bin = bs.StanModel('Stan-Modelling/stan_models/code_binom.stan', 'Stan-Modelling/stan_models/data.json')
+bs_model_bin.log_density_hessian(np.array([opt_bin.stan_variables()['theta']]), jacobian=False)
+```
+
+```{python}
+model_bin.log_prob(opt_bin.stan_variables(), data=data_bin, jacobian=False)
+```

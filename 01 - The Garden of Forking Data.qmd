@@ -1,6 +1,17 @@
 ---
 title: 01 - The Garden of Forking Data
+author: "Abdullah Mahmood"
 date: today
+format:
+    html:
+        toc: true
+        toc-depth: 3
+        code-fold: true
+        html-math-method:
+            method: mathjax
+            url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+editor: source
+jupyter: main
 ---
 
 **Sources**:
@@ -704,16 +715,14 @@ For many of the most common procedures in applied statistics—linear regression
 1)  Find the posterior mode. This is usually accomplished by some optimization algorithm, a procedure that virtually “climbs” the posterior distribution, as if it were a mountain. The algorithm doesn’t know where the peak is, but it does know the slope under its feet. There are many well-developed optimization procedures, most of them more clever than simple hill climbing. But all of them try to find peaks.
 2)  Once you find the peak of the posterior, you must estimate the curvature near the peak. This curvature is sufficient to compute a quadratic approximation of the entire posterior distribution. In some cases, these calculations can be done analytically, but usually your computer uses some numerical technique instead.
 
-To compute the quadratic approximation for the globe tossing data, we’ll use a mixture of tools from Stan:
+To compute the quadratic approximation for the globe tossing data, we’ll use Stan's `optimize()` and `laplace_sample()` algorithms.
 
-1.  Stan's Optimization Method: MAP estimation using `model.optimize()` and inverting Hessian matrix obtained from the `fit.hessian_matrix()`.
-
-2.  Laplace Approximation
-
-Let us compute the quadratic approximation to the globe tossing data using both the methods:
+Let us compute the quadratic approximation to the globe tossing data:
 
 ```{python}
 #| output: false
+
+# Define the Bayesian model in Stan
 globe_qa = '''
 data {
     int<lower=0> W; // Number of successes (Water)
@@ -728,50 +737,36 @@ model {
 }
 '''
 
+# Compile the Model
 globe_qa_model = utils.StanModel('stan_models/globe_qa', globe_qa)
 
+# Set-up the data in a dictionary
 toss_data = {'W': 6, 'L': 3}
 
-# Optimize to get MAP estimate
-globe_fit_opt = globe_qa_model.optimize(data=toss_data)
+# Optimize to get Maximum Likelihood Estimate (MLE)
+globe_fit_opt = globe_qa_model.optimize(data=toss_data, jacobian=False)
 
 globe_fit_p = globe_fit_opt.stan_variables(inc_iterations=True)
 print(globe_fit_p)
 
+lap_bin = globe_qa_model.laplace_sample(data=toss_data, jacobian=False, draws=4000)
+lap_draws = lap_bin.draws()
+lap_draws[:,2].std()
 ```
 
 ```{python}
-globe_qa2 = '''
-data {
-  int W;
-  int L;
-}
-parameters {
-  real<lower=0,upper=1> p;
-}
-model {
-  // prior
-  target += uniform_lpdf(p | 0, 1);
-  
-  // likelihood 
-  target += binomial_lpmf( W | W + L,  p);
-}
-'''
+from scipy.special import expit, logit
 
-globe_qa_model = utils.StanModel('stan_models/globe_qa2', globe_qa2)
+def fit_pdf(p, model):
+    lp = model.log_prob(params={'p': p}, data=toss_data, jacobian=False)['lp__'][0]
+    return np.exp(lp)
 
-toss_data = {'W': 6, 'L': 3}
+p = expit(np.linspace(0,1,100))
+np.vectorize(fit_pdf)(p, globe_qa_model).std()
 
-# Optimize to get MAP estimate
-globe_fit_opt = globe_qa_model.optimize(data=toss_data, jacobian=False)
-
-laplace = globe_qa_model.laplace_sample(data=toss_data, mode=globe_fit_opt, draws=1000, jacobian=False)
-
-laplace.stan_variables()['p'].std()
-
-globe_fit_opt.optimized_params_pd
-
+globe_qa_model.log_prob(params={'p': 0.67}, data=toss_data)
 ```
+
 
 ```{python}
 toss_data = {'W': 6, 'L': 3}

@@ -1,0 +1,294 @@
+---
+title: "Easy Laplace Approximation of Bayesian Models in Python"
+author: "Abdullah Mahmood"
+date: today
+format:
+    html:
+        toc: true
+        toc-depth: 3
+        code-fold: False
+        html-math-method:
+            method: mathjax
+            url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+editor: source
+jupyter: main
+---
+
+Source:
+
+-   [Easy Laplace Approximation of Bayesian Models in R](https://www.sumsar.net/blog/2013/11/easy-laplace-approximation/)
+-   [Three Ways to Run Bayesian Models in R](https://www.sumsar.net/blog/2013/06/three-ways-to-run-bayesian-models-in-r/)
+-   [How to get Hessian Matrix from python minimize function?](https://stackoverflow.com/questions/70754455/how-to-get-hessian-matrix-from-python-minimize-function)
+
+### Imports
+
+```{python}
+from cmdstanpy import CmdStanModel
+import bridgestan as bs
+import numpy as np
+import scipy.stats as stats
+import scipy.optimize as optimize
+import scipy.linalg as linalg
+import matplotlib.pyplot as plt
+import os
+import json
+
+def StanModel(stan_file: str, stan_code: str) -> CmdStanModel:
+    """Load or compile a Stan model"""
+    stan_src = f"{stan_file}.stan"
+
+    if not os.path.isfile(stan_file):  
+        open(stan_src, 'w').write(stan_code) 
+        return CmdStanModel(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
+    
+    return CmdStanModel(stan_file=stan_src, exe_file=stan_file)
+
+def inline_plot(plot_func, *args, **kwargs):
+    plt.clf()  
+    plot_func(*args, **kwargs)
+    plt.show()
+    plt.close()
+```
+
+## Laplace Approximation of Posterior Distributions
+
+Have you noticed that posterior distributions often are heap shaped and symmetric? What other thing, that statisticians love, is heap shaped and symmetric? The normal distribution of course! Turns out that, under most conditions, the posterior is asymptotically normally distributed as the number of data points goes to ∞∞. Hopefully we would then not be too off if we approximated the posterior using a (possibly multivariate) normal distribution. Laplace approximation is a method that does exactly this by first locating the mode of the posterior, taking this as the mean of the normal approximation, and then calculating the variance of the normal by “looking at” the curvature of of the posterior at the mode. That was the handwaving, if you want math, check [wikipedia](https://en.wikipedia.org/wiki/Laplace%27s_method).
+
+So, how well does Laplace Approximation work in practice? For complex models resulting in multimodal posteriors it will obviously not be a good approximation, but for simple models like the [generalized linear model](https://en.wikipedia.org/wiki/Generalized_linear_model), especially when assuming [the usual suspects](https://en.wikipedia.org/wiki/Exponential_family), it works pretty well. But why use an approximation that might be slightly misleading instead of using Markov chain Monte Carlo, an approximation that converges to the true posterior? Well, because Laplace Approximation only has to find the mode of the posterior, it does not have to explore the whole posterior distribution and therefore it can be *really fast*! I’m talking seconds, not minutes…
+
+Let’s see how well Laplace approximation performs in a couple of simple examples. In the following the the true posterior will be in green and the Laplace approximation will be dashed and red. First up is the posterior for the rate parameter $θ$ of a Binomial distribution given 10 heads and 8 tails, assuming a flat prior on $θ$.
+
+```{python}
+def laplace_beta_plot(H, T):
+    p = np.linspace(0,1,100)
+    plt.plot(p, stats.beta.pdf(p, H+1, T+1), 'g')
+    y = stats.beta.rvs(a=H+1, b=T+1, size=10_000)
+    mu, sigma = y.mean(), y.std()
+    plt.plot(p, stats.norm.pdf(p, mu, sigma), 'r--')
+    plt.title('Laplace Approximation of Posterior Binomial')
+    plt.xlabel(r'$\theta$ given H=10, T=8')
+    plt.ylabel('Density')
+
+inline_plot(laplace_beta_plot, 10, 8)
+```
+
+![](images/unnamed-chunk-2.png){fig-align="center"}
+
+Here the Laplace approximation works pretty well! Now let’s look at the posterior of the same model but with less data, only 4 heads and 2 tails.
+
+```{python}
+inline_plot(laplace_beta_plot, 4, 2)
+```
+
+![](images/unnamed-chunk-3.png){fig-align="center" width="516"}
+
+Not working well at all. As the true posterior is slanted to the right the symmetric normal distribution can’t possibly match it. This type of problem generally occurs when you have parameters with boundaries. This was the case with $θ$ which is bounded between $[0,1]$ and similarly we should expect troubles when approximating the posterior of scale parameters bounded between $[0,∞]$. Below is the posterior of the standard deviation σσ when assuming a normal distribution with a fixed $μ=10$ and flat priors, given 8 random numbers distributed as Normal(10, 4):
+
+```{python}
+y = stats.norm.rvs(loc=10, scale=4, size=8, random_state=1552)
+y
+```
+
+```{python}
+
+def model(p, y):
+    sigma = p
+    log_lik = np.sum(stats.norm.logpdf(y, loc=10, scale=sigma)) 
+    log_prior_sigma = stats.lognorm.logpdf(sigma, s=4, scale=np.exp(0))
+    log_post = log_lik + log_prior_sigma
+    return -log_post # Negate for maximization
+
+fit = optimize.minimize(model, x0=[1], args=y, method = 'L-BFGS-B', bounds=[(0, np.inf)])
+def laplace_beta_plot(scale):
+    x = np.linspace(0,20,100)
+    plt.plot(x, stats.norm.pdf(x, 10, scale), 'g')
+    mu, sigma = y.mean(), y.std()
+    plt.title('Laplace Approximation of Posterior Binomial')
+    plt.xlabel(r'$\theta$ given H=10, T=8')
+    plt.ylabel('Density')
+
+inline_plot(laplace_beta_plot, fit.x)
+```
+
+![](images/unnamed-chunk-6.png){fig-align="center" width="516"}
+
+As we feared, the Laplace approximation is again doing a bad job. There are two ways of getting around this, (1) we could collect more data. The more data the better the Laplace approximation will be as the posterior is asymptotically normally distributed. Below is the same model but given 48 data points instead of 8.
+
+![](images/unnamed-chunk-7.png){fig-align="center" width="516"}
+
+This works better, but to collect more data just to make an approximation better is perhaps not really useful advice. A better route is to (2) reparameterize the bounded parameters using logarithms so that they stretch the real line $[−∞,∞]$. An extra bonus with this approach is that the resulting approximation won’t put posterior probability on impossible parameter values such as $σ=−1$. Here is the same posterior as above, using the 8 datapoints, the only difference being that the approximation is made on the $log⁡(σ)$ scale.
+
+![](images/unnamed-chunk-8.png){fig-align="center"}
+
+Much better! Similarly we can reparameterize $θ$ from the binomial model above using the [logit transform](https://en.wikipedia.org/wiki/Logit) $\log\left(\frac{\theta}{1-\theta}\right)$ thus “stretching” $θ$ from $[0,1]$ onto $[−∞,∞]$. Again, now Laplace approximation works much better:
+
+![](images/unnamed-chunk-9.png){fig-align="center" width="516"}
+
+After we have fitted the model using Laplace approximation we can of course transform the the approximated posterior back to the original parameter scale:
+
+![](images/unnamed-chunk-10.png){fig-align="center"}
+
+## Laplace Approximation in Python
+
+Seeing how well Laplace approximation works in the simple cases above we are, of course, anxious to try it out using Python. Turns out, no surprise perhaps, that it is pretty easy to do. The model I will be estimating is the same as in the post [Three Ways to Run Bayesian Models in R](https://www.sumsar.net/blog/2013/06/three-ways-to-run-bayesian-models-in-r/), that is:
+
+$$
+\begin{align*}
+y_{i} &\sim \text{Normal}(\mu, \sigma) \\
+\mu &\sim \text{Normal}(0, 100) \\
+\sigma &\sim \text{LogNormal}(0, 4) \\
+\end{align*}
+$$
+
+Here $y$ is 20 datapoints generated like the following:
+
+```{python}
+y = stats.norm.rvs(loc=10, scale=5, size=20, random_state=1337)
+y_mean, y_std = y.mean(), y.std()
+print(y_mean, y_std)
+
+# R `rnorm` Seed 1337 Output
+y = np.loadtxt('test.csv', dtype=np.float64, delimiter=',', skiprows=1, usecols=1)
+y_mean, y_std = y.mean(), y.std()
+print(y_mean, y_std)
+```
+
+First I define a function calculating the unnormalized log posterior of the model above given a parameter vector `p` and a vector of datapoints `y`.
+
+```{python}
+def model(p, y):
+    mu, sigma = p[0], p[1]
+    # Log-Liklihood
+    log_lik = np.sum(stats.norm.logpdf(y, loc=mu, scale=sigma)) 
+    # Log Priors
+    log_prior_mu = stats.norm.logpdf(mu, loc=0, scale=100)
+    log_prior_sigma = stats.lognorm.logpdf(sigma, s=4, scale=np.exp(0))
+    
+    log_post = log_lik + log_prior_mu + log_prior_sigma
+    return -log_post # Negate for maximization
+```
+
+Here I should probably have reparameterized `sigma` to not be left bounded at 0, but I’m also a bit curious about how bad the approximation will be when using the “naive” parameterization… Then I’ll find the mode of the two-dimensional posterior using the `stats.optimize.minimize` function. As `minimize` performs a search for the maximum in the parameter space it requires a reasonable starting point here given as the `x0` vector.
+
+```{python}
+fit = optimize.minimize(model, x0=[0, 1], args=(y,), method = 'BFGS', options={'disp': True})
+```
+
+The reason why we negate the model output is because the standard behavior of `minimize` is to minimize rather than maximize, negating the minimization function fixes this. The reason why we use `method = 'BFGS'` is because we want `minimize` to return not only the maximum but also the [Hessian matrix](https://en.wikipedia.org/wiki/Hessian_matrix) which describes the curvature of the function at the maximum.
+
+Now we pick out the found maximum (`fit.x`) as the mode of the posterior, and thus the mean of the multivariate normal approximation to the posterior. We then calculate the inverse of the negative Hessian matrix which will give us the variance and co-variance of our multivariate normal. For full disclosure I must admit that I have not full grokked why inverting the negative Hessian results in the co-variance matrix, but that won’t stop me, this is how you do it:
+
+```{python}
+param_mean = fit.x
+param_mean
+hess_mat = fit.hess_inv
+hess_mat
+
+# Standard errors (square root of diagonal elements)
+prop_sigma = np.sqrt(np.diag(fit.hess_inv))
+
+# Compute 95% confidence intervals
+z_score = 1.96  # 95% confidence level
+upper = param_mean + z_score * prop_sigma
+lower = param_mean - z_score * prop_sigma
+
+# Display results
+interval = np.vstack((param_mean, lower, upper)).T
+print("\nParameter Estimates with Confidence Intervals:")
+print("  Estimate   Lower Bound   Upper Bound")
+print(np.round(interval, 3))
+```
+
+Now we have all the info we need and we could look at the approximated posterior distribution. But as a last step, I’ll draw lots of samples from the multivariate normal:
+
+```{python}
+samples = stats.multivariate_normal.rvs(mean=param_mean, cov=hess_mat, size=10_000)
+```
+
+“Why?”, you may ask, “Why add another layer of approximation?”. Because it takes just a couple of ms to generate 10000+ samples and samples are so very convenient to work with!
+
+```{python}
+import seaborn as sns
+def dens_plot(samples):
+    sns.kdeplot(samples[:,0])
+    sns.kdeplot(samples[:,1])
+    sns.kdeplot(stats.norm.rvs(loc=samples[:,0], scale=samples[:,1]))
+
+inline_plot(dens_plot, samples)
+
+samples[:,0].mean(), samples[:,0].std()
+samples[:,1].mean(), samples[:,1].std()
+```
+
+```{python}
+model_string = '''
+data {
+  int<lower=0> N;
+  vector y;
+}
+
+parameters {
+  real mu;
+  real<lower=0> sigma;
+}
+model{
+  y ~ normal(mu, sigma);
+  mu ~ normal(0, 100);
+  sigma ~ lognormal(0, 4);
+}
+'''
+
+model = StanModel('Stan-Modelling/stan_models/laplace_test', model_string)
+mcmc = model.sample(data={'N': len(y), 'y': y}, iter_sampling=30_000, show_progress=False)
+mcmc.summary()
+mcmc_samples = mcmc.stan_variables()
+mu_samples = mcmc_samples['mu']
+sigma_samples = mcmc_samples['sigma']
+mu_samples.mean(), mu_samples.std()
+sigma_samples.mean(), sigma_samples.std()
+
+def dens_plot(mu_samples, sigma_samples):
+    sns.kdeplot(mu_samples)
+    sns.kdeplot(sigma_samples)
+    sns.kdeplot(stats.norm.rvs(loc=mu_samples, scale=sigma_samples))
+
+inline_plot(dens_plot, mu_samples, sigma_samples)
+```
+
+```{python}
+mode = model.optimize(data={'N': len(y), 'y': y}, algorithm='LBFGS', jacobian=False)
+laplace = model.laplace_sample(data={'N': len(y), 'y': y}, mode=mode, jacobian=False, draws=100_000)
+laplace_sample = laplace.stan_variables()
+mu_samples = laplace_sample['mu']
+sigma_samples = laplace_sample['sigma']
+mu_samples.mean(), mu_samples.std()
+sigma_samples.mean(), sigma_samples.std()
+
+def dens_plot(mu_samples, sigma_samples):
+    sns.kdeplot(mu_samples)
+    sns.kdeplot(sigma_samples)
+    sns.kdeplot(stats.norm.rvs(loc=mu_samples, scale=sigma_samples))
+
+inline_plot(dens_plot, mu_samples, sigma_samples)
+```
+
+```{r}
+set.seed(1337)
+y <- rnorm(n = 20, mean = 10, sd = 5)
+c(mean = mean(y), sd = sd(y))
+
+model <- function(p, y) {
+    log_lik <- sum(dnorm(y, p["mu"], p["sigma"], log = T))  # the log likelihood
+    log_post <- log_lik + dnorm(p["mu"], 0, 100, log = T) + dlnorm(p["sigma"], 
+        0, 4, log = T)
+    log_post
+}
+
+inits <- c(mu = 0, sigma = 1)
+fit <- optim(inits, model, control = list(fnscale = -1), hessian = TRUE, y = y)
+
+param_mean <- fit$par
+param_cov_mat <- solve(-fit$hessian)
+round(param_mean, 2)
+round(param_cov_mat, 3)
+```
