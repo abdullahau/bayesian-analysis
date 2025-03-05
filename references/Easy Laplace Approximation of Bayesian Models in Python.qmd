@@ -256,7 +256,7 @@ inline_plot(dens_plot, mu_samples, sigma_samples)
 ```
 
 ```{python}
-mode = model.optimize(data={'N': len(y), 'y': y}, algorithm='LBFGS', jacobian=False)
+mode = model.optimize(data={'N': len(y), 'y': y}, algorithm='BFGS', jacobian=False)
 laplace = model.laplace_sample(data={'N': len(y), 'y': y}, mode=mode, jacobian=False, draws=100_000)
 laplace_sample = laplace.stan_variables()
 mu_samples = laplace_sample['mu']
@@ -270,7 +270,27 @@ def dens_plot(mu_samples, sigma_samples):
     sns.kdeplot(stats.norm.rvs(loc=mu_samples, scale=sigma_samples))
 
 inline_plot(dens_plot, mu_samples, sigma_samples)
+
+laplace_cov = np.cov(np.stack([mu_samples, sigma_samples]), rowvar=True)
+laplace_cov
 ```
+
+```{python}
+with open('Stan-Modelling/stan_models/data.json', 'w') as json_file:
+    json.dump({'N': len(y), 'y': y.tolist()}, json_file, indent=4)
+bs_model = bs.StanModel('Stan-Modelling/stan_models/laplace_test.stan', 'Stan-Modelling/stan_models/data.json')
+
+_, _, hessian = bs_model.log_density_hessian(np.array([mode.stan_variables()['mu'], mode.stan_variables()['sigma']]), jacobian=False)
+
+cov_matrix = np.linalg.inv(-hessian)
+
+np.array([mode.stan_variables()['mu'], mode.stan_variables()['sigma']])
+
+print("Hessian at mode:\n", hessian)
+print("Inverse Hessian (covariance estimate):\n", cov_matrix)
+print("Laplace covariance estimate:\n", laplace_cov)
+```
+
 
 ```{r}
 set.seed(1337)
