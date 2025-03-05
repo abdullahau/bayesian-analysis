@@ -19,6 +19,44 @@ def StanModel(stan_file: str, stan_code: str) -> CmdStanModel:
     
     return CmdStanModel(stan_file=stan_src, exe_file=stan_file)
 
+class Stan(CmdStanModel):
+    def __init__(self, stan_file: str, stan_code: str):
+        """Load or compile a Stan model"""
+        stan_src = f"{stan_file}.stan"
+        exe_file = stan_file
+        
+        # Check for the compiled executable
+        if not os.path.isfile(exe_file):
+            with open(stan_src, 'w') as f:
+                f.write(stan_code)
+            super().__init__(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
+        else:
+            super().__init__(stan_file=stan_src, exe_file=exe_file)
+
+class BridgeStan(bs.StanModel):
+    def __init__(self, stan_file: str, data: dict):
+        """Load or compile a BridgeStan shared object"""
+        stan_so = f"{stan_file}_model.so"
+        make_args = ['BRIDGESTAN_AD_HESSIAN=true', 'STAN_THREADS=true']
+        data = json.dumps(data)
+        if not os.path.isfile(stan_so):  # If the shared object does not exist, compile it
+            super().__init__(f"{stan_file}.stan", data, make_args=make_args)
+        else:
+            super().__init__(stan_so, data, make_args=make_args)
+
+def quap_precis(model: Stan, data: dict, jacobian=False,**kwargs):
+    stan_file = model.exe_file
+    opt_model = model.optimize(data, algorithm='BFGS', jacobian=jacobian, **kwargs)
+    bs_model = BridgeStan(stan_file, data)
+    params = opt_model.stan_variables()
+    mode_params_unc = bs_model.param_unconstrain(
+        np.array(list(params.values()))  
+    )
+    log_dens, gradient, hessian = bs_model.log_density_hessian(mode_params_unc, jacobian=jacobian)
+    cov_matrix = np.linalg.inv(-hessian)
+    
+    return opt_model, params, cov_matrix, hessian
+
 # ----------------------- Stat Functions -----------------------
 def center(vals: np.ndarray) -> np.ndarray:
     return vals - np.nanmean(vals)
