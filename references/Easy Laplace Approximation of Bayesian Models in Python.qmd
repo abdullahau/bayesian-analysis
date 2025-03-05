@@ -276,21 +276,42 @@ laplace_cov
 ```
 
 ```{python}
+# Save the data in the required format
 with open('Stan-Modelling/stan_models/data.json', 'w') as json_file:
     json.dump({'N': len(y), 'y': y.tolist()}, json_file, indent=4)
-bs_model = bs.StanModel('Stan-Modelling/stan_models/laplace_test.stan', 'Stan-Modelling/stan_models/data.json')
 
-_, _, hessian = bs_model.log_density_hessian(np.array([mode.stan_variables()['mu'], mode.stan_variables()['sigma']]), jacobian=False)
+# Load the compiled Stan model with autodiff Hessian enabled
+bs_model = bs.StanModel(
+    'Stan-Modelling/stan_models/laplace_test.stan', 
+    'Stan-Modelling/stan_models/data.json', 
+    make_args=['BRIDGESTAN_AD_HESSIAN=true']
+)
 
+# Extract optimized parameters (mode) in the unconstrained space
+mode_params = np.array([
+    mode.stan_variables()['mu'], 
+    np.log(mode.stan_variables()['sigma']) # transform constrained sigma [0, np.inf] to unconstrained sigma [-np.inf, np.inf]
+])
+
+# '.param_unconstrain()' method in BridgeStan does the same unconstraining observed above
+mode_params = bs_model.param_unconstrain(np.array([
+    mode.stan_variables()['mu'], 
+    mode.stan_variables()['sigma']
+]))
+
+# Hessian at the mode in the unconstrained space
+_, _, hessian = bs_model.log_density_hessian(mode_params, jacobian=False)
+
+# Covariance Matrix
 cov_matrix = np.linalg.inv(-hessian)
 
-np.array([mode.stan_variables()['mu'], mode.stan_variables()['sigma']])
-
-print("Hessian at mode:\n", hessian)
-print("Inverse Hessian (covariance estimate):\n", cov_matrix)
+# Print results for comparison
+print("BridgeStan Hessian (Unconstrained Space):\n", hessian)
+print("Final Covariance Matrix:\n", cov_matrix)
 print("Laplace covariance estimate:\n", laplace_cov)
-```
 
+print(bs_model.model_info())
+```
 
 ```{r}
 set.seed(1337)
@@ -308,7 +329,29 @@ inits <- c(mu = 0, sigma = 1)
 fit <- optim(inits, model, control = list(fnscale = -1), hessian = TRUE, y = y)
 
 param_mean <- fit$par
-param_cov_mat <- solve(-fit$hessian)
 round(param_mean, 2)
+
+fit$hessian
+param_cov_mat <- solve(-fit$hessian)
 round(param_cov_mat, 3)
 ```
+
+```{r}
+library(rstan)
+# Compile the model
+stan_model <- stan_model(file = 'Stan-Modelling/stan_models/laplace_test.stan')
+```
+
+
+```{r}
+# Define data
+stan_data <- list(N = length(y), y = y)
+
+# Run MCMC sampling
+fit <- optimizing(stan_model, data = stan_data, algorithm="BFGS", hessian=TRUE)
+fit
+
+param_cov_mat <- solve(-fit$hessian)
+round(param_cov_mat, 10)
+```
+
