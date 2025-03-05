@@ -394,7 +394,7 @@ The problem is that this normal approximation is quite different from the true p
 
 ## **Normal approximation**
 
-Recently the normal approximation method was implemented in Stan itself with the name `laplace`. This approximation uses by default `jacobian=TRUE`. We can use Laplace approximation with CmdStanPy method `.laplace()`, which by default is using he option `jacobian=True`, which is the correct thing to do.
+Recently the normal approximation method was implemented in Stan itself with the name `laplace`. This approximation uses by default `jacobian=TRUE`. We can use Laplace approximation with CmdStanPy method `.laplace_sample()`, which by default is using he option `jacobian=True`, which is the correct thing to do.
 
 ```{python}
 lap_bin2 = model_bin.laplace_sample(data=data_bin, jacobian=True, seed=SEED, draws=4000)
@@ -444,6 +444,16 @@ The draws from the normal approximation (shown with rug lines in op and bottom) 
 ```{python}
 plt.clf()
 
+def upper_rugplot(data, height=.05, ax=None, **kwargs):
+    from matplotlib.collections import LineCollection
+    ax = ax or plt.gca()
+    kwargs.setdefault("linewidth", 1)
+    segs = np.stack((np.c_[data, data],
+                     np.c_[np.ones_like(data), np.ones_like(data)-height]),
+                    axis=-1)
+    lc = LineCollection(segs, transform=ax.get_xaxis_transform(), **kwargs)
+    ax.add_collection(lc)
+
 theta = expit(np.linspace(-4, 6, 100))
 logp = lap_draws[:, 0] - np.max(lap_draws[:, 0])
 logq = lap_draws[:, 1] - np.max(lap_draws[:, 1])
@@ -454,34 +464,89 @@ logq2 = lap_draws2[:, 1] - np.max(lap_draws2[:, 1])
 pdfstan_nonadjusted = np.vectorize(fit_pdf)(theta, model_bin)
 pdfstan_jacobian = np.vectorize(fit_pdf_jacobian)(theta, model_bin)
 
-plt.plot(logit(theta), pdfstan_nonadjusted/np.max(pdfstan_nonadjusted), color='r', label=r'$q(\theta \mid y) \neq q(\text{logit}(\theta)\mid y)$')
-plt.plot(logit(theta), pdfstan_jacobian/np.max(pdfstan_jacobian), color='b', label=r'$q(\text{logit}(\theta)\mid y) = q(\theta \mid y)\theta(1-\theta)$')
+fig, ax = plt.subplots()
+
+ax.plot(logit(theta), pdfstan_nonadjusted/np.max(pdfstan_nonadjusted), color='r', label=r'$q(\theta \mid y) \neq q(\text{logit}(\theta)\mid y)$')
+ax.plot(logit(theta), pdfstan_jacobian/np.max(pdfstan_jacobian), color='b', label=r'$q(\text{logit}(\theta)\mid y) = q(\theta \mid y)\theta(1-\theta)$')
 
 sorted_array = logit(lap_draws[:, 2]).argsort()
 sorted_theta = logit(lap_draws[:, 2])[sorted_array]
 sorted_exp_logq = np.exp(logq)[sorted_array]
-plt.plot(sorted_theta, sorted_exp_logq, 'r--')
-sns.rugplot(logit(lap_draws[0:400:,2]), color='r')
+ax.plot(sorted_theta, sorted_exp_logq, 'r--')
+upper_rugplot(logit(lap_draws[0:400:,2]), ax=ax, color='r', height=0.03, alpha=0.2)
 
 sorted_array = logit(lap_draws2[:, 2]).argsort()
 sorted_theta = logit(lap_draws2[:, 2])[sorted_array]
 sorted_exp_logq = np.exp(logq2)[sorted_array]
-plt.plot(sorted_theta, sorted_exp_logq, 'b--')
-sns.rugplot(logit(lap_draws2[0:400:,2]), color='b')
-plt.ylim(-.06 * plt.ylim()[1])
+ax.plot(sorted_theta, sorted_exp_logq, 'b--')
+sns.rugplot(logit(lap_draws2[0:400:,2]), color='b', ax=ax, alpha=0.2)
 
-plt.xlabel(r'logit($\theta$)')
-plt.legend()
+ax.set_xlabel(r'logit($\theta$)')
+ax.legend()
 
 plt.show()
 plt.close()
 ```
 
-```{python}
-bs_model_bin = bs.StanModel('Stan-Modelling/stan_models/code_binom.stan', 'Stan-Modelling/stan_models/data.json')
-bs_model_bin.log_density_hessian(np.array([opt_bin.stan_variables()['theta']]), jacobian=False)
-```
+When we plot kernel density estimates of the logit transformed draws (draws shown with rug lines in top and bottom) in the constrained space, it’s clear which draws approximate better the true posterior (black line)
 
 ```{python}
-model_bin.log_prob(opt_bin.stan_variables(), data=data_bin, jacobian=False)
+plt.clf()
+
+fig, ax = plt.subplots()
+
+ax.plot(theta, pdfbeta/np.max(lap_draws), color='k')
+ax2 = ax.twinx()
+sns.kdeplot(lap_draws[:,2], ax=ax2, color='r', linestyle='--', common_grid=True)
+sns.kdeplot(lap_draws2[:,2], ax=ax, color='b', linestyle='--', common_grid=True)
+
+upper_rugplot(lap_draws[0:400:,2], ax=ax, color='r', height=0.03, alpha=0.2)
+
+sns.rugplot(lap_draws2[0:400:,2], color='b', ax=ax, alpha=0.2)
+
+ax.set_xlabel(r'$\theta$')
+
+plt.show()
+plt.close()
 ```
+
+## **Importance resampling**
+
+`.laplace_sample()` method returns also unormalized target log density (`lp__`) and unnormalized density of the Laplace approximation to the posterior (`lp_q__`) for the draws from the normal approximation. These can be used to compute importance ratios `np.exp(lp__-lp_q__)` which can be used to do importance resampling. We can do the importance resampling using the posterior package.
+
+```{python}
+# Compute log weights
+log_weights = lap_draws2[:, 0] - lap_draws2[:, 1]
+
+# Convert log weights to probabilities
+weights = np.exp(log_weights - np.max(log_weights))  # Normalize for stability
+weights /= np.sum(weights)
+
+# Resample indices based on weights
+resampled_indices = np.random.choice(len(lap_draws2[:, 0]), size=len(lap_draws2[:, 0]), p=weights, replace=True)
+
+# Resample lap_draws2 using the indices
+lap_draws2_resampled = lap_draws2[resampled_indices]
+lap_draws2_resampled
+```
+
+The kernel density estimate using importance resampled draws is even close to the true distribution.
+
+```{python}
+plt.clf()
+
+fig, ax = plt.subplots()
+
+ax.plot(theta, pdfbeta/np.max(lap_draws), color='k')
+sns.kdeplot(lap_draws2_resampled[:,2], ax=ax, color='b', linestyle='--', common_grid=True)
+sns.rugplot(lap_draws2_resampled[0:400:,2], color='b', ax=ax, alpha=0.2)
+
+ax.set_xlabel(r'$\theta$')
+
+plt.show()
+plt.close()
+```
+
+## **Discussion**
+
+The normal approximation and importance resampling did work quite well in this simple one dimensional case, but in general the normal approximation for importance sampling works well only in quite low dimensional settings or when the posterior in the unconstrained space is very close to normal.
