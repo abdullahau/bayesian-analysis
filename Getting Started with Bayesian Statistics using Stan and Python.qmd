@@ -1,0 +1,116 @@
+---
+title: "Getting Started with Bayesian Statistics"
+subtitle: "using Stan and Python"
+author: "Abdullah Mahmood"
+date: "last-modified"
+format:
+  html:
+    theme: cosmo # united is darker
+    css: style.css
+    highlight-style: atom-one
+    mainfont: Palatino
+    fontcolor: black>
+    monobackgroundcolor: white
+    monofont: "Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace"
+    fontsize: 13pt
+    linestretch: 1.4
+    number-sections: true
+    number-depth: 2
+    toc: true
+    toc-location: right
+    code-fold: false
+    code-copy: true
+    cap-location: bottom
+    format-links: false
+    embed-resources: true
+    anchor-sections: true
+    html-math-method:
+        method: mathjax
+        url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+editor: source
+jupyter: main
+bibliography: references.bib
+---
+
+
+```{python}
+from cmdstanpy import CmdStanModel
+import bridgestan as bs
+import numpy as np
+import os
+import json
+
+def inline_plot(plot_func, *args, **kwargs):
+    plt.clf()  
+    plot_func(*args, **kwargs)
+    plt.show()
+    plt.close()
+```
+
+```{python}
+class Stan(CmdStanModel):
+    def __init__(self, stan_file: str, stan_code: str):
+        """Load or compile a Stan model"""
+        stan_src = f"{stan_file}.stan"
+        exe_file = stan_file
+        
+        # Check for the compiled executable
+        if not os.path.isfile(exe_file):
+            with open(stan_src, 'w') as f:
+                f.write(stan_code)
+            super().__init__(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
+        else:
+            super().__init__(stan_file=stan_src, exe_file=exe_file)
+
+class BridgeStan(bs.StanModel):
+    def __init__(self, stan_file: str, data: dict):
+        """Load or compile a BridgeStan shared object"""
+        stan_so = f"{stan_file}_model.so"
+        make_args = ['BRIDGESTAN_AD_HESSIAN=true', 'STAN_THREADS=true']
+        data = json.dumps(data)
+        if not os.path.isfile(stan_so):  # If the shared object does not exist, compile it
+            super().__init__(f"{stan_file}.stan", data, make_args=make_args)
+        else:
+            super().__init__(stan_so, data, make_args=make_args)
+
+def quap_precis(model: Stan, data: dict, jacobian=False,**kwargs):
+    stan_file = model.exe_file
+    opt_model = model.optimize(data, jacobian=jacobian, **kwargs)
+    bs_model = BridgeStan(stan_file, data)
+    params = opt_model.stan_variables()
+    mode_params_unc = bs_model.param_unconstrain(
+        np.array(list(params.values()))  
+    )
+    log_dens, gradient, hessian = bs_model.log_density_hessian(mode_params_unc, jacobian=jacobian)
+    cov_matrix = np.linalg.inv(-hessian)
+    
+    return params, np.sqrt(cov_matrix), cov_matrix, hessian
+
+test_stan = '''
+data {
+    int<lower=0> W;
+    int<lower=0> L;
+}
+parameters {
+    real<lower=0, upper=1> p;
+}
+model {
+    p ~ uniform(0, 1);
+    W ~ binomial(W + L, p);
+}
+'''
+
+data = {'W': 6, 'L': 3}
+
+model = Stan('stan_models/test', test_stan)
+
+quap_precis(model, data)
+```
+
+
+
+
+
+
+
+

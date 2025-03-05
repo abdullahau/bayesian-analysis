@@ -148,7 +148,7 @@ y_mean, y_std = y.mean(), y.std()
 print(y_mean, y_std)
 
 # R `rnorm` Seed 1337 Output
-y = np.loadtxt('test.csv', dtype=np.float64, delimiter=',', skiprows=1, usecols=1)
+y = np.loadtxt('Stan-Modelling/stan_models/test.csv', dtype=np.float64, delimiter=',', skiprows=1, usecols=1)
 y_mean, y_std = y.mean(), y.std()
 print(y_mean, y_std)
 ```
