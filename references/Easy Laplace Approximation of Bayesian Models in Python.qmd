@@ -355,3 +355,22 @@ param_cov_mat <- solve(-fit$hessian)
 round(param_cov_mat, 10)
 ```
 
+```{r}
+library(rethinking)
+
+model1 <- quap(
+  alist(
+    y ~ dnorm(mu, sigma),
+    mu ~ dnorm(0,100),
+    sigma ~ dlnorm(0, 4)
+  ),
+  data=list(y=y))
+
+# display summary of quadratic approximation
+precis(model1)
+```
+
+```{r}
+vcov(model1)
+```
+
