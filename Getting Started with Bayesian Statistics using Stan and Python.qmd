@@ -32,13 +32,23 @@ jupyter: main
 bibliography: references.bib
 ---
 
-
 ```{python}
 from cmdstanpy import CmdStanModel
 import bridgestan as bs
 import numpy as np
 import os
 import json
+from scipy.special import expit
+import scipy.stats as stats
+import pandas as pd
+
+import logging
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings( "ignore", module = "plotnine/..*" )
+
+import cmdstanpy as csp
+csp.utils.get_logger().setLevel(logging.ERROR)
 
 def inline_plot(plot_func, *args, **kwargs):
     plt.clf()  
@@ -47,164 +57,6 @@ def inline_plot(plot_func, *args, **kwargs):
     plt.close()
 ```
 
-```{python}
-class Stan(CmdStanModel):
-    def __init__(self, stan_file: str, stan_code: str):
-        """Load or compile a Stan model"""
-        stan_src = f"{stan_file}.stan"
-        exe_file = stan_file
-        
-        # Check for the compiled executable
-        if not os.path.isfile(exe_file):
-            with open(stan_src, 'w') as f:
-                f.write(stan_code)
-            super().__init__(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
-        else:
-            super().__init__(stan_file=stan_src, exe_file=exe_file)
-
-class BridgeStan(bs.StanModel):
-    def __init__(self, stan_file: str, data: dict):
-        """Load or compile a BridgeStan shared object"""
-        stan_so = f"{stan_file}_model.so"
-        make_args = ['BRIDGESTAN_AD_HESSIAN=true', 'STAN_THREADS=true']
-        data = json.dumps(data)
-        if not os.path.isfile(stan_so):  # If the shared object does not exist, compile it
-            super().__init__(f"{stan_file}.stan", data, make_args=make_args)
-        else:
-            super().__init__(stan_so, data, make_args=make_args)
-
-class StanQuap(object):
-    def __init__(self,
-                 stan_file: str, 
-                 stan_code: str, 
-                 data: dict, 
-                 algorithm = 'BFGS',
-                 jacobian: bool = False,
-                 **kwargs):
-        self.train_data = data
-        self.stan_model = Stan(stan_file, stan_code)
-        self.bs_model = BridgeStan(stan_file, data)
-        self.opt_model = self.stan_model.optimize(
-                              data,
-                              algorithm=algorithm,
-                              jacobian=jacobian,
-                              **kwargs
-                        )
-        self.params = self.opt_model.stan_variables()
-        self.params_unc = self.bs_model.param_unconstrain(
-                              np.array(list(self.params.values()))
-                        )
-        self.jacobian = jacobian
-
-    def log_density_hessian(self):
-        log_dens, gradient, hessian = self.bs_model.log_density_hessian(
-            self.params_unc, 
-            jacobian=self.jacobian
-        )
-        return log_dens, gradient, hessian
-    
-    def vcov_matrix(self):
-        _, _, hessian = self.log_density_hessian()
-        cov_matrix = np.linalg.inv(-hessian)
-        return cov_matrix
-    
-    def laplace_sample(self, draws: int = 100_000):
-        return self.stan_model.laplace_sample(data=self.train_data, 
-                                              mode=self.opt_model, 
-                                              draws=draws, 
-                                              jacobian=self.jacobian)
-      
-    def draws(self, draws: int = 100_000, dict_out: bool = True):
-        laplace_obj = self.laplace_sample(draws)
-        if dict_out:
-          return laplace_obj.stan_variables()
-        return laplace_obj.draws()
-    
-    def posterior_summary(self):
-        pos_mu = self.params
-        pos_sigma = self.draws(dict_out=False)[:,2].std()
-        return f"mean = {pos_mu}, sigma = {pos_sigma}"
-    
-
-test_stan = '''
-data {
-    int<lower=0> W;
-    int<lower=0> L;
-}
-parameters {
-    real<lower=0, upper=1> p;
-}
-model {
-    p ~ uniform(0, 1);
-    W ~ binomial(W + L, p);
-}
-'''
-
-data = {'W': 24, 'L': 36-24}
-
-StanQuap('stan_models/test', test_stan, data).posterior_summary()
-```
-
-```{python}
-laplace_draws = model.laplace_sample(data=data, mode=mle_object, draws=100_000, jacobian=False).draws()
-sigma = laplace_draws[:,2].std()
-sigma
-mu = params['p']
-
-import seaborn as sns
-import matplotlib.pyplot as plt
-import scipy.stats as stats
-
-def dens_plot(mu, sigma):
-  x = np.linspace(0,1,100)
-  y = stats.norm.pdf(x, mu, sigma)
-  plt.plot(x, y)
-  plt.plot(x, stats.beta.pdf(x, 24 + 1, 36 - 24 + 1))
-
-inline_plot(dens_plot, mu, sigma)
-```
-
-
-```{r}
-library(rstan)
-# Compile the model
-stan_model <- stan_model(file = 'stan_models/test.stan')
-```
-
-```{r}
-stan_data <- list(W = 6, L = 3)
-
-fit <- optimizing(stan_model, data = stan_data, algorithm="BFGS", hessian=TRUE)
-fit
-
-param_cov_mat <- solve(-fit$hessian)
-round(param_cov_mat, 10)
-```
-
-```{r}
-library(rethinking)
-
-globe.qa <- quap(
-    alist(
-        W ~ dbinom( W+L ,p) , # binomial likelihood
-        p ~ dunif(0,1) # uniform prior
-    ),
-    data=list(W=24,L=36-24))
-
-# display summary of quadratic approximation
-round(precis(globe.qa), 5)
-(vcov(globe.qa))^(1/2)
-```
-
-```{r}
-
-# analytical calculation
-W <- 24
-L <- 36-24
-curve( dbeta( x , W+1 , L+1 ) , from=0 , to=1 )
-# quadratic approximation
-curve( dnorm( x , 0.67 , 0.07857 ) , lty=2 , add=TRUE )
-```
 
 
 

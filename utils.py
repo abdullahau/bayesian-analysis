@@ -20,13 +20,13 @@ def StanModel(stan_file: str, stan_code: str) -> CmdStanModel:
     return CmdStanModel(stan_file=stan_src, exe_file=stan_file)
 
 class Stan(CmdStanModel):
-    def __init__(self, stan_file: str, stan_code: str):
+    def __init__(self, stan_file: str, stan_code: str, force_compile=False):
         """Load or compile a Stan model"""
         stan_src = f"{stan_file}.stan"
         exe_file = stan_file
         
         # Check for the compiled executable
-        if not os.path.isfile(exe_file):
+        if not os.path.isfile(exe_file) or force_compile:
             with open(stan_src, 'w') as f:
                 f.write(stan_code)
             super().__init__(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
@@ -34,28 +34,140 @@ class Stan(CmdStanModel):
             super().__init__(stan_file=stan_src, exe_file=exe_file)
 
 class BridgeStan(bs.StanModel):
-    def __init__(self, stan_file: str, data: dict):
+    def __init__(self, stan_file: str, data: dict, force_compile=False):
         """Load or compile a BridgeStan shared object"""
         stan_so = f"{stan_file}_model.so"
         make_args = ['BRIDGESTAN_AD_HESSIAN=true', 'STAN_THREADS=true']
         data = json.dumps(data)
-        if not os.path.isfile(stan_so):  # If the shared object does not exist, compile it
+        if not os.path.isfile(stan_so) or force_compile:  # If the shared object does not exist, compile it
             super().__init__(f"{stan_file}.stan", data, make_args=make_args)
         else:
             super().__init__(stan_so, data, make_args=make_args)
 
-def quap_precis(model: Stan, data: dict, jacobian=False,**kwargs):
-    stan_file = model.exe_file
-    opt_model = model.optimize(data, algorithm='BFGS', jacobian=jacobian, **kwargs)
-    bs_model = BridgeStan(stan_file, data)
-    params = opt_model.stan_variables()
-    mode_params_unc = bs_model.param_unconstrain(
-        np.array(list(params.values()))  
-    )
-    log_dens, gradient, hessian = bs_model.log_density_hessian(mode_params_unc, jacobian=jacobian)
-    cov_matrix = np.linalg.inv(-hessian)
+class StanQuap(object):
+    def __init__(self,
+                 stan_file: str, 
+                 stan_code: str, 
+                 data: dict, 
+                 algorithm = 'BFGS',
+                 jacobian: bool = False,
+                 force_compile = False,
+                 **kwargs):
+        self.train_data = data
+        self.stan_model = Stan(stan_file, stan_code, force_compile)
+        self.bs_model = BridgeStan(stan_file, data, force_compile)
+        self.opt_model = self.stan_model.optimize(
+                              data,
+                              algorithm=algorithm,
+                              jacobian=jacobian,
+                              **kwargs
+                        )
+        self.params = self.opt_model.stan_variables()
+        self.params_unc = self.bs_model.param_unconstrain(
+                              np.array(list(self.params.values()))
+                        )
+        self.jacobian = jacobian
+
+    def log_density_hessian(self):
+        log_dens, gradient, hessian = self.bs_model.log_density_hessian(
+            self.params_unc, 
+            jacobian=self.jacobian
+        )
+        return log_dens, gradient, hessian
     
-    return opt_model, params, cov_matrix, hessian
+    def vcov_matrix(self, param_types=None, eps=1e-6):
+        _, _, hessian_unc = self.log_density_hessian()
+        vcov_unc = np.linalg.inv(-hessian_unc)
+        cov_matrix = self.transform_vcov(vcov_unc, param_types, eps)
+        return cov_matrix
+    
+    def laplace_sample(self, draws: int = 100_000):
+        return self.stan_model.laplace_sample(data=self.train_data, 
+                                              mode=self.opt_model, 
+                                              draws=draws, 
+                                              jacobian=self.jacobian)
+      
+    def draws(self, draws: int = 100_000, dict_out: bool = True):
+        laplace_obj = self.laplace_sample(draws)
+        if dict_out:
+          return laplace_obj.stan_variables()
+        return laplace_obj.draws()
+
+    def compute_jacobian_analytical(self, param_types):
+        """
+        Analytical computation of the Jacobian matrix for transforming 
+        variance-covariance matrix from unconstrained to constrained space.
+        """
+        dim = len(self.params_unc)
+        J = np.zeros((dim, dim))  # Initialize Jacobian matrix
+        
+        for i in range(dim):
+            if param_types[i] == 'uncons':  # Unconstrained (Identity transformation)
+                J[i, i] = 1
+            elif param_types[i] == 'pos_real':  # Positive real (Exp transformation)
+                J[i, i] = np.exp(self.params_unc[i])
+            elif param_types[i] == 'prob':  # Probability (Logit transformation)
+                x = 1 / (1 + np.exp(-self.params_unc[i]))  # Sigmoid function
+                J[i, i] = x * (1 - x)
+            else:
+                raise ValueError(f"Unknown parameter type: {param_types[i]}")
+      
+        return J      
+
+    def compute_jacobian_numerical(self, eps=1e-6):
+        """
+         Analytical computation of the Jacobian matrix for transforming 
+         variance-covariance matrix from unconstrained to constrained space.
+        """
+        dim = len(self.params_unc)
+        J = np.zeros((dim, dim))  # Full Jacobian matrix
+    
+        # Compute Jacobian numerically for each parameter
+        for i in range(dim):
+            perturbed = self.params_unc.copy()
+            # Perturb parameter i
+            perturbed[i] += eps
+            constrained_plus = np.array(self.bs_model.param_constrain(perturbed))
+            perturbed[i] -= 2 * eps
+            constrained_minus = np.array(self.bs_model.param_constrain(perturbed))
+            # Compute numerical derivative
+            J[:, i] = (constrained_plus - constrained_minus) / (2 * eps)
+    
+        return J
+
+    def transform_vcov(self, vcov_unc, param_types=None, eps=1e-6):
+        """
+        Transform the variance-covariance matrix from the unconstrained space to the constrained space.
+        Args:
+        - vcov_unc (np.array): variance-covariance matrix in the unconstrained space.
+        - param_types (list) [Required for analytical solution]: List of strings specifying the type of each parameter. 
+          Options: 'uncons' (unconstrained), 'pos_real' (positive real), 'prob' (0 to 1).
+        - eps (float) [Required for numerical solution]: Small perturbation for numerical differentiation.
+        Returns:
+        - vcov_con (np.array): variance-covariance matrix in the constrained space.
+        """
+        if param_types is None:
+            J = self.compute_jacobian_numerical(eps)
+        else:
+            J = self.compute_jacobian_analytical(param_types)
+        vcov_con = J.T @ vcov_unc @ J
+        return vcov_con
+
+    def precis(self, param_types=None, prob=0.89, eps=1e-6):
+        vcov_mat = self.vcov_matrix(param_types, eps)
+        pos_mu = np.array(list(self.params.values()))
+        pos_sigma = np.sqrt(np.diag(vcov_mat))
+        plo = (1-prob)/2
+        phi = 1 - plo
+        lo = pos_mu + pos_sigma * stats.norm.ppf(plo)
+        hi = pos_mu + pos_sigma * stats.norm.ppf(phi)
+        res = pd.DataFrame({
+          'Parameter': list(self.params.keys()),
+          'Mean': pos_mu,
+          'StDev': pos_sigma,
+          f'{plo:.2%}': lo,
+          f'{phi:.2%}': hi})
+        return res.set_index('Parameter')
 
 # ----------------------- Stat Functions -----------------------
 def center(vals: np.ndarray) -> np.ndarray:

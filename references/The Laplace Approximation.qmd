@@ -512,7 +512,7 @@ plt.close()
 
 ## **Importance resampling**
 
-`.laplace_sample()` method returns also unormalized target log density (`lp__`) and unnormalized density of the Laplace approximation to the posterior (`lp_q__`) for the draws from the normal approximation. These can be used to compute importance ratios `np.exp(lp__-lp_q__)` which can be used to do importance resampling. We can do the importance resampling using the posterior package.
+`.laplace_sample()` method returns also unnormalized target log density (`lp__`) and unnormalized density of the Laplace approximation to the posterior (`lp_q__`) for the draws from the normal approximation. These can be used to compute importance ratios `np.exp(lp__-lp_q__)` which can be used to do importance resampling. We can do the importance resampling using the following steps:
 
 ```{python}
 # Compute log weights
