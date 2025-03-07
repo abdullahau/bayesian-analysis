@@ -40,7 +40,7 @@ class Stan(CmdStanModel):
         if not os.path.isfile(exe_file) or force_compile:
             with open(stan_src, 'w') as f:
                 f.write(stan_code)
-            super().__init__(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
+            super().__init__(stan_file=stan_src, force_compile=True, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
         else:
             super().__init__(stan_file=stan_src, exe_file=exe_file)
 
@@ -53,22 +53,22 @@ class BridgeStan(bs.StanModel):
         if not os.path.isfile(stan_so) or force_compile:  # If the shared object does not exist, compile it
             super().__init__(f"{stan_file}.stan", data, make_args=make_args)
         else:
-            super().__init__(stan_so, data, make_args=make_args)
+            super().__init__(stan_so, data, make_args=make_args, warn=False)
 
 class StanQuap(object):
     def __init__(self,
                  stan_file: str, 
                  stan_code: str, 
                  data: dict, 
-                 algorithm = 'BFGS',
+                 algorithm = 'Newton',
                  jacobian: bool = False,
                  force_compile = False,
                  **kwargs):
         self.train_data = data
         self.stan_model = Stan(stan_file, stan_code, force_compile)
-        self.bs_model = BridgeStan(stan_file, data, force_compile)
+        self.bs_model = BridgeStan(stan_file, self.train_data, force_compile)
         self.opt_model = self.stan_model.optimize(
-                              data,
+                              data=self.train_data,
                               algorithm=algorithm,
                               jacobian=jacobian,
                               **kwargs
@@ -176,8 +176,8 @@ class StanQuap(object):
           'Parameter': list(self.params.keys()),
           'Mean': pos_mu,
           'StDev': pos_sigma,
-          f'{plo:.2%}': lo,
-          f'{phi:.2%}': hi})
+          f'{plo:.1%}': lo,
+          f'{phi:.1%}': hi})
         return res.set_index('Parameter')
 
 # ----------------------- Stat Functions -----------------------

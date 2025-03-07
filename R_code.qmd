@@ -43,7 +43,7 @@ class Stan(CmdStanModel):
         if not os.path.isfile(exe_file) or force_compile:
             with open(stan_src, 'w') as f:
                 f.write(stan_code)
-            super().__init__(stan_file=stan_src, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
+            super().__init__(stan_file=stan_src, force_compile=True, cpp_options={'STAN_THREADS': 'true', 'parallel_chains': 4})
         else:
             super().__init__(stan_file=stan_src, exe_file=exe_file)
 
@@ -56,22 +56,22 @@ class BridgeStan(bs.StanModel):
         if not os.path.isfile(stan_so) or force_compile:  # If the shared object does not exist, compile it
             super().__init__(f"{stan_file}.stan", data, make_args=make_args)
         else:
-            super().__init__(stan_so, data, make_args=make_args)
+            super().__init__(stan_so, data, make_args=make_args, warn=False)
 
 class StanQuap(object):
     def __init__(self,
                  stan_file: str, 
                  stan_code: str, 
                  data: dict, 
-                 algorithm = 'BFGS',
+                 algorithm = 'Newton',
                  jacobian: bool = False,
                  force_compile = False,
                  **kwargs):
         self.train_data = data
         self.stan_model = Stan(stan_file, stan_code, force_compile)
-        self.bs_model = BridgeStan(stan_file, data, force_compile)
+        self.bs_model = BridgeStan(stan_file, self.train_data, force_compile)
         self.opt_model = self.stan_model.optimize(
-                              data,
+                              data=self.train_data,
                               algorithm=algorithm,
                               jacobian=jacobian,
                               **kwargs
@@ -226,13 +226,170 @@ def dens_plot():
   y = stats.norm.pdf(x, res_df['Mean'][0], res_df['StDev'][0])
   plt.plot(x, y, label='MAP')
   plt.plot(x, stats.beta.pdf(x, 24 + 1, 36 - 24 + 1), label='True Posterior')
+  plt.legend()
 
 inline_plot(dens_plot)
 ```
 
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d2 = d[d['age'] >= 18]
+
+m4_1 = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+}
+parameters {
+    real mu;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    height ~ normal(mu, sigma);
+    mu ~ normal(178, 20);
+    sigma ~ uniform(0, 50);
+}
+'''
+data = {'N': len(d2), 'height': d2['height'].tolist()}
+
+model = StanQuap('stan_models/m4_1', m4_1, data)
+
+model.precis().round(2)
+
+model.vcov_matrix()
+
+np.diag(model.vcov_matrix())
+
+def cov2cor( A ):
+    """
+    covariance matrix to correlation matrix.
+    """
+    d = np.sqrt(A.diagonal()) # Compute standard deviations
+    A = ((A.T/d).T)/d # # Normalize each element by sqrt(C_ii * C_jj)
+    return A
+
+cov2cor(model.vcov_matrix())
+
+def cov2cor(c: np.ndarray) -> np.ndarray:
+    """
+    Return a correlation matrix given a covariance matrix.
+    : c = covariance matrix
+    """
+    D = np.zeros(c.shape)
+    np.fill_diagonal(D, np.sqrt(np.diag(c)))
+    invD = np.linalg.inv(D)
+    return invD @ c @ invD
+
+cov2cor(model.vcov_matrix())
+```
+
+```{python}
+m4_2 = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+}
+parameters {
+    real mu;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    height ~ normal(mu, sigma);
+    mu ~ normal(178, 0.1);
+    sigma ~ uniform(0, 50);
+}
+'''
+data = {'N': len(d2), 'height': d2['height'].tolist()}
+
+model = StanQuap('stan_models/m4_2', m4_2, data)
+
+model.precis().round(2)
+```
+
+
+```{python}
+m4_3 = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+    vector[N] weight;
+    real xbar;
+}
+parameters {
+    real a;
+    real<lower=0> b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * (weight - xbar);
+    
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(178, 20);
+    b ~ lognormal(0, 1);
+    sigma ~ uniform(0, 50);
+}
+'''
+
+data = {'N': len(d2), 
+        'xbar': d2['weight'].mean(),
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist()}
+
+model = StanQuap('stan_models/m4_3', m4_3, data, algorithm = 'Newton')
+model.precis().round(2)
+model.vcov_matrix().round(3)
+```
+
+
 ```{r}
 library(rethinking)
+data(Howell1)
+d <- Howell1
+d2 <- d[ d$age >= 18 , ]
+```
 
+```{r}
+flist <- alist(
+height ~ dnorm( mu , sigma ) ,
+mu ~ dnorm( 178 , 20 ) ,
+sigma ~ dunif( 0 , 50 )
+)
+
+m4.1 <- quap( flist , data=d2 )
+
+precis( m4.1 )
+```
+
+```{r}
+# load data again, since it's a long way back
+library(rethinking)
+data(Howell1); d <- Howell1; d2 <- d[ d$age >= 18 , ]
+
+# define the average weight, x-bar
+xbar <- mean(d2$weight)
+
+# fit model
+m4.3 <- quap(
+  alist(
+    height ~ dnorm( mu , sigma ) ,
+    mu <- a + b*( weight - xbar ) ,
+    a ~ dnorm( 178 , 20 ) ,
+    b ~ dlnorm( 0 , 1 ) ,
+    sigma ~ dunif( 0 , 50 )
+  ) , data=d2 )
+
+precis( m4.3 )
+
+coef(m4.3)
+```
+
+
+
+```{r}
 globe.qa <- quap(
     alist(
         W ~ dbinom( W+L ,p) , # binomial likelihood

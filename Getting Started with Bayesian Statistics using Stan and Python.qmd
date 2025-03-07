@@ -9,7 +9,7 @@ format:
     css: style.css
     highlight-style: atom-one
     mainfont: Palatino
-    fontcolor: black>
+    fontcolor: black
     monobackgroundcolor: white
     monofont: "Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace"
     fontsize: 13pt

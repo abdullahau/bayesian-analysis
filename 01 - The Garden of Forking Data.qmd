@@ -1,15 +1,31 @@
 ---
 title: 01 - The Garden of Forking Data
 author: "Abdullah Mahmood"
-date: today
+date: "last-modified"
 format:
-    html:
-        toc: true
-        toc-depth: 3
-        code-fold: true
-        html-math-method:
-            method: mathjax
-            url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+  html:
+    theme: cosmo # united is darker
+    css: style.css
+    highlight-style: atom-one
+    mainfont: Palatino
+    fontcolor: black
+    monobackgroundcolor: white
+    monofont: "Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace"
+    fontsize: 13pt
+    linestretch: 1.4
+    number-sections: true
+    number-depth: 3
+    toc: true
+    toc-location: right
+    code-fold: false
+    code-copy: true
+    cap-location: bottom
+    format-links: false
+    embed-resources: true
+    anchor-sections: true
+    html-math-method:
+        method: mathjax
+        url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
 jupyter: main
 ---
@@ -146,11 +162,13 @@ It’s hard to use these counts though, so we almost always standardize them in 
 Luckily, there’s a mathematical way to compress all of this. Specifically, we define the updated plausibility of each possible composition of the bag, after seeing the data, as:
 
 $$
-\text{Plausibility of ['B', 'W', 'W', 'W'] after seeing ['B', 'W', 'B']} \\
-\propto \\
-\text{ways ['B', 'W', 'W', 'W'] can produce ['B', 'W', 'B']} \\
-\times \\
-\text{prior plausibility ['B', 'W', 'W', 'W']}
+\begin{align*}
+\text{Plausibility of ['B', 'W', 'W', 'W']} &\text{ after seeing ['B', 'W', 'B']} \\
+&\propto \\
+\text{ways ['B', 'W', 'W', 'W']} &\text{ can produce ['B', 'W', 'B']} \\
+&\times \\
+\text{prior plausibility} &\text{ ['B', 'W', 'W', 'W']}
+\end{align*}
 $$
 
 That little $\propto$ means *proportional to.* We want to compare the plausibility of each possible composition. So it’ll be helpful to define $p$ as the proportion of the marbles that is blue. For \['B', 'W', 'W', 'W'\], $p = 1/4 = 0.25$. And so we can not write:
@@ -197,6 +215,37 @@ These plausibilities are also *probabilities—*they are non-negative (zero or p
 -   The new, updated plausibility of any specific *p* is usually called the **posterior probability**.
 
 In the next major section, you’ll meet the more formal notation for these objects and see how they compose a simple statistical model.
+
+------------------------------------------------------------------------
+
+#### Analytical Solution
+
+-   A single toss of the globe has a probability $p$ of producing a water ($W$) observation. It has a probability $1−p$ of producing a land ($L$) observation.
+-   Each toss of the globe is independent of the others.
+
+Results suggest the following analytical solution $$W,L = (Rp)^W \times ((1 - p)R)^L$$ where $R$ is the number of possible sides in a globes, in this case 4
+
+```{python}
+def plausibility_count(p, W, L, resolution=4):
+    """
+    p:          proportion of water 
+    W:          number of water observations in the sample
+    L:          number of land observations in sample
+    resolution: number of globe sides
+    """
+    return (resolution * p) ** W * ((1 - p)*resolution) ** L
+```
+
+```{python}
+RESOLUTION = 4
+# B W B B
+W = 3
+L = 1
+
+p_water = np.linspace(0,1,5)
+n_possible_ways = np.vectorize(plausibility_count)(p_water, W, L)
+n_possible_ways
+```
 
 ------------------------------------------------------------------------
 
@@ -715,7 +764,7 @@ For many of the most common procedures in applied statistics—linear regression
 1)  Find the posterior mode. This is usually accomplished by some optimization algorithm, a procedure that virtually “climbs” the posterior distribution, as if it were a mountain. The algorithm doesn’t know where the peak is, but it does know the slope under its feet. There are many well-developed optimization procedures, most of them more clever than simple hill climbing. But all of them try to find peaks.
 2)  Once you find the peak of the posterior, you must estimate the curvature near the peak. This curvature is sufficient to compute a quadratic approximation of the entire posterior distribution. In some cases, these calculations can be done analytically, but usually your computer uses some numerical technique instead.
 
-To compute the quadratic approximation for the globe tossing data, we’ll use Stan's `optimize()` and `laplace_sample()` algorithms.
+To compute the quadratic approximation for the globe tossing data, we’ll use Stan's `optimize()` function to obtain the MLE (or MAP) of the parameter $p$ and BridgeStan's `log_density_hessian()` functions to extract the model's **hessian matrix** through which we will obtain the standard deviation. All of this is conveniently wrapped inside the `StanQuap` class.
 
 Let us compute the quadratic approximation to the globe tossing data:
 
@@ -737,66 +786,214 @@ model {
 }
 '''
 
-# Compile the Model
-globe_qa_model = utils.StanModel('stan_models/globe_qa', globe_qa)
-
 # Set-up the data in a dictionary
 toss_data = {'W': 6, 'L': 3}
 
-# Optimize to get Maximum Likelihood Estimate (MLE)
-globe_fit_opt = globe_qa_model.optimize(data=toss_data, jacobian=False)
+# Instantiate StanQuap object
+globe_qa_model = utils.StanQuap('stan_models/globe_qa', globe_qa, toss_data)
 
-globe_fit_p = globe_fit_opt.stan_variables(inc_iterations=True)
-print(globe_fit_p)
-
-lap_bin = globe_qa_model.laplace_sample(data=toss_data, jacobian=False, draws=4000)
-lap_draws = lap_bin.draws()
-lap_draws[:,2].std()
+# display summary of quadratic approximation
+globe_qa_summary = globe_qa_model.precis().round(2)
+globe_qa_summary
 ```
 
-```{python}
-from scipy.special import expit, logit
-
-def fit_pdf(p, model):
-    lp = model.log_prob(params={'p': p}, data=toss_data, jacobian=False)['lp__'][0]
-    return np.exp(lp)
-
-p = expit(np.linspace(0,1,100))
-np.vectorize(fit_pdf)(p, globe_qa_model).std()
-
-globe_qa_model.log_prob(params={'p': 0.67}, data=toss_data)
-```
-
-
-```{python}
-toss_data = {'W': 6, 'L': 3}
-
-sample_mcmc_globe = globe_qa_model.sample(data=toss_data, show_progress=False)
-sample_mcmc_globe.summary()
-```
-
-Stan's Optimization Method:
-
-We have presented a brief summary of the quadratic approximation. In this case, it shows the posterior mean value of $p=0.67$, which it calls the “Mean.” The curvature is labeled “StdDev” This stands for *standard deviation*. This value is the standard deviation of the posterior distribution, while the mean value is its peak. Finally, the last two values in the output show the 89% percentile interval, which you’ll learn more about later. You can read this kind of approximation like: *Assuming the posterior is Gaussian, it is maximized at 0.67, and its standard deviation is 0.16*.
+The `precis()` method presents a brief summary of the quadratic approximation. In this case, it shows the posterior mean value of $p=0.67$, which it calls the “Mean.” The curvature is labeled “StdDev” This stands for *standard deviation*. This value is the standard deviation of the posterior distribution, while the mean value is its peak. Finally, the last two values in the output show the 89% percentile interval, which you’ll learn more about later. You can read this kind of approximation like: *Assuming the posterior is Gaussian, it is maximized at 0.67, and its standard deviation is 0.16*.
 
 Since we already know the posterior, let’s compare to see how good the approximation is. We will use the analytical approach here, which uses `stats.beta.pdf`.
 
 ```{python}
-# analytical posterior calculation
-w, n = 6, 9
-x = np.linspace(0, 1, 100)
-
-plt.plot(x, stats.beta.pdf(x, w + 1, n - w + 1), color='k', label="True posterior")
-
+Ws, Ls = [6, 12, 24], [3, 6, 12]
 # quadratic approximation
-plt.plot(x, stats.norm.pdf(x, mean_q["p"], std_q), color='k', linestyle='--', label="Quadratic approximation")
-plt.legend(loc=2)
+def plot_quap():
+    _, axes = plt.subplots(1, 3, figsize=(12, 4))
+    x = np.linspace(0, 1, 100)
+    for i, ax in enumerate(axes):
+        toss_data = {'W': Ws[i], 'L': Ls[i]}
+        globe_qa_summary = utils.StanQuap('stan_models/globe_qa', globe_qa, toss_data).precis()
+        ax.plot(x, 
+                 stats.beta.pdf(x, Ws[i] + 1, Ls[i] + 1), # analytical posterior calculation
+                 color='k', 
+                 label="True posterior")
+        ax.plot(x, 
+                stats.norm.pdf(x, globe_qa_summary['Mean'][0], globe_qa_summary['StDev'][0]), 
+                color='k', 
+                linestyle='--', 
+                label="Quadratic approximation")
+        ax.set(xlabel='Proportion wate', title=f"n = {Ws[i]+Ls[i]}")
 
-plt.title(f"n = {n}")
-plt.xlabel("Proportion water");
+utils.inline_plot(plot_quap)
 ```
 
-#### Bayesian data analysis
+Accuracy of the quadratic approximation. In each plot, the exact posterior distribution is plotted in solid curve, and the quadratic approximation is plotted as the dotted curve. Left: The globe tossing data with $n=9$ tosses and $w=6$ waters. Middle: Double the amount of data, with the same fraction of water, $n=18$ and $w=12$. Right: Four times as much data, $n=36$ and $w=24$.
+
+The quadratic approximation curve does alright on its left side, but looks pretty bad on its right side. It even assigns positive probability to $p=1$, which we know is **impossible**, since we saw at least one land sample.
+
+As the amount of data increases, however, the quadratic approximation gets better. In the middle plot, the sample size is doubled to $n =18$ tosses, but with the same fraction of water, so that the mode of the posterior is in the same place. The quadratic approximation looks better now, although still not great. At quadruple the data, on the right side of the figure, the two curves are nearly the same now.
+
+This phenomenon, where the quadratic approximation improves with the amount of data, is very common. It’s one of the reasons that so many classical statistical procedures are nervous about small samples: Those procedures use quadratic (or other) approximations that are only known to be safe with infinite data. Often, these approximations are useful with less than infinite data, obviously. But the rate of improvement as sample size increases varies greatly depending upon the details. In some models, the quadratic approximation can remain terrible even with thousands of samples.
+
+Using the quadratic approximation in a Bayesian context brings with it all the same concerns. But you can always lean on some algorithm other than quadratic approximation, if you have doubts. Indeed, grid approximation works very well with small samples, because in such cases the model must be simple and the computations will be quite fast. You can also use MCMC, which is introduced next.
+
+------------------------------------------------------------------------
+
+#### Maximum Likelihood Estimation (MLE)
+
+The quadratic approximation, either with a uniform prior or with a lot of data, is often equivalent to a **maximum likelihood estimate** (MLE) and its **standard error**. The MLE is a very common non-Bayesian parameter estimate. This correspondence between a Bayesian approximation and a common non-Bayesian estimator is both a blessing and a curse. It is a blessing, because it allows us to reinterpret a wide range of published non-Bayesian model fits in Bayesian terms. It is a curse, because maximum likelihood estimates have some curious drawbacks, and the quadratic approximation can share them. We’ll explore these drawbacks later, they are one of the reasons we’ll turn to Markov chain Monte Carlo.
+
+------------------------------------------------------------------------
+
+#### Hessian Matrix
+
+A Hessian is a square matrix of second derivatives. It is used for many purposes in mathematics, but in the quadratic approximation it is second derivatives of the log of posterior probability with respect to the parameters. It turns out that these derivatives are sufficient to describe a Gaussian distribution, because the logarithm of a Gaussian distribution is just a parabola. Parabolas have no derivatives beyond the second, so once we know the center of the parabola (the posterior mode) and its second derivative, we know everything about it. And indeed the second derivative (with respect to the outcome) of the logarithm of a Gaussian distribution is proportional to its **inverse squared standard deviation** (its “precision”). So knowing the standard deviation tells us everything about its shape.
+
+The standard deviation is typically computed from the Hessian, so computing the Hessian is nearly always a necessary step. For now it’s enough to recognize the term and associate it with an attempt to find the standard deviation for a quadratic approximation.
+
+------------------------------------------------------------------------
+
+#### **Conjugacy**
+
+-   Source: [Conjugate Prior](https://en.wikipedia.org/wiki/Conjugate_prior)
+
+if, given a likelihood function $p(x\mid \theta)$, the posterior distribution $p(\theta \mid x)$ is in the same probability distribution family as the prior probability distribution $p(\theta)$, the prior and posterior are then called **conjugate distributions** with respect to that likelihood function and the prior is called a **conjugate prior** for the likelihood function $p(x\mid \theta)$.
+
+A conjugate prior is an algebraic convenience, giving a closed-form expression for the posterior; otherwise, numerical integration may be necessary. Further, conjugate priors may give intuition by more transparently showing how a likelihood function updates a prior distribution.
+
+The form of the conjugate prior can generally be determined by inspection of the probability density or probability mass function of a distribution. For example, consider a random variable which consists of the number of successes $s$ in $n$ Bernoulli trials with unknown probability of success $q$ in \[0,1\]. This random variable will follow the binomial distribution, with a probability mass function of the form
+
+$$
+p(s)={n \choose s}q^{s}(1-q)^{n-s}
+$$
+
+The usual conjugate prior is the beta distribution with parameters $\alpha$, $\beta$:
+
+$$
+p(q)={q^{\alpha -1}(1-q)^{\beta -1} \over \mathrm {B} (\alpha ,\beta )}
+$$
+
+where $\alpha$ and $\beta$ are chosen to reflect any existing belief or information ($\alpha =1$ and $\beta =1$ would give a uniform distribution) and $B(\alpha ,\beta)$ is the Beta function acting as a normalizing constant.
+
+That number is the relative number of ways to get six water, holding $p$ at 0.5 and $N =W +L$ at nine. So it does the job of counting relative number of paths through the garden.
+
+```{python}
+# Binomial Distribution - likelihood of six W’s in nine tosses — under 0.5 value of p
+stats.binom.pmf(6, 9, 0.5)
+
+# Beta distribution 
+stats.beta.pdf(0.5, 6+1, 3+1)
+```
+
+```{python}
+p = np.linspace(0, 1, 100)
+
+def beta_binom_plot():
+    fig, ax1 = plt.subplots()
+    
+    ax1.set_xlabel('$p$')
+    ax1.set_ylabel('Binomial - Likelihood', color='k')
+    ax1.plot(p, stats.binom.pmf(7, 10, p), color='k')
+    ax1.tick_params(axis='y')
+    
+    ax2 = ax1.twinx() 
+    ax2.set_ylabel('Beta - Posterior Probability Density', color='r') 
+    ax2.plot(p, stats.beta.pdf(p, 7+1, 3+1), color='r', linewidth=6, alpha=0.2)
+    ax2.tick_params(axis='y', labelcolor='r')
+
+utils.inline_plot(beta_binom_plot)
+```
+
+------------------------------------------------------------------------
+
+### Markov Chain Monte Carlo (MCMC)
+
+There are lots of important model types, like multilevel (mixed-effects) models, for which neither grid approximation nor quadratic approximation is always satisfactory. Such models may have hundreds or thousands or tens-of-thousands of parameters. Grid approximation routinely fails here, because it just takes too long. Special forms of quadratic approximation might work, if everything is just right. But commonly, something is not just right. Furthermore, multilevel models do not always allow us to write down a single, unified function for the posterior distribution. This means that the function to maximize (when finding the MAP) is not known, but must be computed in pieces.
+
+As a result, various counterintuitive model fitting techniques have arisen. The most popular of these is Markov chain Monte Carlo (MCMC), which is a family of conditioning engines capable of handling highly complex models.
+
+The conceptual challenge with MCMC lies in its highly non-obvious strategy. Instead of attempting to compute or approximate the posterior distribution directly, MCMC techniques merely draw samples from the posterior. You end up with a collection of parameter values,and the frequencies of these values correspond to the posterior plausibilities. You can then build a picture of the posterior from the histogram of these samples.
+
+We nearly always work directly with these samples, rather than first constructing some mathematical estimate from them. And the samples are in many ways more convenient than having the posterior, because they are easier to think with.
+
+------------------------------------------------------------------------
+
+#### A) From Prior to Posterior - Monte Carlo globe tossing
+
+The below code implements a simple **Metropolis-Hastings algorithm**, a Markov Chain Monte Carlo (MCMC) method, to approximate the posterior distribution of a probability parameter $p$, given a likelihood defined by a binomial model.
+
+**Key Components**:
+
+1.  **Inputs**:
+
+    -   `W = 6`: Number of "wins" (successes).
+
+    -   `L = 3`: Number of "losses" (failures).
+
+    -   `n_samples = 1000`: Total number of samples to generate for the Markov chain.
+
+    -   Initial probability, `p[0] = 0.5`.
+
+2.  **Model**:
+
+    -   $p$ represents the probability of success (e.g., win rate) in a binomial distribution. The algorithm explores possible values for $p$ to estimate its posterior distribution.
+    -   The likelihood is computed using the binomial probability mass function (`stats.binom.pmf`).
+
+3.  **Proposal Distribution**:
+
+    -   A new candidate value, $p_{\text{new}}$, is proposed at each step, sampled from a normal distribution centered at the current value $p[i-1]$ with a small standard deviation (`0.1`).
+
+4.  **Reflection Boundary**:
+
+    -   To ensure $p_{\text{new}}$ stays in the valid range $[0, 1]$:
+        -   If $p_{\text{new}} < 0$, it is reflected back: $p_{\text{new}} = -p_{\text{new}}$.
+        -   If $p_{\text{new}} > 1$, it is reflected back: $p_{\text{new}} = 2 - p_{\text{new}}$.
+
+5.  **Acceptance Step**:
+
+    -   The acceptance ratio, $\frac{q_1}{q_0}$, is calculated, where:
+        -   $q_0$: Likelihood of observing `W` successes given $p[i-1]$.
+        -   $q_1$: Likelihood of observing `W` successes given $p_{\text{new}}$.
+    -   A random number from a uniform distribution is drawn, and if it is less than $\frac{q_1}{q_0}$, the new value is accepted ($p[i] = p_{\text{new}}$). Otherwise, the chain retains the previous value ($p[i] = p[i-1]$).
+
+**Outcome**:
+
+-   The algorithm generates a sequence of 1000 samples (`p`) that approximate the posterior distribution of the probability parameter $p$.
+
+-   Over many iterations, the chain will converge to the posterior distribution of $p$, allowing statistical inference about the probability of success given the observed data ($W = 6$, $L = 3$).
+
+This is a simple example of Bayesian inference using MCMC to estimate a posterior distribution for a parameter in a binomial model.
+
+```{python}
+n_samples = 1000
+p = np.zeros(n_samples)
+p[0] = 0.5
+W = 6
+L = 3
+for i in range(1, n_samples):
+    p_new = stats.norm(p[i - 1], 0.1).rvs(1)
+    if p_new < 0: p_new = -p_new
+    if p_new > 1: p_new = 2 - p_new
+    q0 = stats.binom.pmf(W, n=W + L, p=p[i - 1])
+    q1 = stats.binom.pmf(W, n=W + L, p=p_new)
+    if stats.uniform.rvs(0, 1) < q1 / q0:
+        p[i] = p_new
+    else:
+        p[i] = p[i - 1]
+```
+
+The values in $p$ are samples from the posterior distribution. To compare to the analytical posterior:
+
+```{python}
+def plot_post_dist():
+    bw = utils.bw_nrd0(p)
+    az.plot_kde(p, bw=bw, label="Metropolis approximation", plot_kwargs={'color': 'black', 'linestyle':'--'})
+    x = np.linspace(0, 1, 100)
+    plt.plot(x, stats.beta.pdf(x, W + 1, L + 1), color='k', label="True posterior")
+    plt.legend();
+utils.inline_plot(plot_post_dist)
+```
+
+------------------------------------------------------------------------
+
+## Summary
 
 > -   For each possible explanation of the sample
 > -   Count all the ways the sample could occur
@@ -810,606 +1007,7 @@ More mechanically, a Bayesian model is a composite of variables and distribution
 
 In practice, Bayesian models are fit to data using numerical techniques, like grid approximation, quadratic approximation, and Markov chain Monte Carlo.
 
-### Task: What proportion of earth's surface is covered with water?
-
-#### Workflow (Drawing the Owl)
-
-1.  Define **generative model** of tossing the globe
-2.  Define an **estimand** -- in this case, the proportion of globe covered in water
-3.  **Design a statistical procedure** to produce an estimate of the estimand
-4.  **Validate the statistical procedure** (3) using the generative model -- can we recover an accurate estimate of (2) from data generated by (1)
-5.  **Apply statistical procedure** (3) to real data
-
-#### 1. Define generative model of globe tossing
-
--   $p$: true proportion of water covering the globe -- this is the **estimand**, what we'd like to estimate
--   $N$: number of tosses -- we control this via experiment
--   $W$: number of `Water` observations
--   $L$: number of `Land` observations
-
-```{python}
-import daft
-
-pgm = daft.PGM()
-
-# Add Nodes
-pgm.add_node('p', r'$p$', 0.5, 2, label_params={'color': 'red'})
-pgm.add_node('N', r'$N$', 0.5, 1)
-pgm.add_node('W', r'$W$', 3, 2)
-pgm.add_node('L', r'$L$', 3, 1)
-
-# Add Edges Between Nodes
-pgm.add_edge('p', 'W', label='Influence')
-pgm.add_edge('p', 'L')
-pgm.add_edge('N', 'W')
-pgm.add_edge('N', 'L')
-
-pgm.render();
-```
-
-```{python}
-pgm = daft.PGM()
-
-# Add Nodes
-pgm.add_node('p', r'$p$', 0.5, 2, label_params={'color': 'red'})
-pgm.add_node('N', r'$N$', 0.5, 1, plot_params={'linewidth': 0})
-pgm.add_node('W', r'$W$', 3, 2)
-
-# Add Edges Between Nodes
-pgm.add_edge('p', 'W', label='Influence')
-pgm.add_edge('N', 'W')
-
-pgm.render();
-```
-
--   This graph defines a **causal model**, of how $p, N$ effect the values of $W, L$. This is the same as saying it defines some function $f$ that maps $p, N$ onto the values of $W, L$, i.e.\
-    $$W, L = f(p, N)$$
--   Scientific knowledge defines what $f$ is or can be
-
-The unglamourous basis of applied probability:
-
-> Things that can happen more ways are more plausible.
-
-#### 2. Design a statistical procedure to produce an estimate
-
-##### Running Simulation
-
-Following the Bayesian data analysis structure: - For each possible **proportion of water** on the globe, $p$, - count all the ways the sample of tosses could have occurred. - Proportions, $p$, with more ways to produce the sample are more plausible.
-
-The code below simulates and evaluates the likelihood of observing a sequence of outcomes (`observations`, e.g., "WLW") from a globe divided into water (`W`) and land (`L`) regions. The globe can have a configurable number of sides (`resolution`), and the proportion of water varies.
-
-**`plausibility_count(observations, globe)`**: 1. The number of ways to match the observation sequence (`n_ways`). 2. The proportion of water on the globe (`p_water`).
-
-**Steps**: 1. Convert Strings to Arrays: - `observations` and `globe` are converted into NumPy arrays for efficient element-wise operations. 2. Count Matches: - For each observation (`'W'` or `'L'`), the number of matching sides on the globe is counted using `np.sum(globe == obs)`. - This produces an array (`ways`) where each element represents the number of ways the corresponding observation can occur. 3. Compute Total Ways: - The product of all values in `ways` represents the total ways to produce the observation sequence. This is calculated in log space (`np.log`) to improve numerical stability, especially for large values. - `np.exp` and `np.round` convert the log product back to the total count. 4. Compute Water Proportion: - `p_water` is the proportion of water sides on the globe, calculated as the count of `'W'` divided by the total sides.
-
-Return Values: - `n_ways`: The total number of ways to produce the observation sequence. - `p_water`: The proportion of water on the globe.
-
-**`toss_simulation(observations, resolution)`**
-
-This function iterates through all possible globe configurations, simulates the observation process, and prints the results.
-
-Steps: 1. Print Observations: - Outputs the input observation sequence (`observations`). 2. Iterate Over Globe Configurations: - For each possible number of water sides (`n_W`), create a globe configuration with `n_W` `'W'` sides and the rest `'L'` sides. - Example: For `resolution=4`, the possible configurations are: `LLLL, WLLL, WWLL, WWWL, WWWW` 3. Call `plausibility_count`: - Computes `n_ways` (ways to produce the observations) and `p_water` (water proportion) for each configuration. 4. Store Results: - Append `n_ways` and `p_water` to their respective lists. 5. Print Results: - Prints the globe configuration, water proportion, and ways to produce the observations.
-
-```{python}
-def plausibility_count(observations: str, globe: str):
-    """
-    Calculate the number of ways to observe water ('W') and land ('L') given an observation string and a globe configuration.
-    """
-    # Convert observation & globe string to an array
-    observations = np.array(list(observations.upper()))
-    globe = np.array(list(globe))
-    
-    # Count matches for each observation in globe
-    # Tally up ways to obtain each observation given the possible outcomes
-    ways = np.array([np.sum(globe == obs) for obs in observations])
-    
-    # Calculate the total number of ways to produce sample and possible proportion of water
-    # perform product in log space for numerical precision
-    np.seterr(divide = 'ignore') 
-    # Number of ways to produce sample
-    n_ways = np.round(np.exp(np.sum(np.log(ways)))).astype(int)
-    # Possible proportion of water
-    p_water = np.sum(globe == "W") / len(globe) 
-    
-    return n_ways, p_water
-
-def toss_simulation(observations: str, resolution: int):
-    """
-    Simulate the number of ways to observe water ('W') for all globe configurations
-    of `resolution` sides, varying the proportion of the globe that is covered by water.
-    """
-    print(f"Observations: '{observations}'")
-    n_possible_ways = []
-    p_water = []
-    
-    # Precompute globe configurations
-    for n_W in range(resolution + 1):
-        n_L = resolution - n_W
-        # Conjecture/Parameter: Create n-sided globe with possible outcomes
-        globe = "W" * n_W + "L" * n_L
-        n_ways, p_w = plausibility_count(observations, globe)
-        
-        print(f"({n_W+1}) {globe} p(W) = {p_w:.2f}\t\t{n_ways} Ways to Produce")
-        n_possible_ways.append(n_ways)
-        p_water.append(p_w)
-    
-    return np.array(n_possible_ways), np.array(p_water)
-```
-
-```{python}
-# Example Usage
-RESOLUTION = 4
-observations = "WLW"
-n_possible_ways, p_water = toss_simulation(observations, resolution=RESOLUTION)
-```
-
-**Bayesian (online) Updating**
-
-A Bayesian model begins with one set of plausibilities assigned to each of these possibilities. These are the **prior plausibilities**. Then it updates them in light of the data, to produce the **posterior plausibilities**.
-
-```{python}
-new_observation_possible_ways, _ = toss_simulation("W", resolution=RESOLUTION)
-
-# Online update
-n_possible_ways *= new_observation_possible_ways
-
-print("\nUpdated Possibilities given new observation:")
-for ii in range(0, RESOLUTION + 1):    
-    print(f"({ii+1}) p(W) = {p_water[ii]:1.2}\t\t\t{int(n_possible_ways[ii])} Ways to Produce")
-```
-
-**The whole sample**
-
-```{python}
-RESOLUTION = 4
-observations = "WLWWWLWLW"
-n_W = len(observations.replace("L", ""))
-n_L = len(observations) - n_W
-
-n_possible_ways, p_water = toss_simulation(observations, resolution=RESOLUTION)
-```
-
-##### Analytical Solution
-
--   A single toss of the globe has a probability $p$ of producing a water ($W$) observation. It has a probability $1−p$ of producing a land ($L$) observation.
--   Each toss of the globe is independent of the others.
-
-We can get identical answers with an analytical solution:
-
-Results suggest the following analytical solution $$W,L = (Rp)^W \times ((1 - p)R)^L$$ where $R$ is the number of possible globes, in this case 4
-
-```{python}
-def plausibility_count(p, n_W, n_L, resolution=RESOLUTION):
-    """
-    p:          proportion of water 
-    n_w:        number of water observations in the sample
-    n_l:        number of land observations in sample
-    resolution: number of globe sides
-    """
-    return (resolution * p) ** n_W * (resolution - resolution * p) ** n_L
-```
-
-```{python}
-RESOLUTION = 4
-observations = np.array(list("WLWWWLWLW"))
-n_W = len(observations[observations == 'W'])
-n_L = len(observations) - n_W
-
-n_possible_ways = np.vectorize(plausibility_count)(p_water, n_W, n_L)
-```
-
-##### Probability
-
--   non-negative values that sum to 1
--   normalizes large sums by the total counts
-
-```{python}
-n_possible_probabilities = n_possible_ways / n_possible_ways.sum()
-
-print("Proportion\tWays\tProbability\tBars")
-for p, n_w, n_p in zip(p_water, n_possible_ways, n_possible_probabilities):
-    print(f"{p:1.12}\t\t{n_w:0.0f}\t{n_p:1.3f}\t\t{'#'*int(20*n_p):<20}")
-```
-
-```{python}
-probs = np.linspace(0, 1, RESOLUTION+1)
-plt.bar(x=probs, height=n_possible_probabilities, width= .9 / RESOLUTION, color='k')
-plt.xticks(probs);
-plt.ylabel("probability")
-plt.xlabel("proportion water");
-```
-
-These plausibilities are also probabilities—they are non-negative (zero or positive) real numbers that sum to one.
-
--   A conjectured proportion of water on earth, $p$, is usually called a **parameter** value. It’s just a way of indexing possible explanations of the data.
--   The relative number of ways that a value $p$ can produce the data is usually called a **likelihood**. It is derived by enumerating all the possible data sequences that could have happened and then eliminating those sequences inconsistent with the data.
--   The prior plausibility of any specific $p$ is usually called the **prior probability**.
--   The new, updated plausibility of any specific $p$ is usually called the **posterior probability**.
-
-#### 3. Validate Statistical Procedure using Generative Model
-
-**Test Before You Est(imate) 🐤** 1. Code generative simulation (1) 2. Code an estimator (2) 3. Test (3) with (1); you should get expected output
-
-##### (1) Generative Simulation
-
-```{python}
-from pprint import pprint
-
-def sim_globe(p: float = 0.7, N: int = 9) -> list[str]:
-    """Simulate N globe tosses with a specific/known proportion
-    p: float
-        The propotion of water
-    N: int
-        Number of globe tosses
-    """
-    return np.random.choice(list("WL"),  size=N, p=np.array([p, 1-p]), replace=True)
-```
-
-```{python}
-known_p = 0.5
-
-simulated_ps = []
-sample_sizes = np.linspace(10, 100_000, 10)
-for N in sample_sizes:
-    simulated_p = np.sum(sim_globe(p=known_p, N=int(N)) == 'W') / N
-    simulated_ps.append(simulated_p)
-
-plt.axhline(known_p, label=f"Known p={known_p}", color='k', linestyle='--')
-plt.legend()
-plt.plot(sample_sizes, simulated_ps);
-```
-
-##### (2) Code the estimator
-
-The estimator takes in observations and returns a probability distribution (posterior) over potential estimates. Higher probability estimates should be more plausible given the data.
-
-```{python}
-#| trusted: true
-def compute_posterior(sample, resolution=RESOLUTION):
-    if isinstance(sample, str):
-        sample = np.array(list(sample))
-    n_W = len(sample[sample == 'W'])
-    n_L = len(sample) - n_W
-    
-    p_water = np.linspace(0, 1, resolution + 1)
-    n_possible_ways = np.vectorize(plausibility_count)(p_water, n_W, n_L, resolution)
-    posterior = n_possible_ways / n_possible_ways.sum()
-    
-    return posterior, p_water
-```
-
-```{python}
-def plot_posterior(observations, resolution=RESOLUTION, ax=None):
-    posterior, probs = compute_posterior(observations, resolution=resolution)
-    if ax is not None:
-        plt.sca(ax)
-    plt.bar(x=probs, height=posterior, width= .9 / resolution, color='k')
-    # plt.xticks(probs[::2], rotation=45)
-    plt.ylabel("probability")
-    plt.xlabel("proportion water")
-    plt.ylim(0,1)
-    plt.title(f"Posterior Calculated from # Samples: {len(observations)}");
-```
-
-```{python}
-observations = 'WLWW'
-plot_posterior(observations, resolution=4)
-```
-
-```{python}
-np.random.seed(5)
-known_p = .7
-simulated_observations = sim_globe(p=known_p, N=100)
-plot_posterior(simulated_observations, resolution=20)
-plt.axvline(known_p, color='C0', label='True Proportion')
-plt.legend();
-```
-
-#### Infinite Possibilities
-
-Moving from an N-sided globe to an infinitely-sided globe.
-
-As we increase resolution of globe - there are more bars/finer-grained resolution along the proportion axis - bars get shorter with more possibilities -- they must sum to 1
-
-```{python}
-np.random.seed(12)
-known_p = .7
-simulated_observations = sim_globe(p=known_p, N=30)
-_, axs = plt.subplots(1, 4, figsize=(10, 4))
-for ii, possibilities in enumerate([5, 10, 20, 30]):
-    plot_posterior(simulated_observations, resolution=possibilities, ax=axs[ii])
-    axs[ii].set_title(f"{possibilities} possibilities")
-```
-
-**Conjugacy**
-
--   Source: [Conjugate Prior](https://en.wikipedia.org/wiki/Conjugate_prior)
-
-if, given a likelihood function $p(x\mid \theta)$, the posterior distribution $p(\theta \mid x)$ is in the same probability distribution family as the prior probability distribution $p(\theta)$, the prior and posterior are then called **conjugate distributions** with respect to that likelihood function and the prior is called a **conjugate prior** for the likelihood function $p(x\mid \theta)$.
-
-A conjugate prior is an algebraic convenience, giving a closed-form expression for the posterior; otherwise, numerical integration may be necessary. Further, conjugate priors may give intuition by more transparently showing how a likelihood function updates a prior distribution.
-
-The form of the conjugate prior can generally be determined by inspection of the probability density or probability mass function of a distribution. For example, consider a random variable which consists of the number of successes $s$ in $n$ Bernoulli trials with unknown probability of success $q$ in \[0,1\]. This random variable will follow the binomial distribution, with a probability mass function of the form $$p(s)={n \choose s}q^{s}(1-q)^{n-s}$$
-
-The usual conjugate prior is the beta distribution with parameters $\alpha$, $\beta$:
-
-$$p(q)={q^{\alpha -1}(1-q)^{\beta -1} \over \mathrm {B} (\alpha ,\beta )}$$
-
-where $\alpha$ and $\beta$ are chosen to reflect any existing belief or information ($\alpha =1$ and $\beta =1$ would give a uniform distribution) and $B(\alpha ,\beta)$ is the Beta function acting as a normalising constant.
-
-That number is the relative number of ways to get six water, holding $p$ at 0.5 and $N =W +L$ at nine. So it does the job of counting relative number of paths through the garden
-
-```{python}
-# Binomial Distribution - likelihood of six W’s in nine tosses — under 0.5 value of p
-stats.binom.pmf(6, 9, 0.5)
-```
-
-```{python}
-from scipy.special import factorial
-
-def beta_posterior(n_W: int, n_L: int, p: float) -> float:
-    """
-    Calculates the beta posterior over proportions `p` given a set of
-    `N_W` water and `N_L` land observations
-    """
-    return factorial(n_W + n_L + 1) / (factorial(n_W) * factorial(n_L)) * p ** n_W * (1-p) ** n_L
-```
-
-```{python}
-# Beta distribution 
-stats.beta.pdf(0.5, 6+1, 3+1)
-beta_posterior(6, 3, 0.5)
-```
-
-```{python}
-p = np.linspace(0, 1, 40)
-
-fig, ax1 = plt.subplots()
-
-color = 'black'
-ax1.set_xlabel('$p$')
-ax1.set_ylabel('count - ways to produce', color=color)
-ax1.bar(p, plausibility_count(p, 7, 3), color=color, width=0.01)
-ax1.tick_params(axis='y', labelcolor=color)
-
-ax2 = ax1.twinx() 
-
-color = 'tab:red'
-ax2.set_ylabel('posterior probability density', color=color) 
-ax2.plot(p, beta_posterior(7, 3, p), color=color)
-# ax2.plot(p, stats.beta.pdf(p, 7+1, 3+1), color=color)
-# ax2.plot(p, stats.binom.pmf(7, 10, p), color=color)
-ax2.tick_params(axis='y', labelcolor=color)
-ax2.set_ylim(0,)
-
-fig.tight_layout() 
-plt.show()
-```
-
-The terms **PMF**, **CDF**, **PDF**, and **PPF** are fundamental concepts in probability and statistics, each describing different aspects of probability distributions. Here's a detailed explanation of each:
-
-1.  **PMF (Probability Mass Function)**
-
--   **What it is**:
-    -   The PMF is used for **discrete random variables**.
-    -   It gives the probability that a discrete random variable takes on a specific value.
--   **Mathematical Definition**: $$
-    P(X = x)
-    $$ where $X$ is a discrete random variable, and $x$ is a specific value.
--   **Properties**:
-    -   The sum of the PMF over all possible values of $X$ is 1: $$
-        \sum_{x} P(X = x) = 1
-        $$
-    -   $P(X = x) \geq 0$ for all $x$.
--   **Example**:
-    -   For a fair six-sided die, the PMF is: $$
-        P(X = x) = \frac{1}{6} \quad \text{for } x = 1, 2, 3, 4, 5, 6.
-        $$
-
-2.  **CDF (Cumulative Distribution Function)**
-
--   **What it is**:
-    -   The CDF is used for both **discrete and continuous random variables**.
-    -   It gives the probability that a random variable $X$ takes on a value less than or equal to a specific value $x$.
--   **Mathematical Definition**: $$
-    F(x) = P(X \leq x)
-    $$
--   **Properties**:
-    -   The CDF is a non-decreasing function.
-    -   It ranges from 0 to 1: $$
-        \lim_{x \to -\infty} F(x) = 0 \quad \text{and} \quad \lim_{x \to \infty} F(x) = 1.
-        $$
--   **Example**:
-    -   For a fair six-sided die, the CDF at $x = 3$ is: $$
-        F(3) = P(X \leq 3) = \frac{1}{6} + \frac{1}{6} + \frac{1}{6} = \frac{1}{2}.
-        $$
-
-3.  **PDF (Probability Density Function)**
-
--   **What it is**:
-    -   The PDF is used for **continuous random variables**.
-    -   It describes the relative likelihood of a continuous random variable taking on a specific value.
--   **Mathematical Definition**: $$
-    f(x)
-    $$ where $f(x)$ is the PDF of a continuous random variable $X$.
--   **Properties**:
-    -   The PDF is non-negative: $$
-        f(x) \geq 0 \quad \text{for all } x.
-        $$
-    -   The total area under the PDF curve is 1: $$
-        \int_{-\infty}^{\infty} f(x) \, dx = 1.
-        $$
-    -   The probability of $X$ taking on a specific value is 0 (since the area under a single point is 0). Instead, probabilities are calculated over intervals: $$
-        P(a \leq X \leq b) = \int_{a}^{b} f(x) \, dx.
-        $$
--   **Example**:
-    -   For a normal distribution with mean $\mu$ and standard deviation $\sigma$, the PDF is: $$
-        f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}.
-        $$
-
-4.  **PPF (Percent-Point Function) or Quantile Function**
-
--   **What it is**:
-    -   The PPF is the **inverse of the CDF**.
-    -   It gives the value $x$ such that the probability of the random variable $X$ being less than or equal to $x$ is a specified probability $p$.
--   **Mathematical Definition**: $$
-    x = F^{-1}(p)
-    $$ where $F^{-1}$ is the PPF, and $p$ is the probability.
--   **Properties**:
-    -   The PPF is used to find percentiles or quantiles of a distribution.
-    -   For example, the 0.5 quantile (median) is the value $x$ such that $P(X \leq x) = 0.5$.
--   **Example**:
-    -   For a standard normal distribution, the PPF at $p = 0.975$ is approximately 1.96, meaning: $$
-        P(X \leq 1.96) = 0.975.
-        $$
-
-**Key Differences**
-
-| **Term** | **Full Name** | **Applies To** | **Description** |
-|------------------|------------------|------------------|------------------|
-| PMF | Probability Mass Function | Discrete random variables | Probability that a discrete random variable takes on a specific value. |
-| CDF | Cumulative Distribution Function | Discrete and continuous random variables | Probability that a random variable is less than or equal to a specific value. |
-| PDF | Probability Density Function | Continuous random variables | Relative likelihood of a continuous random variable taking on a specific value. |
-| PPF | Percent-Point Function | Discrete and continuous random variables | Value $x$ such that $P(X \leq x) = p$ (inverse of CDF). |
-
-**Relationship Between CDF and PDF/PMF** - For **discrete random variables**: $$
-  F(x) = \sum_{k \leq x} P(X = k)
-  $$ where $P(X = k)$ is the PMF. - For **continuous random variables**: $$
-  F(x) = \int_{-\infty}^{x} f(t) \, dt
-  $$ where $f(t)$ is the PDF.
-
-**When to Use Each** - Use **PMF** when working with discrete data (e.g., counts, categories). - Use **CDF** to calculate cumulative probabilities (e.g., $P(X \leq x)$). - Use **PDF** when working with continuous data (e.g., measurements, time). - Use **PPF** to find percentiles or critical values (e.g., median, 95th percentile).
-
-#### From Prior to Posterior
-
-**Probability Rules Summary**:
-
--   [Sum Rule, Product Rule, Joint & Marginal Probability](https://www.youtube.com/watch?v=xjLqawhT3bY)
-
-**Sum Rule**:
-
-$$P(X)=\sum_Y P(X,Y)$$
-
-$$P(Y)=\sum_X P(X,Y)$$
-
-**Product Rule**:
-
-$$P(X,Y) = P(Y \mid X)P(X)$$
-
-$$P(Y,X) = P(X \mid Y)P(Y)$$
-
-**Bayes' Rule**:
-
-$$P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}$$
-
-$$P(X \mid Y) = \frac{P(Y \mid X)P(X)}{P(Y)}$$
-
-##### Quadratic Approximation
-
-A Hessian is a square matrix of second derivatives. It is used for many purposes in mathematics, but in the quadratic approximation it is second derivatives of the log of posterior probability with respect to the parameters. It turns out that these derivatives are sufficient to describe a Gaussian distribution, because the logarithm of a Gaussian distribution is just a parabola. Parabolas have no derivatives beyond the second, so once we know the center of the parabola (the posterior mode) and its second derivative, we know everything about it. And indeed the second derivative (with respect to the outcome) of the logarithm of a Gaussian distribution is proportional to its **inverse squared standard deviation** (its “precision”). So knowing the standard deviation tells us everything about its shape.
-
-The standard deviation is typically computed from the Hessian, so computing the Hessian is nearly always a necessary step. For now it’s enough to recognize the term and associate it with an attempt to find the standard deviation for a quadratic approximation.
-
-```{python}
-# Figure 2.8
-x = np.linspace(0, 1, 100)
-w, n = [6, 12, 24], [9, 18, 36]
-
-fig, ax = plt.subplots(1, 3, figsize=(12, 4))
-
-for idx, ps in enumerate(zip(w, n)):
-    data = np.repeat((0, 1), (ps[1] - ps[0], ps[0]))
-    with pm.Model() as normal_approximation:
-        p = pm.Uniform("p", 0, 1)  # uniform priors
-        w = pm.Binomial("w", n=len(data), p=p, observed=data.sum())  # binomial likelihood
-        mean_q = pm.find_MAP()
-
-        normal_approximation.rvs_to_transforms[p] = None
-        p_value = normal_approximation.rvs_to_values[p]
-        p_value.name = p.name
-        
-        std_q = ((1 / pm.find_hessian(mean_q, vars=[p])) ** 0.5)[0]
-
-    ax[idx].plot(x, stats.beta.pdf(x, ps[0] + 1, ps[1] - ps[0] + 1), color='k')
-    ax[idx].plot(x, stats.norm.pdf(x, mean_q["p"], std_q), color='k', linestyle='--')
-    ax[idx].set_xlabel("Proportion Water")
-    ax[idx].set_ylabel("Density")
-    ax[idx].set_title(r"$n={}$".format(ps[1]))
-```
-
-Accuracy of the quadratic approximation. In each plot, the exact posterior distribution is plotted in solid curve, and the quadratic approximation is plotted as the dotted curve. Left: The globe tossing data with $n=9$ tosses and $w=6$ waters. Middle: Double the amount of data, with the same fraction of water, $n=18$ and $w=12$. Right: Four times as much data, $n=36$ and $w=24$.
-
-The quadratic approximation curve does alright on its left side, but looks pretty bad on its right side. It even assigns positive probability to $p=1$, which we know is **impossible**, since we saw at least one land sample.
-
-As the amount of data increases, however, the quadratic approximation gets better. In the middle plot, the sample size is doubled to $n =18$ tosses, but with the same fraction of water, so that the mode of the posterior is in the same place. The quadratic approximation looks better now, although still not great. At quadruple the data, on the right side of the figure, the two curves are nearly the same now.
-
-This phenomenon, where the quadratic approximation improves with the amount of data, is very common. It’s one of the reasons that so many classical statistical procedures are nervous about small samples: Those procedures use quadratic (or other) approximations that are only known to be safe with infinite data. Often, these approximations are useful with less than infinite data, obviously. But the rate of improvement as sample size increases varies greatly depending upon the details. In some models, the quadratic approximation can remain terrible even with thousands of samples.
-
-Using the quadratic approximation in a Bayesian context brings with it all the same concerns. But you can always lean on some algorithm other than quadratic approximation, if you have doubts. Indeed, grid approximation works very well with small samples, because in such cases the model must be simple and the computations will be quite fast. You can also use MCMC, which is introduced next.
-
-##### Maximum likelihood estimation
-
-The quadratic approximation, either with a uniform prior or with a lot of data, is often equivalent to a **maximum likelihood estimate** (MLE) and its **standard error**. The MLE is a very common non-Bayesian parameter estimate. This correspondence between a Bayesian approximation and a common non-Bayesian estimator is both a blessing and a curse. It is a blessing, because it allows us to reinterpret a wide range of published non-Bayesian model fits in Bayesian terms. It is a curse, because maximum likelihood estimates have some curious drawbacks, and the quadratic approximation can share them. We’ll explore these drawbacks later, they are one of the reasons we’ll turn to Markov chain Monte Carlo.
-
-##### Markov Chain Monte Carlo (MCMC)
-
-There are lots of important model types, like multilevel (mixed-effects) models, for which neither grid approximation nor quadratic approximation is always satisfactory. Such models may have hundreds or thousands or tens-of-thousands of parameters. Grid approximation routinely fails here, because it just takes too long. Special forms of quadratic approximation might work, if everything is just right. But commonly, something is not just right. Furthermore, multilevel models do not always allow us to write down a single, unified function for the posterior distribution. This means that the function to maximize (when finding the MAP) is not known, but must be computed in pieces.
-
-As a result, various counterintuitive model fitting techniques have arisen. The most popular of these is Markov chain Monte Carlo (MCMC), which is a family of conditioning engines capable of handling highly complex models.
-
-The conceptual challenge with MCMC lies in its highly non-obvious strategy. Instead of attempting to compute or approximate the posterior distribution directly, MCMC techniques merely draw samples from the posterior. You end up with a collection of parameter values,and the frequencies of these values correspond to the posterior plausibilities. You can then build a picture of the posterior from the histogram of these samples.
-
-We nearly always work directly with these samples, rather than first constructing some mathematical estimate from them. And the samples are in many ways more convenient than having the posterior, because they are easier to think with.
-
-The below code implements a simple **Metropolis-Hastings algorithm**, a Markov Chain Monte Carlo (MCMC) method, to approximate the posterior distribution of a probability parameter $p$, given a likelihood defined by a binomial model.
-
-**Key Components**: 1. **Inputs**: - `W = 6`: Number of "wins" (successes). - `L = 3`: Number of "losses" (failures). - `n_samples = 1000`: Total number of samples to generate for the Markov chain. - Initial probability, `p[0] = 0.5`.
-
-2.  **Model**:
-    -   $p$ represents the probability of success (e.g., win rate) in a binomial distribution. The algorithm explores possible values for $p$ to estimate its posterior distribution.
-    -   The likelihood is computed using the binomial probability mass function (`stats.binom.pmf`).
-3.  **Proposal Distribution**:
-    -   A new candidate value, $p_{\text{new}}$, is proposed at each step, sampled from a normal distribution centered at the current value $p[i-1]$ with a small standard deviation (`0.1`).
-4.  **Reflection Boundary**:
-    -   To ensure $p_{\text{new}}$ stays in the valid range $[0, 1]$:
-        -   If $p_{\text{new}} < 0$, it is reflected back: $p_{\text{new}} = -p_{\text{new}}$.
-        -   If $p_{\text{new}} > 1$, it is reflected back: $p_{\text{new}} = 2 - p_{\text{new}}$.
-5.  **Acceptance Step**:
-    -   The acceptance ratio, $\frac{q_1}{q_0}$, is calculated, where:
-        -   $q_0$: Likelihood of observing `W` successes given $p[i-1]$.
-        -   $q_1$: Likelihood of observing `W` successes given $p_{\text{new}}$.
-    -   A random number from a uniform distribution is drawn, and if it is less than $\frac{q_1}{q_0}$, the new value is accepted ($p[i] = p_{\text{new}}$). Otherwise, the chain retains the previous value ($p[i] = p[i-1]$).
-
-**Outcome**: - The algorithm generates a sequence of 1000 samples (`p`) that approximate the posterior distribution of the probability parameter $p$. - Over many iterations, the chain will converge to the posterior distribution of $p$, allowing statistical inference about the probability of success given the observed data ($W = 6$, $L = 3$).
-
-This is a simple example of Bayesian inference using MCMC to estimate a posterior distribution for a parameter in a binomial model.
-
-```{python}
-n_samples = 1000
-p = np.zeros(n_samples)
-p[0] = 0.5
-W = 6
-L = 3
-for i in range(1, n_samples):
-    p_new = stats.norm(p[i - 1], 0.1).rvs(1)
-    if p_new < 0:
-        p_new = -p_new
-    if p_new > 1:
-        p_new = 2 - p_new
-    q0 = stats.binom.pmf(W, n=W + L, p=p[i - 1])
-    q1 = stats.binom.pmf(W, n=W + L, p=p_new)
-    if stats.uniform.rvs(0, 1) < q1 / q0:
-        p[i] = p_new
-    else:
-        p[i] = p[i - 1]
-```
-
-```{python}
-az.plot_kde(p, label="Metropolis approximation", plot_kwargs={'color': 'black', 'linestyle': '--'})
-x = np.linspace(0, 1, 100)
-plt.plot(x, stats.beta.pdf(x, W + 1, L + 1), color='k', label="True posterior")
-plt.legend();
-```
+------------------------------------------------------------------------
 
 #### From Posterior to Prediction
 
@@ -1419,21 +1017,21 @@ plt.legend();
 
 **Note**: Turn a calculus problem into a data summary problem
 
-##### On Bayesian Inference
+**On Bayesian Inference**
 
--   **There is no minimun sample size** -- fewer samples fall back to prior
+-   **There is no minimum sample size** -- fewer samples fall back to prior
 -   **Posterior shape embodies the sample size** -- more data makes the posterior more precise
 -   There is no point estimates -- **the estimate is the entire posterior distribution**
 -   There is no true interval -- there are an infinite number of intervals one could draw, each is arbitrary and depends on what you're trying to communicate/summarize
 
-##### Sampling from Posterior Distribution
+Sampling from Posterior Distribution:
 
 ```{python}
 # Parameters
-n_W, n_L = 6, 3
-N = n_W + n_L
+W, L = 6, 3
+N = W + L
 
-a, b = 1 + n_W, 1 + n_L # alpha and beta of posterior
+a, b = 1 + W, 1 + L # alpha and beta of posterior
 
 n_samples = 1000  # Number of samples
 size = 9  # Binomial size (number of tosses)
@@ -1446,12 +1044,15 @@ p_range = np.linspace(0, 1, 100)
 beta_posterior_pdf = stats.beta(a, b)
 beta_posterior_samples = beta_posterior_pdf.rvs(size=n_samples)
 
-# Show that our beta postorior captures shape of beta-distributed samples
-plt.hist(beta_posterior_samples, bins=50, density=True, label='samples');
-plt.plot(p_range, beta_posterior(a-1, b-1, p_range), linewidth=3, color='r', linestyle='--', label='beta distribution')
-plt.xlabel("proportion water")
-plt.ylabel("density")
-plt.legend();
+def plot_beta_pos():
+    # Show that our beta postorior captures shape of beta-distributed samples
+    plt.hist(beta_posterior_samples, bins=50, density=True, label='samples');
+    plt.plot(p_range, stats.beta.pdf(p_range, a, b), linewidth=3, color='r', linestyle='--', label='beta distribution')
+    plt.xlabel("proportion water")
+    plt.ylabel("density")
+    plt.legend()
+
+utils.inline_plot(plot_beta_pos)
 ```
 
 ```{python}
@@ -1510,11 +1111,11 @@ def update(frame):
     fig.suptitle(f'Frame: {frame + 1}/{n_frames}', fontsize=16)
 
 # Create the animation
-n_frames = 200                                          # Total number of frames
-ani = FuncAnimation(fig, update, frames=n_frames, repeat=False, interval=50)
+n_frames = 500                                          # Total number of frames
+ani = FuncAnimation(fig, update, frames=n_frames, repeat=False, interval=25)
 
 # Save or display the animation
-ani.save('images/posterior_predictive_animation.mp4', writer='ffmpeg', fps=10)
+ani.save('images/posterior_predictive_animation1.mp4', writer='ffmpeg', fps=10)
 
 plt.show()
 ```
@@ -1534,17 +1135,23 @@ The simulation demonstrates **Bayesian posterior and prior predictive distributi
         -   Sampling $p$ (parameter space).
         -   Simulating $w$ (data space) based on $p$.
         -   Repeating this many times to approximate distributions of interest.
-    -   This highlights how Bayesian inference relies on sampling to explore posterior and predictive distributions, especially when analytical solutions are infeasible.
+    -   This highlights how Bayesian inference relies on sampling to explore posterior and predictive distributions, especially when analytical solutions are unfeasible.
 
 In summary, the simulation demonstrates **how Bayesian inference uses observed data to update beliefs about parameters** (posterior) and **predict future data** (posterior predictive), which are key principles of Bayesian data analysis and MCMC methods.
 
 **Predictive Distribution**:
 
-The horizontal axis here goes from zero to nine and we count the number of water samples in those nine tosses, so the possibilities are from zero to nine and each of the black bars here shows the relative number of ways to get that particular value of $w$ on the horizontal axis out of a very large number of experiments of tossing the globe nine times this is called the predictive distribution. This comes from the `sim_globe` function but applied over infinite 'resolutions'.
+The horizontal axis here goes from zero to nine and we count the number of water samples in those nine tosses, so the possibilities are from zero to nine and each of the black bars here shows the relative number of ways to get that particular value of $w$ on the horizontal axis out of a very large number of experiments of tossing the globe nine times this is called the predictive distribution.
 
 ##### Sampling from Posterior Predictive Distribution
 
-**Posterior Prediction**: a prediction for out-of-sample data based on the current posterior estimate - 1. Draw a sample of model parameters from the posterior (i.e. proportions) - 2. Generate/simulate data predictions using our generative model and the sampled parameters - 3. The resulting probability distribution is our prediction
+**Posterior Prediction**: a prediction for out-of-sample data based on the current posterior estimate
+
+1.  Draw a sample of model parameters from the posterior (i.e. proportions)
+
+2.  Generate/simulate data predictions using our generative model and the sampled parameters
+
+3.  The resulting probability distribution is our prediction
 
 ```{python}
 # 1. Sample parameters values from posterior
@@ -1553,27 +1160,28 @@ posterior_samples = beta_posterior_pdf.rvs(size=N_posterior_samples)
 
 # 2. Use samples for the posterior to simulate sampling 10 observations from our generative model
 N_draws_for_prediction = 10
-posterior_predictive = [(sim_globe(p, N_draws_for_prediction) == 'W').sum() for p in posterior_samples]
-# Using stats.binom.rvs instead of 'sim_globe'
-# posterior_predictive = stats.binom.rvs(N_draws_for_prediction, posterior_samples)
+posterior_predictive = stats.binom.rvs(N_draws_for_prediction, posterior_samples)
 ppd_unique, ppd_counts = np.unique(posterior_predictive, return_counts=True)
 
-# ...for comparison we can compare to the distribution that results from pinning the parameter to a specific value
+# 3. for comparison we can compare to the distribution that results from pinning the parameter to a specific value
 specific_prob = 0.64
-specific_predictive = [(sim_globe(specific_prob, N_draws_for_prediction) == 'W').sum() for _ in posterior_samples]
-# specific_prob = np.full((N_posterior_samples,), 0.64)
-# specific_predictive = stats.binom.rvs(N_draws_for_prediction, specific_prob)
+specific_predictive = stats.binom.rvs(N_draws_for_prediction, specific_prob, size=N_posterior_samples)
 specific_unique, specific_counts = np.unique(specific_predictive, return_counts=True)
 
-plt.bar(specific_unique, specific_counts, width=.5, color='k', label=f'simulation at p={specific_prob:1.2}');
-plt.bar(ppd_unique, ppd_counts, width=.2, color='C1', label='posterior predictive');
-plt.xlabel("$\hat n_W$")
-plt.ylabel('count')
-plt.title(f"number of W samples predicted $\hat n_W$ from {N_draws_for_prediction} globe flips")
-plt.legend();
+def posterior_predictive_plot():
+    plt.bar(specific_unique, specific_counts, width=.5, color='k', label=f'simulation at p={specific_prob:1.2}');
+    plt.bar(ppd_unique, ppd_counts, width=.2, color='C1', label='posterior predictive');
+    plt.xlabel("$\hat n_W$")
+    plt.ylabel('count')
+    plt.title(f"number of W samples predicted ($\hat n_W$) from {N_draws_for_prediction} globe flips")
+    plt.legend()
+
+utils.inline_plot(posterior_predictive_plot)
 ```
 
-### Practice Problems
+------------------------------------------------------------------------
+
+## Practice Problems
 
 1)  *The probability of rain on Monday*:
     -   Pr(rain\|Monday)
@@ -1591,25 +1199,32 @@ plt.legend();
 # L, W, W, L, W, W, W - (5,7)
 
 tosses = [(3,3), (3,4), (5, 7)]
-fig, ax = plt.subplots(1, 3, figsize=(12, 4))
-for idx, (w, n) in enumerate(tosses):
-    p_grid, _, posterior = binom_post_grid_approx(uniform_prior, 100, w, n)
-    ax[idx].plot(p_grid, posterior, "k-", label=f"successes = {w}\ntosses = {n}")
-    ax[idx].set_xlabel("p_grid")
-    ax[idx].set_ylabel("posterior")
-    ax[idx].set_title(f"Water = {w}, Land = {n-w}")
+
+def plot_grid_approx():
+    fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+    for idx, (w, n) in enumerate(tosses):
+        p_grid, _, posterior = binom_grid_approx(uniform_prior, 100, w, n)
+        ax[idx].plot(p_grid, posterior, "k-", label=f"successes = {w}\ntosses = {n}")
+        ax[idx].set_xlabel("p_grid")
+        ax[idx].set_ylabel("posterior")
+        ax[idx].set_title(f"Water = {w}, Land = {n-w}")
+
+utils.inline_plot(plot_grid_approx)
 ```
 
 5.  Now assume a prior for p that is equal to zero when $p <0.5$ and is a positive constant when $p ≥ 0.5$. Again compute and plot the grid approximate posterior distribution for each of the sets of observations in the problem just above.
 
 ```{python}
-fig, ax = plt.subplots(1, 3, figsize=(12, 4))
-for idx, (w, n) in enumerate(tosses):
-    p_grid, _, posterior = binom_post_grid_approx(truncated_prior, 100, w, n)
-    ax[idx].plot(p_grid, posterior, "k-", label=f"successes = {w}\ntosses = {n}")
-    ax[idx].set_xlabel("p_grid")
-    ax[idx].set_ylabel("posterior")
-    ax[idx].set_title(f"Water = {w}, Land = {n-w}")
+def plot_grid_approx():
+    fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+    for idx, (w, n) in enumerate(tosses):
+        p_grid, _, posterior = binom_grid_approx(truncated_prior, 100, w, n)
+        ax[idx].plot(p_grid, posterior, "k-", label=f"successes = {w}\ntosses = {n}")
+        ax[idx].set_xlabel("p_grid")
+        ax[idx].set_ylabel("posterior")
+        ax[idx].set_title(f"Water = {w}, Land = {n-w}")
+
+utils.inline_plot(plot_grid_approx)
 ```
 
 6.  Suppose there are two globes, one for Earth and one for Mars. The Earth globe is 70% covered in water. The Mars globe is 100% land. Further suppose that one of these globes—you don’t know which—was tossed in the air and produced a “land” observation. Assume that each globe was equally likely to be tossed. Show that the posterior probability that the globe was the Earth, conditional on seeing “land” (Pr(Earth\|land)), is 0.23.
@@ -1700,7 +1315,12 @@ $Pr(W/W) = \frac{3}{1+2+3}$
 
 Then we can see that this implies the following
 
-$Pr(B) = Pr(B|B/B)Pr(B/B) + Pr(B|B/W)Pr(B/W) + Pr(B|W/W)Pr(W/W) = 1 \times 1/6 + 1/2 \times 2/6 + 0 \times1/2 = 1/3$
+$$
+\begin{align*}
+Pr(B) &= Pr(B|B/B)Pr(B/B) + Pr(B|B/W)Pr(B/W) + Pr(B|W/W)Pr(W/W) \\
+&= 1 \times 1/6 + 1/2 \times 2/6 + 0 \times1/2 = 1/3
+\end{align*}
+$$
 
 Giving the final result to be
 
@@ -1744,21 +1364,33 @@ $Pr(B_1,W_2) = Pr(B_1,W_2|B/B)Pr(B/B) + Pr(B_1,W_2|B/W)Pr(B/W)$
 
 (We can ignore conditioning on the W/W event, as it's impossible to observe a black face if this was the first card you picked)
 
-\$ = Pr(W_2\|B_1,B/B)Pr(B_1\|B/B)Pr(B/B) + Pr(W_2\|B_1,B/W)Pr(B_1\|B/W)Pr(B/W)\$
-
-\$ = 3/4 \times 1 \times 1/3 + 1/2 \times 1/2 \times 1/3\$
-
-\$ Pr(B_1,W_2) = 1/3\$
+$$
+\begin{align*}
+ Pr(B_1,W_2) &= Pr(W_2\|B_1,B/B)Pr(B_1\|B/B)Pr(B/B) + Pr(W_2\|B_1,B/W)Pr(B_1\|B/W)Pr(B/W) \\
+ &= 3/4 \times 1 \times 1/3 + 1/2 \times 1/2 \times 1/3 \\
+ &= 1/3
+\end{align*}
+$$
 
 Plugging in, we get
 
-$\frac{Pr(B_1,W_2|B/B)Pr(B/B)}{Pr(B_1,W_2)} = \frac{3/4 \times 1/3}{1/3} = 3/4$
+$$
+\frac{Pr(B_1,W_2|B/B)Pr(B/B)}{Pr(B_1,W_2)} = \frac{3/4 \times 1/3}{1/3} = 3/4
+$$
 
 11. Suppose there are two species of panda bear. Both are equally common in the wild and live in the same places. They look exactly alike and eat the same food, and there is yet no genetic assay capable of telling them apart. They differ however in their family sizes. Species A gives birth to twins 10% of the time, otherwise birthing a single infant. Species B births twins 20% of the time, otherwise birthing singleton infants. Assume these numbers are known with certainty, from many years of field research. Now suppose you are managing a captive panda breeding program. You have a new female panda of unknown species, and she has just given birth to twins. What is the probability that her next birth will also be twins?
 
-To solve this problem, realize first that it is asking for a conditional probability: $$P(Twins_{2} \mid Twins_{1})$$
+To solve this problem, realize first that it is asking for a conditional probability:
 
-the probability the second birth is twins, conditional on the first birth being twins. Remember the definition of conditional probability: $$P(Twins_{2} \mid Twins_{1})=\frac{P(Twins_{1}, Twins_{2})}{P(Twins)}$$
+$$
+P(Twins_{2} \mid Twins_{1})
+$$
+
+the probability the second birth is twins, conditional on the first birth being twins. Remember the definition of conditional probability:
+
+$$
+P(Twins_{2} \mid Twins_{1})=\frac{P(Twins_{1}, Twins_{2})}{P(Twins)}
+$$
 
 So our job is to define $P(Twin_{1}, Twin_{2})$, the joint probability that both births are twins, and $P(Twins)$, the unconditioned probability of twins.
 
@@ -1776,11 +1408,15 @@ Note that this is higher than $P(twins)$. This is because the first set of twins
 
 12. Recall all the facts from the problem above. Now compute the probability that the panda we have is from species A, assuming we have observed only the first birth and that it was twins.
 
-$$P(Species_{A} \mid Twins) = \frac{P(Twins \mid Species_{A})P(Species_{A})}{P(Twins)}$$
+$$
+P(Species_{A} \mid Twins) = \frac{P(Twins \mid Species_{A})P(Species_{A})}{P(Twins)}
+$$
 
 This can be computed using the values obtained from earlier:
 
-$$P(Species_{A} \mid Twins) = \frac{0.1 \times 0.5}{0.15} = \frac{1}{3} \approx 0.33$$
+$$
+P(Species_{A} \mid Twins) = \frac{0.1 \times 0.5}{0.15} = \frac{1}{3} \approx 0.33
+$$
 
 So the posterior probability of species A, after observing twins, falls to 1/3, from a prior probability of 1/2. This also implies a posterior probability of 2/3 that our panda is species B, since we are assuming only two possible species.
 
@@ -1788,7 +1424,9 @@ So the posterior probability of species A, after observing twins, falls to 1/3, 
 
 Given the new information, we are computing
 
-$$\text{Posterior} = \frac{\text{Probability of the data} \times \text{Prior}}{\text{Average Probability of the data}}$$
+$$
+\text{Posterior} = \frac{\text{Probability of the data} \times \text{Prior}}{\text{Average Probability of the data}}
+$$
 
 Recall that Bayes’ theorem accumulates evidence, using Bayesian updating. So we can take the posterior probabilities from the previous problem and use them as prior probabilities in this problem. This implies $P(A)=1/3$. Now we can ignore the first observation, the twins, and concern ourselves with only the latest observation, the singleton birth. The previous observation is embodied in the prior, so there’s no need to account for it again.
 
@@ -1796,11 +1434,20 @@ The probability of this data for a species A pandas is $P(Singleton \mid Species
 
 Whereas, the prior is the probability computed earlier $P(Species_{A} \mid Twins) = \frac{1}{3}$.
 
-The average/marginal probability of the data = $P(Singleton) = P(Singleton \mid (Species_{A} \mid Twins))P(Species_{A} \mid Twins) + P(Singleton \mid (Species_{B} \mid Twins))P(Species_{B} \mid Twins)$.
+The average/marginal probability of the data =
+
+$$
+P(Singleton) = P(Singleton \mid (Species_{A} \mid Twins))P(Species_{A} \mid Twins) + \\
+P(Singleton \mid (Species_{B} \mid Twins))P(Species_{B} \mid Twins)
+$$
 
 Given that $P(Species_{A} \mid Twins) = 1/3$, $P(Species_{B} \mid Twins) = 1 - 1/3$
 
-Therefore, $$P(Singleton) = P(Singleton \mid A)P(A) + P(Singleton \mid B)P(B) = (0.9)\times\frac{1}{3} + (0.8)\times\frac{2}{3} = \frac{5}{6}$$
+Therefore,
+
+$$
+P(Singleton) = P(Singleton \mid A)P(A) + P(Singleton \mid B)P(B) = (0.9)\times\frac{1}{3} + (0.8)\times\frac{2}{3} = \frac{5}{6}
+$$
 
 Combining everything, we get: $$P(A\mid Singleton)= \frac{(0.9)(1/3)}{5/6}=\frac{9}{25} = 0.36$$
 
@@ -1859,3 +1506,143 @@ $$P(A \mid Test_A) = \frac{P(Test_A \mid A)P(A)}{P(Test_A)}$$
 $$P(A \mid Test_A) = \frac{(0.8)(0.36)}{(0.36)(0.8) + (1-0.36)(0.35)} \approx 0.56$$
 
 And since this posterior uses all of the data, the two births and the genetic test, it would be honest to label it as $P(A|Test_A, Twins, Singleton) \approx 0.56$.
+
+------------------------------------------------------------------------
+
+## Appendix
+
+------------------------------------------------------------------------
+
+### PDF and PMF
+
+The terms **PMF**, **PDF, CDF**, and **PPF** are fundamental concepts in probability and statistics, each describing different aspects of probability distributions. Here's a detailed explanation of each:
+
+1.  **PMF (Probability Mass Function)**
+
+-   **What it is**:
+    -   The PMF is used for **discrete random variables**.
+    -   It gives the probability that a discrete random variable takes on a specific value.
+-   **Mathematical Definition**: $$
+    P(X = x)
+    $$ where $X$ is a discrete random variable, and $x$ is a specific value.
+-   **Properties**:
+    -   The sum of the PMF over all possible values of $X$ is 1: $$
+        \sum_{x} P(X = x) = 1
+        $$
+    -   $P(X = x) \geq 0$ for all $x$.
+-   **Example**:
+    -   For a fair six-sided die, the PMF is: $$
+        P(X = x) = \frac{1}{6} \quad \text{for } x = 1, 2, 3, 4, 5, 6.
+        $$
+
+2.  **CDF (Cumulative Distribution Function)**
+
+-   **What it is**:
+    -   The CDF is used for both **discrete and continuous random variables**.
+    -   It gives the probability that a random variable $X$ takes on a value less than or equal to a specific value $x$.
+-   **Mathematical Definition**: $$
+    F(x) = P(X \leq x)
+    $$
+-   **Properties**:
+    -   The CDF is a non-decreasing function.
+    -   It ranges from 0 to 1: $$
+        \lim_{x \to -\infty} F(x) = 0 \quad \text{and} \quad \lim_{x \to \infty} F(x) = 1.
+        $$
+-   **Example**:
+    -   For a fair six-sided die, the CDF at $x = 3$ is: $$
+        F(3) = P(X \leq 3) = \frac{1}{6} + \frac{1}{6} + \frac{1}{6} = \frac{1}{2}.
+        $$
+
+3.  **PDF (Probability Density Function)**
+
+-   **What it is**:
+    -   The PDF is used for **continuous random variables**.
+    -   It describes the relative likelihood of a continuous random variable taking on a specific value.
+-   **Mathematical Definition**: $$
+    f(x)
+    $$ where $f(x)$ is the PDF of a continuous random variable $X$.
+-   **Properties**:
+    -   The PDF is non-negative: $$
+        f(x) \geq 0 \quad \text{for all } x.
+        $$
+    -   The total area under the PDF curve is 1: $$
+        \int_{-\infty}^{\infty} f(x) \, dx = 1.
+        $$
+    -   The probability of $X$ taking on a specific value is 0 (since the area under a single point is 0). Instead, probabilities are calculated over intervals: $$
+        P(a \leq X \leq b) = \int_{a}^{b} f(x) \, dx.
+        $$
+-   **Example**:
+    -   For a normal distribution with mean $\mu$ and standard deviation $\sigma$, the PDF is: $$
+        f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}.
+        $$
+
+4.  **PPF (Percent-Point Function) or Quantile Function**
+
+-   **What it is**:
+    -   The PPF is the **inverse of the CDF**.
+    -   It gives the value $x$ such that the probability of the random variable $X$ being less than or equal to $x$ is a specified probability $p$.
+-   **Mathematical Definition**: $$
+    x = F^{-1}(p)
+    $$ where $F^{-1}$ is the PPF, and $p$ is the probability.
+-   **Properties**:
+    -   The PPF is used to find percentiles or quantiles of a distribution.
+    -   For example, the 0.5 quantile (median) is the value $x$ such that $P(X \leq x) = 0.5$.
+-   **Example**:
+    -   For a standard normal distribution, the PPF at $p = 0.975$ is approximately 1.96, meaning: $$
+        P(X \leq 1.96) = 0.975.
+        $$
+
+**Key Differences**
+
+| **Term** | **Full Name** | **Applies To** | **Description** |
+|------------------|------------------|------------------|------------------|
+| PMF | Probability Mass Function | Discrete random variables | Probability that a discrete random variable takes on a specific value. |
+| CDF | Cumulative Distribution Function | Discrete and continuous random variables | Probability that a random variable is less than or equal to a specific value. |
+| PDF | Probability Density Function | Continuous random variables | Relative likelihood of a continuous random variable taking on a specific value. |
+| PPF | Percent-Point Function | Discrete and continuous random variables | Value $x$ such that $P(X \leq x) = p$ (inverse of CDF). |
+
+**Relationship Between CDF and PDF/PMF**
+
+-   For **discrete random variables**: $$
+      F(x) = \sum_{k \leq x} P(X = k)
+      $$ where $P(X = k)$ is the PMF.
+
+-   For **continuous random variables**: $$
+      F(x) = \int_{-\infty}^{x} f(t) \, dt
+      $$ where $f(t)$ is the PDF.
+
+**When to Use Each**
+
+-   Use **PMF** when working with discrete data (e.g., counts, categories).
+
+-   Use **CDF** to calculate cumulative probabilities (e.g., $P(X \leq x)$).
+
+-   Use **PDF** when working with continuous data (e.g., measurements, time).
+
+-   Use **PPF** to find percentiles or critical values (e.g., median, 95th percentile).
+
+------------------------------------------------------------------------
+
+### Probability Rules Summary
+
+-   [Sum Rule, Product Rule, Joint & Marginal Probability](https://www.youtube.com/watch?v=xjLqawhT3bY)
+
+**Sum Rule**:
+
+$$P(X)=\sum_Y P(X,Y)$$
+
+$$P(Y)=\sum_X P(X,Y)$$
+
+**Product Rule**:
+
+$$P(X,Y) = P(Y \mid X)P(X)$$
+
+$$P(Y,X) = P(X \mid Y)P(Y)$$
+
+**Bayes' Rule**:
+
+$$P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}$$
+
+$$P(X \mid Y) = \frac{P(Y \mid X)P(X)}{P(Y)}$$
+
+------------------------------------------------------------------------
