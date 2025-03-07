@@ -1,12 +1,23 @@
 from cmdstanpy import CmdStanModel, CmdStanMCMC
+import bridgestan as bs
 import pandas as pd
 import numpy as np
 import pymc as pm
 import arviz as az
+import scipy.stats as stats
 import matplotlib.pyplot as plt
 
 import os
 import gc
+import json
+
+import logging
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.filterwarnings( "ignore", module = "plotnine/..*" )
+
+import cmdstanpy as csp
+csp.utils.get_logger().setLevel(logging.ERROR)
 
 # -------------- Load & Compile Stan Model -------------------
 def StanModel(stan_file: str, stan_code: str) -> CmdStanModel:
