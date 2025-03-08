@@ -33,7 +33,7 @@ jupyter: main
 #### Imports
 
 ```{python}
-from init_notebook import *
+from init import *
 ```
 
 ## Introduction

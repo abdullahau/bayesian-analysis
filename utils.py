@@ -201,16 +201,33 @@ def logit(p: float) -> float:
 def invlogit(x: float) -> float:
     return 1 / (1 + np.exp(-x))
 
-def precis(samples, var_names=None):
-    return az.summary(samples, kind="stats", hdi_prob=0.89, var_names=var_names).round(2)
 
+def precis(samples, prob=0.89):
+    if isinstance(samples, dict):
+        samples = pd.DataFrame(samples)
+    plo = (1-prob)/2
+    phi = 1 - plo   
+    res = pd.DataFrame({
+        'Parameter':samples.columns.to_numpy(),
+        'Mean': samples.mean().to_numpy(),
+      'StDev': samples.std().to_numpy(),
+      f'{plo:.1%}': samples.quantile(q=plo).to_numpy(),
+      f'{phi:.1%}': samples.quantile(q=phi).to_numpy()
+    })
+    return res.set_index('Parameter')
+
+
+def precis_az(samples, var_names=None):
+    return az.summary(samples, kind="stats", hdi_prob=0.89, var_names=var_names).round(2)
     
+
 def vcov(custom_step):
     '''Returns Variance-Covariance matrix of the parameters
     Input:
             custom_step: pymc.step_methods.arraystep
     '''
     return custom_step.covariance
+
 
 def cov2cor(c: np.ndarray) -> np.ndarray:
     """

@@ -387,8 +387,6 @@ precis( m4.3 )
 coef(m4.3)
 ```
 
-
-
 ```{r}
 globe.qa <- quap(
     alist(
@@ -418,18 +416,38 @@ curve( dnorm( x , 0.67 , 0.07857 ) , lty=2 , add=TRUE )
 ```
 
 
-```{r}
-p_grid <- seq( from=0 , to=1 , length.out=1000 )
-prob_p <- rep( 1 , 1000 )
-prob_data <- dbinom( 6 , size=9 , prob=p_grid )
-posterior <- prob_data * prob_p
-posterior <- posterior / sum(posterior)
 
-samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE)
-                   
-plot( samples )
+```{r}
+library(rethinking)
+data(Howell1)
+d <- Howell1
+d2 <- d[ d$age >= 18 , ]
 ```
 
+```{r}
+d3 <- sample( d2$height , size=20 )
+
+mu.list <- seq( from=150, to=170 , length.out=200 )
+sigma.list <- seq( from=4 , to=20 , length.out=200 )
+post2 <- expand.grid( mu=mu.list , sigma=sigma.list )
+post2$LL <- sapply( 1:nrow(post2) , function(i)
+sum( dnorm( d3 , mean=post2$mu[i] , sd=post2$sigma[i] ,
+log=TRUE ) ) )
+post2$prod <- post2$LL + dnorm( post2$mu , 178 , 20 , TRUE ) +
+dunif( post2$sigma , 0 , 50 , TRUE )
+post2$prob <- exp( post2$prod - max(post2$prod) )
+sample2.rows <- sample( 1:nrow(post2) , size=1e4 , replace=TRUE ,
+prob=post2$prob )
+sample2.mu <- post2$mu[ sample2.rows ]
+sample2.sigma <- post2$sigma[ sample2.rows ]
+plot( sample2.mu , sample2.sigma , cex=0.5 ,
+col=col.alpha(rangi2,0.1) ,
+xlab="mu" , ylab="sigma" , pch=16 )
+```
+
+```{r}
+dens( sample2.sigma , norm.comp=TRUE )
+```
 
 
 

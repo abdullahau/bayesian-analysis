@@ -1,0 +1,930 @@
+---
+title: 03a - Geocentric Models
+author: "Abdullah Mahmood"
+date: "last-modified"
+format:
+  html:
+    theme: cosmo # united is darker
+    css: style.css
+    highlight-style: atom-one
+    mainfont: Palatino
+    fontcolor: black
+    monobackgroundcolor: white
+    monofont: "Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace"
+    fontsize: 13pt
+    linestretch: 1.4
+    number-sections: true
+    number-depth: 3
+    toc: true
+    toc-location: right
+    code-fold: false
+    code-copy: true
+    cap-location: bottom
+    format-links: false
+    embed-resources: true
+    anchor-sections: true
+    html-math-method:
+        method: mathjax
+        url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+editor: source
+jupyter: main
+---
+
+### Imports
+
+```{python}
+from init import *
+```
+
+## Introduction
+
+**Linear regression** is the geocentric model of applied statistics. By “linear regression,” we will mean a family of simple statistical golems that attempt to learn about the mean and variance of some measurement, using an additive combination of other measurements. Like geocentrism, linear regression can usefully describe a very large variety of natural phenomena. Like geocentrism, linear regression is a descriptive model that corresponds to many different process models. If we read its structure too literally, we’re likely to make mistakes. But used wisely, these little linear golems continue to be useful.
+
+This notebook introduces linear regression as a Bayesian procedure. Under a probability interpretation, which is necessary for Bayesian work, linear regression uses a Gaussian (normal) distribution to describe our model’s uncertainty about some measurement of interest. This type of model is simple, flexible, and commonplace. Like all statistical models, it is not universally useful. But linear regression has a strong claim to being foundational, in the sense that once you learn to build and interpret linear regression models, you can more easily move on to other types of regression which are less normal.
+
+*Fourier series*, a way of decomposing a periodic function into a series of sine and cosine functions.
+
+## Why Normal Distributions are Normal
+
+Suppose you and a thousand of your closest friends line up on the halfway line of a soccer field (football pitch). Each of you has a coin in your hand. At the sound of the whistle, you begin flipping the coins. Each time a coin comes up heads, that person moves one step towards the left-hand goal. Each time a coin comes up tails, that person moves one step towards the right-hand goal. Each person flips the coin 16 times, follows the implied moves, and then stands still. Now we measure the distance of each person from the halfway line. Can you predict what proportion of the thousand people who are standing on the halfway line? How about the proportion 5 yards left of the line?
+
+It’s hard to say where any individual person will end up, but you can say with great confidence what the collection of positions will be. The **distances will be distributed in approximately normal, or Gaussian**, fashion. This is true even though the **underlying distribution is binomial**. It does this because there are so many more possible ways to realize a sequence of left-right steps that sums to zero. There are slightly fewer ways to realize a sequence that ends up one step left or right of zero, and so on, with the number of possible sequences declining in the characteristic bell curve of the normal distribution.
+
+### Normal by Addition
+
+Let’s see this result, by simulating this experiment. To show that there’s nothing special about the underlying coin flip, assume instead that **each step is different from all the others**, a random distance between zero and one yard. Thus a coin is flipped, a distance between zero and one yard is taken in the indicated direction, and the process repeats. To simulate this, we generate for each person a list of 16 random numbers between −1 and 1. These are the individual steps. Then we add these steps together to get the position after 16 steps. Then we need to replicate this procedure 1000 times.
+
+```{python}
+rng = np.random.default_rng(4567)
+
+steps = 16
+repetitions = 1_000
+
+tosses = rng.uniform(-1,1,size=(steps,repetitions))
+pos = np.zeros((steps+1, repetitions))
+pos[1:,:] = np.cumsum(tosses, axis=0)   
+```
+
+```{python}
+show_steps = [4,8,16]
+
+def random_walks():
+    plt.figure(figsize=(9,3))
+    plt.plot(np.arange(0,steps+1), pos, 'k',alpha=0.05)
+    plt.plot(range(0, steps + 1), pos[:, 5], c="r", linewidth=0.75)
+    plt.xlim(0,16.1)
+    plt.xlabel("Step Number")
+    plt.ylabel("Position");
+    
+    for step in show_steps:
+        plt.axvline(step, linestyle="--", c="k", alpha=0.5)
+
+utils.inline_plot(random_walks)
+```
+
+```{python}
+def random_walks():
+    fig, axs = plt.subplots(1, 3, figsize=(9, 3), sharex=True)
+    
+    for step, ax in zip(show_steps, axs):
+        az.plot_kde(pos[step,:], bw=0.05, ax=ax)
+        ax.set_title(f"{step} Steps")
+        ax.set_ylabel("Density")
+        ax.set_xlabel("Position")
+        ax.set_xlim(-6, 6)
+        ax.set_xticks([-6, -3, 0, 3, 6])
+
+utils.inline_plot(random_walks)
+```
+
+Random walks on the soccer field converge to a normal distribution. The more steps are taken, the closer the match between the real empirical distribution of positions and the ideal normal distribution.
+
+```{python}
+def plot_dens():
+    az.plot_kde(pos[-1])
+    plt.xlabel("Position")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+The results above show these random walks and how their distribution evolves as the number of steps increases. The top panel plots 100 different, independent random walks, with one highlighted in black. The vertical dashes indicate the locations corresponding to the distribution plots underneath, measured after 4, 8, and 16 steps. Although the distribution of positions starts off seemingly idiosyncratic, after 16 steps, it has already taken on a familiar outline. The familiar “bell” curve of the Gaussian distribution is emerging from the randomness. Go ahead and experiment with even larger numbers of steps to verify for yourself that the distribution of positions is stabilizing on the Gaussian. You can square the step sizes and transform them in a number of arbitrary ways, without changing the result: Normality emerges. Where does it come from?
+
+**Any process that adds together random values from the same distribution converges to a normal**. But it’s not easy to grasp why addition should result in a bell curve of sums. Here’s a conceptual way to think of the process. **Whatever the average value of the source distribution, each sample from it can be thought of as a fluctuation from that average value**. When we begin to add these fluctuations together, they also begin to cancel one another out. A large positive fluctuation will cancel a large negative one. The more terms in the sum, the more chances for each fluctuation to be canceled by another, or by a series of smaller ones in the opposite direction. So eventually the most likely sum, in the sense that there are the most ways to realize it, will be a sum in which every fluctuation is canceled by another, a sum of zero (relative to the mean).
+
+It doesn’t matter what shape the underlying distribution possesses. It could be uniform, like in our example above, or it could be (nearly) anything else. Depending upon the underlying distribution, the convergence might be slow, but it will be inevitable. Often, as in this example, convergence is rapid.
+
+### Normal by Multiplication
+
+Here’s another way to get a normal distribution. Suppose the growth rate of an organism is influenced by a dozen loci, each with several alleles that code for more growth. Suppose also that all of these loci interact with one another, such that each increase growth by a percentage. This means that their effects multiply, rather than add. For example, we can sample a random growth rate for this example with this line of code:
+
+```{python}
+growth = np.prod(1 + rng.uniform(0,0.1,size=(12,10_000)), axis=0)
+growth
+```
+
+This code just samples 12 random numbers between 1.0 and 1.1 for 10,000 runs, each representing a proportional increase in growth. Thus 1.0 means no additional growth and 1.1 means a 10% increase. The product of all 12 is computed and returned as output. Now what distribution do you think these random products will take?
+
+```{python}
+def plot_dens():
+    az.plot_kde(growth)
+    plt.xlabel("Growth")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+The distribution is approximately normal again. I said normal distributions arise from summing random fluctuations, which is true. But the effect at each locus was multiplied by the effects at all the others, not added. So what’s going on here?
+
+We again get convergence towards a normal distribution, because the effect at each locus is quite small. Multiplying small numbers is approximately the same as addition. For example, if there are two loci with alleles increasing growth by 10% each, the product is:
+
+$$1.1 \times 1.1 = 1.21$$
+
+We could also approximate this product by just adding the increases, and be off by only 0.01:
+
+$$1.1 \times 1.1 = (1 + 0.1)(1 + 0.1) = 1 + 0.2 + 0.01 \approx 1.2$$
+
+The smaller the effect of each locus, the better this additive approximation will be. In this way, small effects that multiply together are approximately additive, and so they also tend to stabilize on Gaussian distributions. Verify this by comparing:
+
+```{python}
+big = np.prod(1 + rng.uniform(0,0.5,size=(12,10_000)), axis=0)
+small = np.prod(1 + rng.uniform(0,0.01,size=(12,10_000)), axis=0)
+
+def plot_dens():
+    _, axs = plt.subplots(1, 2, figsize=(9, 4))
+    az.plot_kde(big, ax=axs[0])
+    az.plot_kde(small, ax=axs[1])
+    for ax in axs:
+        ax.set(xlabel='Growth', ylabel='Density')
+
+utils.inline_plot(plot_dens)
+```
+
+The interacting growth deviations, as long as they are sufficiently small, converge to a Gaussian distribution. In this way, the range of causal forces that tend towards Gaussian distributions extends well beyond purely additive interactions.
+
+### Normal by Log-Multiplication
+
+Large deviates that are multiplied together do not produce Gaussian distributions, but they do tend to produce Gaussian distributions on the log scale. For example:
+
+```{python}
+growth = np.log(np.prod(1 + rng.uniform(0,0.1,size=(12,10_000)), axis=0))
+```
+
+```{python}
+def plot_dens():
+    az.plot_kde(growth)
+    plt.xlabel("Growth")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+Yet another Gaussian distribution. We get the Gaussian distribution back, because adding logs is equivalent to multiplying the original numbers. So even **multiplicative interactions of large deviations can produce Gaussian distributions**, once we measure the outcomes on the log scale. Since **measurement scales are arbitrary**, there’s nothing suspicious about this transformation. After all, it’s natural to measure sound and earthquakes and even information on a log scale.
+
+### Using Gaussian Distributions
+
+We’re going to spend the rest of this chapter using the Gaussian distribution as a skeleton for our hypotheses, building up **models of measurements as aggregations of normal distributions**. The justifications for using the Gaussian distribution fall into two broad categories: (1) **ontological** and (2) **epistemological**.
+
+By the ontological justification, the world is full of Gaussian distributions, approximately. We’re never going to experience a perfect Gaussian distribution. But it is a widespread pattern, appearing again and again at different scales and in different domains. Measurement errors, variations in growth, and the velocities of molecules all tend towards Gaussian distributions. These processes do this because at their heart, these **processes add together fluctuations**. And repeatedly adding **finite fluctuations results in a distribution of sums that have shed all information about the underlying process, aside from mean and spread**.
+
+One consequence of this is that statistical models based on Gaussian distributions cannot reliably identify micro-process. But it also means that these models can do useful work, even when they cannot identify process. If we had to know the development biology of height before we could build a statistical model of height, human biology would be sunk.
+
+There are many other patterns in nature, so make no mistake in assuming that the Gaussian pattern is universal. Later, we’ll see how other useful and common patterns, like the **exponential** and **gamma** and **Poisson**, also arise from natural processes. The Gaussian is a member of a family of **fundamental natural distributions** known as the **exponential family**. All of the members of this family are important for working science, because they populate our world.
+
+But the natural occurrence of the Gaussian distribution is only one reason to build models around it. By the epistemological justification, the Gaussian represents a particular state of ignorance. When all we know or are willing to say about a distribution of measures (measures are continuous values on the real number line) is their mean and variance, then the Gaussian distribution arises as the most consistent with our assumptions.
+
+That is to say that the Gaussian distribution is the most natural expression of our state of ignorance, because if all we are willing to assume is that a measure has finite variance, the Gaussian distribution is the shape that can be realized in the largest number of ways and does not introduce any new assumptions. It is the least surprising and least informative assumption to make. In this way, the Gaussian is the distribution most consistent with our assumptions. If you don’t think the distribution should be Gaussian, then that implies that you know something else that should inform your model, something that would improve inference.
+
+This epistemological justification is premised on **information theory** and **maximum entropy**. We’ll dwell on information theory and maximum entropy later. Then other common and useful distributions will be used to build *generalized linear models* (GLMs). When these other distributions are introduced, you’ll learn the constraints that make them the uniquely most appropriate distributions.
+
+For now, let’s take the ontological and epistemological justifications of just the Gaussian distribution as reasons to start building models of measures around it. Throughout all of this modeling, keep in mind that using a model is not equivalent to swearing an oath to it.
+
+------------------------------------------------------------------------
+
+#### Heavy tails
+
+The Gaussian distribution is common in nature and has some nice properties. But there are some risks in using it as a default data model. The extreme ends of a distribution are known as its tails. And the Gaussian distribution has some very thin tails—there is very little probability in them. Instead most of the mass in the Gaussian lies within one standard deviation of the mean. Many natural (and unnatural) processes have much heavier tails. These processes have much higher probabilities of producing extreme events. A real and important example is financial time series—the ups and downs of a stock market can look Gaussian in the short term, but over medium and long periods, extreme shocks make the Gaussian model (and anyone who uses it) look foolish. Historical time series may behave similarly, and any inference for example of trends in warfare is prone to heavy-tailed surprises.69 We’ll consider alternatives to the Gaussian later.
+
+------------------------------------------------------------------------
+
+#### Gaussian distribution
+
+You don’t have to memorize the Gaussian probability distribution. You’re computer already knows it. But some knowledge of its form can help demystify it. The probability density (see below) of some value $y$, given a Gaussian (normal) distribution with mean $μ$ and standard deviation $σ$, is:
+
+$$p(y \mid \mu, \sigma) = \frac{1}{\sqrt{2\pi\sigma^2}}exp\left(-\frac{(y-\mu)^2}{2\sigma^2}\right)$$
+
+This looks monstrous. The important bit is just the $(y−\mu)^2$ bit. This is the part that gives the normal distribution its **fundamental quadratic shape**. Once you exponentiate the quadratic shape, you get the classic bell curve. The rest of it just scales and standardizes the distribution.
+
+The Gaussian is a **continuous distribution**, unlike the discrete distributions from earlier. Probability distributions with only discrete outcomes, like the binomial, are called **probability mass functions** and denoted $Pr$. Continuous ones like the Gaussian are called **probability density functions**, denoted with $p$ or just plain old $f$, depending upon author and tradition. For mathematical reasons, **probability densities can be greater than 1**. Try `stats.norm.pdf(0,0,0.1)`, for example, which is the way to calculate $p(0|0,0.1)$ in python. The answer, about 4, is no mistake. **Probability density is the rate of change in cumulative probability**. So where cumulative probability is increasing rapidly, density can easily exceed 1. But if we calculate the **area under the density function, it will never exceed 1**. Such areas are also called **probability mass**. You can usually ignore these density/mass details while doing computational work. But it’s good to be aware of the distinction. Sometimes the difference matters.
+
+The Gaussian distribution is routinely seen without $σ$ but with another parameter, $τ$. The parameter $τ$ in this context is usually called **precision** and defined as $τ=1/σ^2$. When $σ$ is large, $τ$ is small. This change of parameters gives us the equivalent formula (just substitute $σ=1/\sqrt{τ}$):
+
+$$p(y \mid \mu, \tau) = \sqrt{\frac{\tau}{2\pi}}exp\left(-\frac{1}{2}\tau(y-\mu)^2\right)$$
+
+This form is common in Bayesian data analysis, and Bayesian model fitting software, such as BUGS or JAGS, sometimes requires using $τ$ rather than $σ$.
+
+------------------------------------------------------------------------
+
+## A Language for Describing Models
+
+This book adopts a standard language for describing and coding statistical models. You find this language in many statistical texts and in nearly all statistical journals, as it is general to both Bayesian and non-Bayesian modeling. Scientists increasingly use this same language to describe their statistical methods, as well. So learning this language is an investment, no matter where you are headed next.
+
+Here’s the approach, in abstract. There will be many examples later, but it is important to get the general recipe before seeing these.
+
+1)  First, we recognize a set of variables to work with. Some of these variables are observable. We call these **data**. Others are unobservable things like rates and averages. We call these **parameters**.
+2)  We define each variable either in terms of the other variables or in terms of a **probability distribution**.
+3)  The combination of variables and their probability distributions defines a **joint generative model** that can be used both to simulate hypothetical observations as well as analyze real ones.
+
+This outline applies to models in every field, from astronomy to art history. The biggest difficulty usually lies in the subject matter—which variables matter and how does theory tell us to connect them?—not in the mathematics.
+
+After all these decisions are made—and most of them will come to seem automatic to you before long—we summarize the model with something mathy like:
+
+$$\begin{align*}
+y_{i} &\sim \text{Normal}(\mu_i, \sigma) \\
+\mu_i &= \beta x_i \\
+\beta &\sim \text{Normal}(0,10) \\
+\sigma &\sim \text{Exponential}(1) \\
+x_i &\sim \text{Normal}(0,1) \\
+\end{align*}$$
+
+We won’t do any mathematical manipulation of them. Instead, they provide an unambiguous way to define and communicate our models.
+
+The approach above surely isn’t the only way to describe statistical modeling, but it is a widespread and productive language. Once a scientist learns this language, it becomes easier to communicate the assumptions of our models. We no longer have to remember seemingly arbitrary lists of bizarre conditions like homoscedasticity (constant variance), because we can just read these conditions from the model definitions. We will also be able to see natural ways to change these assumptions, instead of feeling trapped within some procrustean model type, like regression or multiple regression or ANOVA or ANCOVA or such. These are all the same kind of model, and that fact becomes obvious once we know how to talk about models as mappings of one set of variables through a probability distribution onto another set of variables. Fundamentally, these models define the ways values of some variables can arise, given values of other variables.
+
+Describes models as mappings of one set of variables through a probability distribution onto another set of variables. Fundamentally, these models define the ways values of some variables can arise, given values of other variables.
+
+### Re-describing the globe tossing model
+
+It’s good to work with examples. Recall the proportion of water problem from previous chapters. The model in that case was always:
+
+$$\begin{align*}
+W &\sim \text{Binomial}(N, p) \\
+p &\sim \text{Uniform}(0,1) \\
+\end{align*}$$
+
+where $W$ was the observed count of water, $N$ was the total number of tosses, and $p$ was the proportion of water on the globe. Read the above statement as:
+
+-   The count $W$ is distributed binomially with sample size $N$ and probability $p$.
+
+-   The prior for $p$ is assumed to be uniform between zero and one.
+
+Once we know the model in this way, we automatically know all of its assumptions. We know the binomial distribution assumes that each sample (globe toss) is independent of the others, and so we also know that the model assumes that sample points are independent of one another.
+
+In these models, the **first line defines the likelihood function used in Bayes’ theorem**. The other lines **define priors**. Both of the lines in this model are **stochastic**, as indicated by the $\sim$ symbol. A stochastic relationship is just a mapping of a variable or parameter onto a distribution. It is stochastic because no single instance of the variable on the left is known with certainty. Instead, the mapping is probabilistic: Some values are more plausible than others, but very many different values are plausible under any model. Later, we’ll have models with deterministic definitions in them.
+
+------------------------------------------------------------------------
+
+#### From model definition to Bayes’ theorem
+
+To relate the mathematical format above to Bayes’ theorem, you could use the model definition to define the posterior distribution:
+
+$$Pr(p \mid w, n) = \frac{\text{Binomial}(w \mid n, p)\text{Uniform}(p \mid 0, 1)}{\int\text{Binomial}(w \mid n, p)\text{Uniform}(p \mid 0,1)}$$
+
+That monstrous denominator is just the average likelihood again. It standardizes the posterior to sum to 1. The action is in the numerator, where the posterior probability of any particular value of $p$ is seen again to be proportional to the product of the likelihood and prior. In python code form, this is the same grid approximation calculation you’ve been using all along. In a form recognizable as the above expression:
+
+```{python}
+w, n = 6, 9
+p_grid = np.linspace(0, 1, 100)
+posterior = stats.binom.pmf(w, n, p_grid) * stats.uniform.pdf(p_grid, 0, 1)
+posterior /= np.sum(posterior)
+
+def plot_pos():
+    plt.plot(p_grid, posterior)
+    plt.xlabel(r"$p$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_pos)
+```
+
+------------------------------------------------------------------------
+
+## Gaussian Model of Height
+
+Let’s build a linear regression model now. Well, it’ll be a “regression” once we have a predictor variable in it. For now, we’ll get the scaffold in place and construct the predictor variable in the next section. For the moment, we want a single measurement variable to model as a Gaussian distribution. There will be two parameters describing the distribution’s shape, the mean $μ$ and the standard deviation $σ$. Bayesian updating will allow us to consider every possible combination of values for $μ$ and $σ$ and to score each combination by its relative plausibility, in light of the data. These relative plausibilities are the posterior probabilities of each combination of values $μ$, $σ$.
+
+Another way to say the above is this. There are an infinite number of possible Gaussian distributions. Some have small means. Others have large means. Some are wide, with a large $σ$. Others are narrow. We want our Bayesian machine to consider every possible distribution, each defined by a combination of $μ$ and $σ$, and rank them by posterior plausibility. Posterior plausibility provides a measure of the logical compatibility of each possible distribution with the data and model.
+
+In practice we’ll use approximations to the formal analysis. So we won’t really consider every possible value of μand σ. But that won’t cost us anything in most cases. Instead the thing to worry about is keeping in mind that the “estimate” here will be the entire posterior distribution, not any point within it. And as a result, the posterior distribution will be a distribution of Gaussian distributions. Yes, a distribution of distributions.
+
+### The Data
+
+The data contained in `data\Howell1.csv` are partial census data for the Dobe area !Kung San, compiled from interviews conducted by Nancy Howell in the late 1960s. For the non-anthropologists reading along, the !Kung San are the most famous foraging population of the twentieth century, largely because of detailed quantitative studies by people like Howell. Load the data and place them into a convenient object with:
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d.head()
+```
+
+We can also use Arviz’s `summary` function, which we’ll also use to summarize posterior distributions later on:
+
+```{python}
+az.summary(d.to_dict(orient="list"), kind="stats", hdi_prob=0.89)
+
+d.describe()
+```
+
+Each column has 544 entries, so there are 544 individuals in these data. Each individual has a recorded height (centimeters), weight (kilograms), age (years), and “maleness” (0 indicating female and 1 indicating male).
+
+We’re going to work with just the `height` column, for the moment.
+
+```{python}
+d['height']
+```
+
+All we want for now are heights of adults in the sample. The reason to filter out non-adults for now is that height is strongly correlated with age, before adulthood. Later, we’ll tackle the age problem. But for now, better to postpone it. You can filter the data frame down to individuals of age 18 or greater with:
+
+```{python}
+d2 = d[d['age'] >= 18]
+```
+
+We’ll be working with the data frame d2 now. It should have 352 rows (individuals) in it.
+
+### The Model
+
+```{python}
+def plot_dens():
+    bw = utils.bw_nrd0(d2['height'].to_numpy())
+    az.plot_kde(d2['height'].to_numpy(), bw=bw*0.5)
+    plt.xlabel("Height")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+Our goal is to model these values using a Gaussian distribution. Plotting the density of the height, we see that it look rather Gaussian in shape, as is typical of height data. This may be because height is a sum of many small growth factors. As we saw earlier, a distribution of sums tends to converge to a Gaussian distribution. Whatever the reason, adult heights from a single population are nearly always approximately normal.
+
+So it’s reasonable for the moment to adopt the stance that the model should use a Gaussian distribution for the probability distribution of the data. But be careful about choosing the Gaussian distribution only when the plotted outcome variable looks Gaussian to you. Gawking at the raw data, to try to decide how to model them, is usually not a good idea. The data could be a mixture of different Gaussian distributions, for example, and in that case you won’t be able to detect the underlying normality just by eyeballing the outcome distribution. Furthermore, as mentioned earlier, the empirical distribution needn’t be actually Gaussian in order to justify using a Gaussian probability distribution.
+
+So which Gaussian distribution? There are an infinite number of them, with an infinite number of different means and standard deviations. We’re ready to write down the general model and compute the plausibility of each combination of $μ$ and $σ$. To define the heights as normally distributed with a mean $μ$ and standard deviation $σ$, we write:
+
+$$h_{i} \sim \text{Normal}(\mu, \sigma)$$
+
+In many books you'll see the same model written as $h_{i} \sim \mathcal{N}(\mu, \sigma)$, which means the same thing. The symbol $h$ refers to the list of heights, and the subscript $i$ means each individual element of this list. It is conventional to use $i$ because it stands for index. The index $i$ takes on row numbers, and so in this example can take any value from 1 to 352 (the number of heights in `d2['height']`). As such, the model above is saying that all the model knows about each height measurement is defined by the same normal distribution, with mean $μ$ and standard deviation $σ$. Before long, those little $i$’s are going to show up on the right-hand side of the model definition, and you’ll be able to see why we must bother with them. So don’t ignore the $i$, even if it seems like useless ornamentation right now.
+
+------------------------------------------------------------------------
+
+#### Independent and identically distributed
+
+The short model above assumes that the values $h_i$ are *independent and identically distributed*, abbreviated i.i.d., iid, or IID. You might even see the same model written:
+
+$$h_{i} \stackrel{iid}{\sim} \text{Normal}(\mu, \sigma)$$
+
+“iid” indicates that each value $h_i$ has the same probability function, independent of the other $h$ values and using the same parameters. A moment’s reflection tells us that this is often untrue. For example, heights within families are correlated because of alleles shared through recent shared ancestry.
+
+The i.i.d. assumption doesn’t have to seem awkward, as long as you remember that probability is inside the model, not outside in the world. The i.i.d. assumption is about how the model represents its uncertainty. It is an epistemological assumption. It is not a physical assumption about the world, an ontological one. E. T. Jaynes (1922–1998) called this the *mind projection fallacy*, the mistake of confusing epistemological claims with ontological claims. The point isn’t that epistemology trumps reality, but that in ignorance of such correlations the best distribution may be i.i.d. This issue will return later. Furthermore, there is a mathematical result known as *de Finetti’s theorem* that says values which are **exchangeable** can be approximated by mixtures of i.i.d. distributions. Colloquially, exchangeable values can be reordered. The practical impact is that “i.i.d.” cannot be read literally. There are also types of correlation that do little to the overall shape of a distribution, only affecting the sequence in which values appear. For example, pairs of sisters have highly correlated heights. But the overall distribution of female height remains normal. Markov chain Monte Carlo exploits this, using highly correlated sequential samples to estimate most any distribution we like.
+
+------------------------------------------------------------------------
+
+To complete the model, we’re going to need some priors. The parameters to be estimated are both $μ$ and $σ$, so we need a prior $Pr(μ,σ)$, the **joint prior probability for all parameters**. In most cases, priors are specified independently for each parameter, which amounts to assuming $Pr(μ,σ)=Pr(μ)Pr(σ)$. Then we can write:
+
+$$\begin{align*}
+h_{i} &\sim \text{Normal}(\mu, \sigma)\tag{Likelihood}\\
+\mu &\sim \text{Normal}(178,20)\tag{μ prior} \\
+\sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
+\end{align*}$$
+
+The prior for $μ$ is a broad Gaussian prior, centered on 178 cm, with 95% of probability between 178 ± 40 cm.
+
+Why 178 cm? Your author is 178 cm tall. And the range from 138 cm to 218 cm encompasses a huge range of plausible mean heights for human populations. So domain-specific information has gone into this prior. Everyone knows something about human height and can set a reasonable and vague prior of this kind. But in many regression problems, as you’ll see later, using prior information is more subtle, because parameters don’t always have such clear physical meaning.
+
+Whatever the prior, it’s a very good idea to plot your priors, so you have a sense of the assumption they build into the model. In this case:
+
+```{python}
+def plot_dens():
+    x = np.linspace(100, 250, 100)
+    plt.plot(x, stats.norm.pdf(x, loc=178, scale=20))
+    plt.xlabel(r"\mu")
+    plt.ylabel("Density")
+    plt.title(r'$\mu \sim$ normal(178, 20)')
+
+utils.inline_plot(plot_dens)
+```
+
+Execute that code yourself, to see that the model is assuming that the average height (not each individual height) is almost certainly between 140 cm and 220 cm. So this prior carries a little information, but not a lot. The $σ$ prior is a truly flat prior, a uniform one, that functions just to constrain $σ$ to have positive probability between zero and 50 cm. View it with:
+
+```{python}
+def plot_dens():
+    x = np.linspace(-10, 60, 100)
+    plt.plot(x, stats.uniform.pdf(x, loc=0, scale=50))
+    plt.xlabel(r"\sigma")
+    plt.ylabel("Density")
+    plt.title(r'$\sigma \sim$ uniforn(0, 50)')
+
+utils.inline_plot(plot_dens)
+```
+
+A standard deviation like $σ$ must be positive, so bounding it at zero makes sense. How should we pick the upper bound? In this case, a standard deviation of 50 cm would imply that 95% of individual heights lie within 100 cm of the average height. That’s a very large range.
+
+All this talk is nice. But it’ll help to see what these priors imply about the distribution of individual heights. The **prior predictive** simulation is an essential part of your modeling. Once you’ve chosen priors for $h$, $μ$, and $σ$, these imply a **joint prior distribution** of individual heights. By simulating from this distribution, you can see what your choices imply about observable height. This helps you diagnose bad choices. Lots of conventional choices are indeed bad ones, and we’ll be able to see this through prior predictive simulations.
+
+Okay, so how to do this? You can quickly simulate heights by sampling from the prior, like you sampled from the posterior. Remember, every posterior is also potentially a prior for a subsequent analysis, so you can process priors just like posteriors.
+
+**Prior Predictive** - A prior predictive simulation means simulating predictions from a model, using only the prior distribution instead of the posterior distribution. This is very useful for understanding the implications of a prior.
+
+```{python}
+n_samples = int(1e4)
+sample_mu = stats.norm.rvs(loc=178, scale=20, size=n_samples)
+sample_sigma = stats.uniform.rvs(loc=0, scale=50, size=n_samples)
+prior_h = stats.norm.rvs(loc=sample_mu, scale=sample_sigma)
+bw = utils.bw_nrd0(prior_h)
+
+def plot_dens():
+    az.plot_kde(prior_h, bw=bw*0.5)
+    plt.xlabel("Height")
+    plt.ylabel("Density")
+    plt.title(r'h $\sim$ normal(mu, sigma)')
+
+utils.inline_plot(plot_dens)
+```
+
+The plot displays a vaguely bell-shaped density with thick tails. It is the **expected distribution of heights, averaged over the prior**. Notice that the **prior probability distribution** of height is not itself Gaussian. This is okay. The distribution you see is not an **empirical expectation**, but rather the **distribution of relative plausibilities** of different heights, before seeing the data.
+
+Prior predictive simulation is very useful for assigning sensible priors, because it can be quite hard to anticipate how priors influence the observable variables. As an example, consider a much flatter and less informative prior for $μ$, like $μ \sim \text{Normal}(178,100)$. Priors with such large standard deviations are quite common in Bayesian models, but they are hardly ever sensible. Let’s use simulation again to see the implied heights:
+
+```{python}
+sample_mu = stats.norm.rvs(loc=178, scale=100, size=n_samples)
+sample_sigma = stats.uniform.rvs(loc=0, scale=50, size=n_samples)
+prior_h_2 = stats.norm.rvs(loc=sample_mu, scale=sample_sigma)
+bw_2 = utils.bw_nrd0(prior_h_2)
+
+pct_neg_height = (prior_h_2[prior_h_2 < 0]).shape[0]/(prior_h_2).shape[0]
+pct_giant_height = (prior_h_2[prior_h_2 > 272]).shape[0]/(prior_h_2).shape[0]
+print('Model expectation of negative height:', pct_neg_height)
+print('Model expectation of giants:', pct_giant_height)
+
+def plot_dens():
+    az.plot_kde(prior_h_2, bw=bw_2*0.5)
+    plt.xlabel("Height")
+    plt.ylabel("Density")
+    plt.title(r'h $\sim$ normal(mu, sigma)')
+
+utils.inline_plot(plot_dens)
+```
+
+Now the model, before seeing the data, expects 4% of people, those left of the dashed line, to have negative height. It also expects some giants. One of the tallest people in recorded history, Robert Pershing Wadlow (1918–1940) stood 272 cm tall. In our prior predictive simulation, 19% of people (right of solid line) are taller than this.
+
+```{python}
+def plot_prior_dens():
+    fig, axs = plt.subplots(2,2, figsize=(8, 6))
+    
+    x = np.linspace(100, 250, 100)
+    axs[0][0].plot(x, stats.norm.pdf(x, loc=178, scale=20))
+    axs[0][0].set(xlabel=r"$\mu$", ylabel='Density', title=r'$\mu \sim \text{Normal}(178,20)$')
+    
+    x = np.linspace(-10, 60, 100)
+    axs[0][1].plot(x, stats.uniform.pdf(x, loc=0, scale=50))
+    axs[0][1].set(xlabel=r"$\sigma$", ylabel='Density', title=r'$\sigma \sim \text{Uniform}(0,50)$')
+    
+    az.plot_kde(prior_h, bw=bw*0.5, ax=axs[1][0])
+    axs[1][0].set(xlabel=r"Height", ylabel='Density', title=r'$h \sim \text{Normal}(\mu,\sigma)$')
+    
+    az.plot_kde(prior_h_2, bw=bw_2*0.5, ax=axs[1][1])
+    axs[1][1].axvline(0, linewidth=0.5, linestyle='--', color='k')
+    axs[1][1].axvline(272, linewidth=0.5, linestyle='-', color='k')
+    axs[1][1].set(xlabel=r"Height", ylabel='Density', title='$h \sim \\text{Normal}(\mu,\sigma)$\n$\mu \sim \\text{Normal}(178,100)$')
+
+utils.inline_plot(plot_prior_dens)
+```
+
+Prior predictive simulation for the height model. Top row: Prior distributions for μand σ. Bottom left: The prior predictive simulation for height, using the priors in the top row. Values at 3 standard deviations shown on horizontal axis. Bottom right: Prior predictive simulation using $μ \sim \text{Normal}(178,100)$.
+
+Does this matter? In this case, we have so much data that the silly prior is harmless. But that won’t always be the case. There are plenty of inference problems for which the data alone are not sufficient, no matter how numerous. Bayes lets us proceed in these cases. But only if we use our scientific knowledge to construct sensible priors. Using scientific knowledge to build priors is not cheating. The important thing is that your prior not be based on the values in the data, but only on what you know about the data before you see it.
+
+------------------------------------------------------------------------
+
+#### A farewell to epsilon
+
+Some readers will have already met an alternative notation for a Gaussian linear model:
+
+$$
+\begin{align*}
+h_i &= \mu + \epsilon_i \\
+\epsilon_i &\sim \text{Normal}(0, \sigma)
+\end{align*}
+$$
+
+This is equivalent to the $\epsilon_i \sim \text{Normal}(0, \sigma)$ form, with the ϵ standing in for the Gaussian density. But this $\epsilon$ form is poor form. The reason is that it does not usually generalize to other types of models. This means it won’t be possible to express non-Gaussian models using tricks like $\epsilon$. Better to learn one system that does generalize.
+
+------------------------------------------------------------------------
+
+#### Model definition to Bayes’ theorem
+
+It can help to see how the model definition from earlier allows us to build up the posterior distribution. The height model, with its priors for $μ$ and $σ$, defines this posterior distribution:
+
+$$Pr(\mu, \sigma \mid h) = \frac{\prod_{i} \text{Normal}(h_i\mid \mu, \sigma)\text{Normal}(\mu \mid 178, 20) \text{Uniform}(\sigma\mid0,50)}{\int \int \prod_i \text{Normal}(h_i\mid \mu, \sigma)\text{Normal}(\mu \mid 178, 20) \text{Uniform}(\sigma\mid0,50)d\mu d\sigma}$$
+
+This looks monstrous, but it’s the same creature as before. There are two new things that make it seem complicated. The first is that there is more than one observation in $h$, so to get the **joint likelihood across all the data**, we have to compute the probability for each $h_i$ and then **multiply all these likelihoods together**. The product on the right-hand side takes care of that. The second complication is the two priors, one for $μ$ and one for $σ$. But these just stack up. In the grid approximation code in the section to follow, you’ll see the implications of this definition in the Python code. Everything will be calculated on the log scale, so multiplication will become addition. But otherwise it’s just a matter of executing Bayes’ theorem.
+
+------------------------------------------------------------------------
+
+### Grid Approximation of the Posterior Distribution
+
+Since this is the first Gaussian model in the book, and indeed the first model with more than one parameter, it’s worth quickly mapping out the posterior distribution through brute force calculations. This isn’t the approach I encourage in any other place, because it is laborious and computationally expensive. Indeed, it is usually so impractical as to be essentially impossible. But as always, it is worth knowing what the target actually looks like, before you start accepting approximations of it. A little later, we’ll use quadratic approximation to estimate the posterior distribution, and that’s the approach we will use for several notebooks. Once you have the samples you’ll produce in this subsection, you can compare them to the quadratic approximation in the next.
+
+Unfortunately, doing the calculations here requires some technical tricks that add little, if any, conceptual insight. Follow the endnote for an explanation of the algorithm[^1]. Here is the model:
+
+[^1]: Think of the code as being six distinct commands. The first two lines of code just establish the range of $µ$ and $σ$ values, respectively, to calculate over, as well as how many points to calculate in-between. Note that we need to work with every combination of $µ$ and $σ$ values so these are reshaped in such a way that once these are used together in a vectorized operation, they create a 'meshgrid' of all combinations. In the third section of the code, shown in expanded form to make it easier to read, the log-likelihood at each combination of $µ$ and $σ$ is computed. This line looks so awful, because we have to be careful here to do everything on the log scale. Otherwise rounding error will quickly make all of the posterior probabilities zero. So what `stats.norm` does is pass the unique combination of $µ$ and $σ$ on each row of the observed height to a function that computes the log-likelihood of each observed height, and adds all of these log-likelihoods together (sum). In the same section, we multiply the prior by the likelihood to get the product that is proportional to the posterior density. The priors are also on the log scale, and so we add them to the log-likelihood, which is equivalent to multiplying the raw densities by the likelihood. Finally, the obstacle for getting back on the probability scale is that rounding error is always a threat when moving from log-probability to probability. If you use the obvious approach, like `np.exp(post_prob)`, you’ll get a vector full of zeros, which isn’t very helpful. This is a result of Python’s rounding very small probabilities to zero. Remember, in large samples, all unique samples are unlikely. This is why you have to work with log-probability. The code in the box dodges this problem by scaling all of the log-products by the maximum log-product. As a result, the values in `post_prob` are not all zero, but they also aren’t exactly probabilities. Instead they are relative posterior probabilities. But that’s good enough for what we wish to do with these values.
+
+```{python}
+# Define the parameter grid
+mu_list = np.linspace(150, 160, 100)
+sigma_list = np.linspace(7, 9, 100)
+
+# Log priors
+mu_prior = stats.norm(178, 20).logpdf(mu_list)  
+sigma_prior = stats.uniform(0, 50).logpdf(sigma_list)
+
+post_prod = (
+    # Log-Likelihood
+    stats.norm(mu_list.reshape(1, -1, 1), sigma_list.reshape(-1, 1, 1))
+    .logpdf(d2.height)
+    .sum(axis=2)    
+    # Priors
+    + mu_prior
+    + sigma_prior    
+)
+
+post_prob = np.exp(post_prod - post_prod.max())
+
+posterior = post_prob / post_prob.sum()
+```
+
+```{python}
+# Method 2
+# mu_list, sigma_list = np.meshgrid( 
+#     np.linspace(150, 160, 100),
+#     np.linspace(7, 9, 100))
+
+# log_likelihood = np.sum(
+#     stats.norm.logpdf(
+#         d2['height'], 
+#         loc=mu_list.reshape(-1,1), 
+#         scale=sigma_list.reshape(-1,1)), 
+#     axis=1)
+
+# post_prod = (
+#     log_likelihood.reshape(-1,1)
+#     + stats.norm.logpdf(mu_list.reshape(-1,1), loc=178, scale=20)
+#     + stats.uniform.logpdf(sigma_list.reshape(-1,1), loc=0, scale=50)
+# )
+
+# sample_rows = np.random.choice(
+#     range(len(post_prob)), 
+#     size=int(1e4), 
+#     replace=True, 
+#     p=(post_prob.flatten() / post_prob.sum()))
+
+# sample_mu = mu_list.flatten()[sample_rows]
+# sample_sigma = sigma_list.flatten()[sample_rows]
+
+# Method 3
+# # Define the parameter grid
+# mu_list = np.linspace(150, 160, 100)
+# sigma_list = np.linspace(7, 9, 100)
+# # Compute log-likelihood
+# log_likelihood = np.array([
+#     np.sum(stats.norm(mu, sigma).logpdf(d2.height))  # Sum of log likelihoods for each (mu, sigma)
+#     for sigma in sigma_list
+#     for mu in mu_list
+# ]).reshape(len(sigma_list), len(mu_list))  # Reshape into 100x100 grid
+# 
+# # Compute posterior log probability
+# post_prob = log_likelihood + mu_prior.reshape(1, -1) + sigma_prior.reshape(-1, 1)
+# 
+# # Normalize (avoid underflow issues)
+# post_prob = np.exp(post_prob - np.max(post_prob))
+# 
+# # Convert to posterior probability distribution
+# posterior = post_prob / post_prob.sum()
+```
+
+You can inspect this posterior distribution, now residing in `post_prob`, using a variety of plotting commands. You can get a simple contour plot with:
+
+```{python}
+def plt_contour():
+    cs = plt.contour(mu_list, sigma_list, post_prob, levels=10, colors='k', linewidths=0.25)
+    plt.clabel(CS=cs, fontsize=5)
+
+utils.inline_plot(plt_contour)
+```
+
+Or you can plot a simple heat map with:
+
+```{python}
+def plt_cmesh():
+    cs = plt.pcolormesh(mu_list, sigma_list, post_prob, rasterized=True)
+
+utils.inline_plot(plt_cmesh)
+```
+
+### Sampling from the Posterior
+
+To study this posterior distribution in more detail, again I’ll push the flexible approach of sampling parameter values from it. This works just like it did in the earlier notebook, when we sampled values of $p$ from the posterior distribution for the globe tossing example. The only new trick is that since there are two parameters, and we want to sample combinations of them, we first randomly sample row numbers in `mu_list` and `sigma_list` in proportion to the values in `post_prob` / `posterior` (latter is needed as `numpy.random.choice` requires probability input to sum to 1). Then we pull out the parameter values on those randomly sampled rows. This code will do it:
+
+You end up with 10,000 samples, with replacement, from the posterior for the height data.
+
+```{python}
+sample_rows = np.random.choice(
+    posterior.flatten().size, 
+    size=int(1e4), 
+    replace=True, 
+    p=posterior.flatten())
+
+sampled_indices_2d = np.unravel_index(sample_rows, posterior.shape)
+
+sample_mu = mu_list[sampled_indices_2d[1]]
+sample_sigma = sigma_list[sampled_indices_2d[0]]
+
+def plt_scatter():
+    plt.scatter(sample_mu, sample_sigma, alpha=0.05, s=10)
+    plt.xlabel(r"Sample $\mu$")
+    plt.ylabel(r"Sample $\sigma$")
+
+utils.inline_plot(plt_scatter)
+```
+
+```{python}
+def plt_joint():
+    sns.jointplot(x=sample_mu, y=sample_sigma, kind='scatter', alpha=0.05)
+    plt.xlabel(r"Sample $\mu$")
+    plt.ylabel(r"Sample $\sigma$")
+
+utils.inline_plot(plt_joint)
+```
+
+Samples from the posterior distribution for the heights data. The density of points is highest in the center, reflecting the most plausible combinations of $μ$ and $σ$. There are many more ways for these parameter values to produce the data, conditional on the model.
+
+Now that you have these samples, you can describe the distribution of confidence in each combination of $μ$ and $σ$ by summarizing the samples. Think of them like data and describe them. For example, to characterize the **shapes of the marginal posterior densities** of $μ$ and $σ$, all we need to do is:
+
+```{python}
+def plot_dens():
+    bw = utils.bw_nrd0(sample_mu)
+    az.plot_kde(sample_mu, bw=bw*0.5)
+    plt.xlabel(r"Sample $\mu$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+```{python}
+def plot_dens():
+    bw = utils.bw_nrd0(sample_sigma)
+    az.plot_kde(sample_sigma, bw=bw*0.5)
+    plt.xlabel(r"Sample $\mu$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+The jargon “marginal” here means “averaging over the other parameters.” These densities are very close to being normal distributions. And this is quite typical. As sample size increases, posterior densities approach the normal distribution. If you look closely, though, you’ll notice that the density for $σ$ has a longer right-hand tail. I’ll exaggerate this tendency a bit later, to show you that this condition is very common for standard deviation parameters.
+
+To summarize the widths of these densities with posterior compatibility intervals:
+
+```{python}
+az.hdi(sample_mu), az.hdi(sample_sigma)
+```
+
+Since these samples are just vectors of numbers, you can compute any statistic from them that you could from ordinary data: mean, median, or quantile, for example.
+
+------------------------------------------------------------------------
+
+#### Sample size and the normality of $σ$’s posterior
+
+Before moving on to using quadratic approximation (`StanQuap`) as shortcut to all of this inference, it is worth repeating the analysis of the height data above, but now with only a fraction of the original data. The reason to do this is to demonstrate that, in principle, the posterior is not always so Gaussian in shape. There’s no trouble with the mean, $μ$. For a Gaussian likelihood and a Gaussian prior on $μ$, the posterior distribution is always Gaussian as well, regardless of sample size. It is the standard deviation $σ$ that causes problems. So if you care about $σ$—often people do not—you do need to be careful of abusing the quadratic approximation.
+
+The deep reasons for the posterior of $σ$ tending to have a long right-hand tail are complex. But a useful way to conceive of the problem is that variances must be positive. As a result, there must be more uncertainty about how big the variance (or standard deviation) is than about how small it is. For example, if the variance is estimated to be near zero, then you know for sure that it can’t be much smaller. But it could be a lot bigger.
+
+Let’s quickly analyze only 20 of the heights from the height data to reveal this issue. To sample 20 random heights from the original list:
+
+```{python}
+d3 = np.random.choice(d2['height'], size=20, replace=True)
+```
+
+Now I’ll repeat all the code from the previous subsection, modified to focus on the 20 heights in d3 rather than the original data. I’ll compress all of the code together here:
+
+```{python}
+mu_list = np.linspace(150, 170, 200)
+sigma_list = np.linspace(4, 20, 200)
+
+post_prod = (
+    # Log-Likelihood
+    stats.norm(mu_list.reshape(1, -1, 1), sigma_list.reshape(-1, 1, 1))
+    .logpdf(d3)
+    .sum(axis=2)    
+    # Priors
+    + stats.norm(178, 20).logpdf(mu_list)
+    + stats.uniform(0, 50).logpdf(sigma_list)
+)
+
+post_prob = np.exp(post_prod - post_prod.max())
+posterior = post_prob / post_prob.sum()
+
+sample_rows = np.random.choice(
+    posterior.flatten().size, 
+    size=int(1e4), 
+    replace=True, 
+    p=posterior.flatten())
+
+sampled_indices_2d = np.unravel_index(sample_rows, posterior.shape)
+
+sample_mu = mu_list[sampled_indices_2d[1]]
+sample_sigma = sigma_list[sampled_indices_2d[0]]
+
+def plt_scatter():
+    plt.scatter(sample_mu, sample_sigma, alpha=0.05, s=10)
+    plt.xlabel(r"Sample $\mu$")
+    plt.ylabel(r"Sample $\sigma$")
+
+utils.inline_plot(plt_scatter)
+```
+
+After executing the code above, you’ll see another scatter plot of the samples from the posterior density, but this time you’ll notice a distinctly longer tail at the top of the cloud of points. You should also inspect the marginal posterior density for $σ$, averaging over $μ$, produced with:
+
+```{python}
+def plot_dens():
+    bw = utils.bw_nrd0(sample_sigma)
+    az.plot_kde(sample_sigma, bw=bw*0.5)
+    kde_x = az.kde(sample_sigma, bw=bw*0.5)[0]
+    min_x, max_x = np.min(kde_x), np.max(kde_x)
+    
+    plt.plot(
+        np.linspace(min_x, max_x, 100),
+        stats.norm.pdf(
+            np.linspace(min_x, max_x, 100), 
+            loc=np.mean(sample_sigma), 
+            scale=np.std(sample_sigma)),
+        linewidth=0.75
+        )
+    plt.xlabel(r"Sample $\mu$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+This code will also show a normal approximation with the same mean and variance. Now you can see that the posterior for $σ$ is not Gaussian, but rather has a long tail towards higher values.
+
+------------------------------------------------------------------------
+
+### **Finding the Posterior Distribution with `StanQuap`**
+
+Now we leave grid approximation behind and move on to one of the great engines of applied statistics, the **quadratic approximation**. Our interest in quadratic approximation, recall, is as a handy way to quickly make inferences about the shape of the posterior. The posterior’s peak will lie at the **maximum a posteriori estimate (MAP)**, and we can get a useful image of the posterior’s shape by using the quadratic approximation of the posterior distribution at this peak.
+
+To build the quadratic approximation, we’ll use `Stan` and in particular a custom object called `StanQuap`. Stan model constructor works by using its standard data, parameter and model definition in the Stan programming language. Each line in the model definition has a corresponding definition in the form of Stan code. The engine inside `StanQuap` then uses these definitions to define the posterior probability at each combination of parameter values. Then it can climb the posterior distribution and find the peak, its MAP. Finally, it estimates the **quadratic curvature** (the Hessian matrix) at the MAP to produce an approximation of the posterior distribution. Remember: This procedure is very similar to what many non-Bayesian procedures do, just without any priors.
+
+Let’s begin by repeating the code to load the data and select out the adults:
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d2 = d[d['age'] >= 18]
+```
+
+Now we’re ready to define the model, using Stan’s formula syntax. The model definition in this case is just as before.
+
+$$\begin{align*}
+h_{i} &\sim \text{Normal}(\mu, \sigma)\tag{Likelihood}\\
+\mu &\sim \text{Normal}(178,20)\tag{μ prior} \\
+\sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
+\end{align*}$$
+
+Let's write the Stan model code which will be saved as a `.stan` file and compiled by CmdStanPy:
+
+```{python}
+m4_1 = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+}
+parameters {
+    real mu;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    height ~ normal(mu, sigma);
+    mu ~ normal(178, 20);
+    sigma ~ uniform(0, 50);
+}
+'''
+```
+
+Compile and fit the Stan model to the data in the dataframe `d2` with:
+
+```{python}
+# Convert data to a dictionary with keys that match the data definitions in the stan code:
+data = {'N': len(d2), 'height': d2['height'].tolist()}
+
+m4_1_model = utils.StanQuap('stan_models/m4_1', m4_1, data)
+```
+
+After executing this code, you’ll have a compiled model stored in the variable `m4_1_model`. Now take a look at the posterior distribution:
+
+```{python}
+m4_1_model.precis().round(2)
+```
+
+These numbers provide Gaussian approximations for each parameter’s *marginal* distribution. This means the plausibility of each value of $μ$, after averaging over the plausibilities of each value of $σ$, is given by a Gaussian distribution with mean 154.6 and standard deviation 0.4. The 5.5% and 94.5% quantiles are percentile interval boundaries, corresponding to an 89% compatibility interval. Why 89%? It’s just the default. It displays a quite wide interval, so it shows a high-probability range of parameter values.
+
+Comparing these 89% boundaries to the compatibility intervals from the grid approximation earlier, we find that they are almost identical. When the posterior is approximately Gaussian, then this is what you should expect.
+
+------------------------------------------------------------------------
+
+#### Start values for `StanQuap` 
+
+`StanQuap`, and in particular `CmdStanModel.optimize`, estimates the posterior by climbing it like a hill. To do this, it has to start climbing someplace, at some combination of parameter values. Unless you tell it otherwise, `StanQuap` starts at random values sampled from the prior in the *unconstrained space*. But it’s also possible to specify a starting value for any parameter in the model. In the example in the previous section, that means the parameters $μ$ and $σ$. Here’s are good starting values in this case:
+
+```{python}
+inits = {'mu': d2['height'].mean(), 'sigma': d2['height'].std()}
+m4_1a_model = utils.StanQuap('stan_models/m4_1', m4_1, data, inits=inits)
+m4_1a_model.precis().round(2)
+```
+
+These start values are good guesses of the rough location of the MAP values. Note that the `StanQuap` constructor takes in `inits` as a dictionary with keys reflecting the parameter name.
+
+------------------------------------------------------------------------
+
+The priors we used before are very weak, both because they are nearly flat and because there is so much data. So I’ll splice in a more informative prior for $μ$, so you can see the effect. All I’m going to do is change the standard deviation of the prior to 0.1, so it’s a very narrow prior.
+
+```{python}
+m4_2 = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+}
+parameters {
+    real mu;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    height ~ normal(mu, sigma);
+    mu ~ normal(178, 0.1);
+    sigma ~ uniform(0, 50);
+}
+'''
+data = {'N': len(d2), 'height': d2['height'].tolist()}
+m4_2_model = utils.StanQuap('stan_models/m4_2', m4_2, data)
+m4_2_model.precis().round(2)
+```
+
+Notice that the estimate for $μ$ has hardly moved off the prior. The prior was very concentrated around 178. So this is not surprising. But also notice that the estimate for $σ$ has changed quite a lot, even though we didn’t change its prior at all. Once the model is certain that the mean is near 178—as the prior insists—then the model has to estimate $σ$ conditional on that fact. This results in a different posterior for $σ$, even though all we changed is prior information about the other parameter.
+
+### Sampling from `StanQuap`
+
+The above explains how to get a quadratic approximation of the posterior, using `StanQuap`. But how do you then get samples from the quadratic approximate posterior distribution? The answer is rather simple, but non-obvious, and it requires recognizing that a quadratic approximation to a posterior distribution with more than one parameter dimension—$μ$ and $σ$ each contribute one dimension—is just a multi-dimensional Gaussian distribution.
+
+As a consequence, when `StanQuap` (and its method `laplace_sample`) constructs a quadratic approximation, it calculates not only standard deviations for all parameters, but also the **covariances** among all pairs of parameters. Just like a mean and standard deviation (or its square, a variance) are sufficient to describe a one-dimensional Gaussian distribution, a list of means and a **matrix of variances and covariances** are sufficient to describe a multi-dimensional Gaussian distribution. To see this matrix of variances and covariances, for model `m4_1`, use:
+
+```{python}
+m4_1_model.vcov_matrix()
+```
+
+The above is a **variance-covariance matrix**. It is the multi-dimensional glue of a quadratic approximation, because it tells us how each parameter relates to every other parameter in the posterior distribution. A variance-covariance matrix can be factored into two elements: (1) a vector of variances for the parameters and (2) a correlation matrix that tells us how changes in any parameter lead to correlated changes in the others. This decomposition is usually easier to understand. So let’s do that now:
+
+```{python}
+np.diag(m4_1_model.vcov_matrix()) # Variance
+utils.cov2cor(m4_1_model.vcov_matrix()) # Correlation Matrix
+```
+
+The two-element vector in the output is the list of variances. If you take the square root of this vector, you get the standard deviations that are shown in precis output. The two-by-two matrix in the output is the correlation matrix. Each entry shows the correlation, bounded between −1 and +1, for each pair of parameters. The 1’s indicate a parameter’s correlation with itself. If these values were anything except 1, we would be worried. The other entries are typically closer to zero, and they are very close to zero in this example. This indicates that learning $μ$ tells us nothing about $σ$ and likewise that learning $σ$ tells us nothing about $μ$. This is typical of simple Gaussian models of this kind. But it is quite rare more generally, as you’ll see in later.
+
+Okay, so how do we get samples from this multi-dimensional posterior? Now instead of sampling single values from a simple Gaussian distribution, we sample vectors of values from a multi-dimensional Gaussian distribution. The `StanQuap` object provides a convenience function to do exactly that:
+
+```{python}
+post = m4_1_model.draws()
+post = pd.DataFrame(post)
+post.head()
+```
+
+You end up with a dictionary, `post`, with 10,000 (`1e4`) rows and two columns, one column for $μ$ and one for $σ$. Each value is a sample from the posterior, so the mean and standard deviation of each column will be very close to the MAP values from before. You can confirm this by summarizing the samples:
+
+```{python}
+utils.precis(post).round(2)
+```
+
+Compare these values to the output from `m4_1_model.precis()`. Let us also compare the plots to see how much they resemble the samples from the grid approximation from earlier.
+
+```{python}
+def plt_scatter():
+    plt.scatter(post['mu'], post['sigma'], alpha=0.02, s=10)
+    plt.xlabel(r"Sample $\mu$")
+    plt.ylabel(r"Sample $\sigma$")
+
+utils.inline_plot(plt_scatter)
+```
+
+These samples also preserve the covariance between $µ$ and $σ$. This hardly matters right now, because $µ$ and $σ$ don’t covary at all in this model. But once you add a predictor variable to your model, covariance will matter a lot.
+
+------------------------------------------------------------------------
+
+#### Under the hood with multivariate sampling
+
+The `draw` and `laplace_sample` methods are for convenience. Once called, these Stan methods run simple simulation of the sort we conducted earlier. Here’s a peak at the motor. The work is done by a multi-dimensional version of `stats.norm.rvs`, `stats.multivariate_normal.rvs`. The function `stats.norm.rvs` simulates random Gaussian values, while `stats.multivariate_normal.rvs` simulates random vectors of multivariate Gaussian values. Here’s how to use it to do what `laplace_sample` does:
+
+```{python}
+stats.multivariate_normal.rvs(
+    mean=m4_1_model.precis()['Mean'].to_numpy(),
+    cov=m4_1_model.vcov_matrix(),
+    size=int(1e4))
+```
+
+You don’t usually need to use `stats.multivariate_normal.rvs` directly like this, but sometimes you want to simulate multivariate Gaussian outcomes. In that case, you’ll need to access `stats.multivariate_normal.rvs` directly. And of course it’s always good to know a little about how the machine operates. Later on, we’ll work with posterior distributions that cannot be correctly approximated this way.
+
+------------------------------------------------------------------------
