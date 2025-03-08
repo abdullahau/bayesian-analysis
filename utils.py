@@ -222,6 +222,22 @@ def cov2cor(c: np.ndarray) -> np.ndarray:
     invD = np.linalg.inv(D)
     return invD @ c @ invD
 
+# finds mode of a continuous density
+def chainmode(chain, bw_fct=0.01, **kwargs):
+    x, y = az.kde(chain, bw_fct=bw_fct, **kwargs)
+    return x[np.argmax(y)]
+  
+def cov2corr( A ):
+    """
+    covariance matrix to correlation matrix.
+    https://www.r-bloggers.com/2019/08/arguments-of-statsdensity/
+    https://python.arviz.org/en/latest/api/generated/arviz.kde.html
+    https://python.arviz.org/en/stable/_modules/arviz/stats/density_utils.html#kde    
+    """
+    d = np.sqrt(A.diagonal()) # Compute standard deviations
+    A = ((A.T/d).T)/d # # Normalize each element by sqrt(C_ii * C_jj)
+    return A
+
 # R's bandwidth: Bandwidth Selectors for Kernel Density Estimation
 # https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/bandwidth
 # Other Bandwidth selections include: bw.nrd, bw.ucv, bw.bcv, and bw.SJ

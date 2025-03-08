@@ -1029,12 +1029,11 @@ Sampling from Posterior Distribution:
 ```{python}
 # Parameters
 W, L = 6, 3
-N = W + L
+N = W + L  # Binomial size (number of tosses)
 
 a, b = 1 + W, 1 + L # alpha and beta of posterior
 
 n_samples = 1000  # Number of samples
-size = 9  # Binomial size (number of tosses)
 
 p_range = np.linspace(0, 1, 100)
 ```
@@ -1058,13 +1057,12 @@ utils.inline_plot(plot_beta_pos)
 ```{python}
 from matplotlib.animation import FuncAnimation
 
-# Initialize variables for animation
-posterior_predictive = np.zeros(size + 1)               # Accumulated posterior predictive distribution
-p_samples = []                                          # Store sampled p values
+# Initialize variables
+posterior_predictive = np.zeros(N + 1)  # Accumulated posterior predictive
+p_samples = []  # Store sampled p values
 
 fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
-# Function to update the animation for each frame
 def update(frame):
     global posterior_predictive, p_samples
     
@@ -1073,45 +1071,49 @@ def update(frame):
         ax.clear()
     
     # Sample from Beta posterior
-    p = stats.beta.rvs(a,b)
+    p = stats.beta.rvs(a, b)
     p_samples.append(p)
     
     # Sample from Binomial distribution
-    w = stats.binom.rvs(size, p)
-    posterior_predictive[w] += 1                        # Accumulate frequency of w
+    w = stats.binom.rvs(N, p)
+    # Accumulate frequency of w
+    posterior_predictive[w] += 1
 
-    # Posterior distribution
-    axes[0].plot(p_range, stats.beta.pdf(p_range, a, b), 
-                 'k-', linewidth=2)                     # Full posterior beta distribution beta.pdf(p, a, b)
-    axes[0].vlines(x=p, ymin=0, ymax=stats.beta.pdf(p, a, b), 
-                   color='red', linewidth=5)            # Highlight the current sampled p
+    # Posterior distribution plot
+    posterior_pdf = stats.beta.pdf(p_range, a, b)
+    # Beta distribution
+    axes[0].plot(p_range, posterior_pdf, 'k-', linewidth=2) 
+    # Highlight sampled p
+    axes[0].vlines(x=p, ymin=0, ymax=stats.beta.pdf(p, a, b), color='red', linewidth=5) 
     axes[0].set(title='Posterior Distribution', 
                 xlabel='Proportion water (p)', 
                 ylabel='Density')
-    axes[0].set_ylim(0,)
+    axes[0].set_ylim(0, max(posterior_pdf) * 1.1) 
 
-    # Predictive distribution for the current p
-    binom_probs = stats.binom.pmf(np.arange(size + 1), size, p)
-    axes[1].bar(np.arange(size + 1), binom_probs, color='k')
-    axes[1].bar(w, binom_probs[w], color='red')         # Highlight the sampled water count
-    axes[1].set(title='Predictive Distribution for p', 
+    # Predictive distribution for current p
+    binom_probs = stats.binom.pmf(np.arange(N + 1), N, p)
+    axes[1].bar(np.arange(N + 1), binom_probs, color='k')
+    # Highlight sampled water count
+    axes[1].bar(w, binom_probs[w], color='red')  
+    axes[1].set(title=f'Predictive Distribution for {p:.2f}',
                 xlabel='Number of water samples', 
-                ylabel='Probability', 
-                ylim=(0,0.5))
+                ylabel='Probability')
+    axes[1].set_ylim(0, max(binom_probs) * 1.1)
 
     # Posterior predictive distribution (accumulated)
-    axes[2].bar(np.arange(size + 1), posterior_predictive, color='k')
-    axes[2].bar(w, posterior_predictive[w], color='red') # Highlight the current water count
+    axes[2].bar(np.arange(N + 1), posterior_predictive, color='k')
+    # Highlight current count
+    axes[2].bar(w, posterior_predictive[w], color='red')
     axes[2].set(title='Posterior Predictive Distribution', 
                 xlabel='Number of water samples', 
-                ylabel='Frequency', 
-                ylim=(0,60))    
+                ylabel='Frequency')
+    axes[2].set_ylim(0, max(105, np.max(posterior_predictive) * 1.1))
 
     # Add frame number
     fig.suptitle(f'Frame: {frame + 1}/{n_frames}', fontsize=16)
 
-# Create the animation
-n_frames = 500                                          # Total number of frames
+# Create animation
+n_frames = 500  # Number of frames in animation
 ani = FuncAnimation(fig, update, frames=n_frames, repeat=False, interval=25)
 
 # Save or display the animation
