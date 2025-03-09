@@ -888,7 +888,7 @@ The two-element vector in the output is the list of variances. If you take the s
 Okay, so how do we get samples from this multi-dimensional posterior? Now instead of sampling single values from a simple Gaussian distribution, we sample vectors of values from a multi-dimensional Gaussian distribution. The `StanQuap` object provides a convenience function to do exactly that:
 
 ```{python}
-post = m4_1_model.draws()
+post = m4_1_model.extract_samples()
 post = pd.DataFrame(post)
 post.head()
 ```
@@ -916,7 +916,7 @@ These samples also preserve the covariance between $µ$ and $σ$. This hardly ma
 
 #### Under the hood with multivariate sampling
 
-The `draw` and `laplace_sample` methods are for convenience. Once called, these Stan methods run simple simulation of the sort we conducted earlier. Here’s a peak at the motor. The work is done by a multi-dimensional version of `stats.norm.rvs`, `stats.multivariate_normal.rvs`. The function `stats.norm.rvs` simulates random Gaussian values, while `stats.multivariate_normal.rvs` simulates random vectors of multivariate Gaussian values. Here’s how to use it to do what `laplace_sample` does:
+The `extract_samples` and `laplace_sample` methods are for convenience. Once called, these Stan methods run simple simulation of the sort we conducted earlier. Here’s a peak at the motor. The work is done by a multi-dimensional version of `stats.norm.rvs`, `stats.multivariate_normal.rvs`. The function `stats.norm.rvs` simulates random Gaussian values, while `stats.multivariate_normal.rvs` simulates random vectors of multivariate Gaussian values. Here’s how to use it to do what `laplace_sample` does:
 
 ```{python}
 stats.multivariate_normal.rvs(

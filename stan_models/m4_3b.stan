@@ -7,19 +7,18 @@ data {
 }
 parameters {
     real a;
-    real<lower=0> b;
+    real log_b;
     real<lower=0, upper=50> sigma;
 }
 model {
     vector[N] mu;
-    // linear model
-    mu = a + b * (weight - xbar);
+    mu = a + exp(log_b) * (weight - xbar);
     
     // Likelihood Function
     height ~ normal(mu, sigma);
     
     // Priors
     a ~ normal(178, 20);
-    b ~ lognormal(0, 1);
+    log_b ~ normal(0, 1);
     sigma ~ uniform(0, 50);
 }

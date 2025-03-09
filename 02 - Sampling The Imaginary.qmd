@@ -1498,7 +1498,7 @@ model = utils.StanQuap('stan_models/m2', m2, data)
 summary = model.precis().round(7)
 summary
 
-samples = model.draws()['p']
+samples = model.extract_samples()['p']
 
 # plot the posterior
 def plot_pos():

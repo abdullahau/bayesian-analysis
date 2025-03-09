@@ -59,6 +59,20 @@ class BridgeStan(bs.StanModel):
             super().__init__(stan_so, data, make_args=make_args, warn=False)
 
 class StanQuap(object):
+  '''
+  Description:
+  Find mode of posterior distribution for arbitrary fixed effect models and 
+  then produce an approximation of the full posterior using the quadratic    
+  curvature at the mode.
+  
+  This command provides a convenient interface for finding quadratic approximations 
+  of posterior distributions for models defined in Stan. This procedure is equivalent 
+  to penalized maximum likelihood estimation and the use of a Hessian for profiling, 
+  and therefore can be used to define many common regularization procedures. The point 
+  estimates returned correspond to a maximum a posterior, or MAP, estimate. However the 
+  intention is that users will use `draws` and `laplace_sample` and other methods to work 
+  with the full posterior.
+  '''
     def __init__(self,
                  stan_file: str, 
                  stan_code: str, 
@@ -101,8 +115,8 @@ class StanQuap(object):
                                               draws=draws, 
                                               jacobian=self.jacobian)
       
-    def draws(self, draws: int = 100_000, dict_out: bool = True):
-        laplace_obj = self.laplace_sample(draws)
+    def extract_samples(self, n: int = 100_000, dict_out: bool = True):
+        laplace_obj = self.laplace_sample(n)
         if dict_out:
           return laplace_obj.stan_variables()
         return laplace_obj.draws()
@@ -179,8 +193,8 @@ class StanQuap(object):
           'Parameter': list(self.params.keys()),
           'Mean': pos_mu,
           'StDev': pos_sigma,
-          f'{plo:.2%}': lo,
-          f'{phi:.2%}': hi})
+          f'{plo:.1%}': lo,
+          f'{phi:.1%}': hi})
         return res.set_index('Parameter')
 ```
 
@@ -422,32 +436,41 @@ library(rethinking)
 data(Howell1)
 d <- Howell1
 d2 <- d[ d$age >= 18 , ]
+plot( d2$height ~ d2$weight )
+```
+
+
+```{r}
+# load data again, since it's a long way back
+library(rethinking)
+data(Howell1); d <- Howell1; d2 <- d[ d$age >= 18 , ]
+# define the average weight, x-bar
+xbar <- mean(d2$weight)
+# fit model
+
+m4.3 <- quap(
+alist(
+height ~ dnorm( mu , sigma ) ,
+mu <- a + b*( weight - xbar ) ,
+a ~ dnorm( 178 , 20 ) ,
+b ~ dlnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 50 )
+) , data=d2 )
 ```
 
 ```{r}
-d3 <- sample( d2$height , size=20 )
-
-mu.list <- seq( from=150, to=170 , length.out=200 )
-sigma.list <- seq( from=4 , to=20 , length.out=200 )
-post2 <- expand.grid( mu=mu.list , sigma=sigma.list )
-post2$LL <- sapply( 1:nrow(post2) , function(i)
-sum( dnorm( d3 , mean=post2$mu[i] , sd=post2$sigma[i] ,
-log=TRUE ) ) )
-post2$prod <- post2$LL + dnorm( post2$mu , 178 , 20 , TRUE ) +
-dunif( post2$sigma , 0 , 50 , TRUE )
-post2$prob <- exp( post2$prod - max(post2$prod) )
-sample2.rows <- sample( 1:nrow(post2) , size=1e4 , replace=TRUE ,
-prob=post2$prob )
-sample2.mu <- post2$mu[ sample2.rows ]
-sample2.sigma <- post2$sigma[ sample2.rows ]
-plot( sample2.mu , sample2.sigma , cex=0.5 ,
-col=col.alpha(rangi2,0.1) ,
-xlab="mu" , ylab="sigma" , pch=16 )
+precis( m4.3 )
+pairs(m4.3)
 ```
 
 ```{r}
-dens( sample2.sigma , norm.comp=TRUE )
+mu <- link( m4.3 )
+?link
 ```
 
+
+```{r}
+m4.3@links
+```
 
 

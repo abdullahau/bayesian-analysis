@@ -56,6 +56,20 @@ class BridgeStan(bs.StanModel):
             super().__init__(stan_so, data, make_args=make_args, warn=False)
 
 class StanQuap(object):
+  '''
+  Description:
+  Find mode of posterior distribution for arbitrary fixed effect models and 
+  then produce an approximation of the full posterior using the quadratic    
+  curvature at the mode.
+  
+  This command provides a convenient interface for finding quadratic approximations 
+  of posterior distributions for models defined in Stan. This procedure is equivalent 
+  to penalized maximum likelihood estimation and the use of a Hessian for profiling, 
+  and therefore can be used to define many common regularization procedures. The point 
+  estimates returned correspond to a maximum a posterior, or MAP, estimate. However the 
+  intention is that users will use `draws` and `laplace_sample` and other methods to work 
+  with the full posterior.
+  '''
     def __init__(self,
                  stan_file: str, 
                  stan_code: str, 
@@ -98,8 +112,8 @@ class StanQuap(object):
                                               draws=draws, 
                                               jacobian=self.jacobian)
       
-    def draws(self, draws: int = 100_000, dict_out: bool = True):
-        laplace_obj = self.laplace_sample(draws)
+    def extract_samples(self, n: int = 100_000, dict_out: bool = True):
+        laplace_obj = self.laplace_sample(draws=n)
         if dict_out:
           return laplace_obj.stan_variables()
         return laplace_obj.draws()
@@ -203,16 +217,16 @@ def invlogit(x: float) -> float:
 
 
 def precis(samples, prob=0.89):
-    if isinstance(samples, dict):
+    if isinstance(samples, dict) or isinstance(samples, pd.Series):
         samples = pd.DataFrame(samples)
     plo = (1-prob)/2
     phi = 1 - plo   
     res = pd.DataFrame({
         'Parameter':samples.columns.to_numpy(),
         'Mean': samples.mean().to_numpy(),
-      'StDev': samples.std().to_numpy(),
-      f'{plo:.1%}': samples.quantile(q=plo).to_numpy(),
-      f'{phi:.1%}': samples.quantile(q=phi).to_numpy()
+        'StDev': samples.std().to_numpy(),
+        f'{plo:.1%}': samples.quantile(q=plo).to_numpy(),
+        f'{phi:.1%}': samples.quantile(q=phi).to_numpy()
     })
     return res.set_index('Parameter')
 

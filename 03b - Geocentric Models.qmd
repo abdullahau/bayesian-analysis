@@ -45,25 +45,34 @@ d2 = d[d['age'] >= 18]
 
 What we’ve done above is a Gaussian model of height in a population of adults. But it doesn’t really have the usual feel of “regression” to it. Typically, we are interested in modeling how an outcome is related to some other variable, a predictor variable. If the predictor variable has any statistical association with the outcome variable, then we can use it to predict the outcome. When the predictor variable is built inside the model in a particular way, we’ll have linear regression.
 
-So now let’s look at how height in these Kalahari foragers (the outcome variable) covaries with weight (the predictor variable). We’ll reconsider this example later from a more causal perspective. Right now, I ask only that you focus on the mechanics of estimating an association between two variables.
+So now let’s look at how height in these Kalahari foragers (the outcome variable) covaries with weight (the predictor variable). We’ll reconsider this example later from a more causal perspective. Right now, let's focus on the mechanics of estimating an association between two variables.
 
 Go ahead and plot adult height and weight against one another:
 
 ```{python}
-plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)");
+def plot_scatter():
+    plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
+    plt.ylabel("Height (cm)")
+    plt.xlabel("Weight (kg)")
+
+utils.inline_plot(plot_scatter)
 ```
 
 There’s obviously a relationship: Knowing a person’s weight helps you predict height.
 
 To make this vague observation into a more precise quantitative model that relates values of `weight` to plausible values of `height`, we need some more technology. How do we take our Gaussian model from the previous section and **incorporate predictor variables**?
 
-**What is "regression"?** Many diverse types of models are called “regression.” The term has come to mean using one or more predictor variables to model the distribution of one or more outcome variables. The original use of term, however, arose from anthropologist Francis Galton’s (1822–1911) observation that the sons of tall and short men tended to be more similar to the population mean, hence **regression to the mean**.
+------------------------------------------------------------------------
+
+#### What is "regression"? 
+
+Many diverse types of models are called “regression.” The term has come to mean using one or more predictor variables to model the distribution of one or more outcome variables. The original use of term, however, arose from anthropologist Francis Galton’s (1822–1911) observation that the sons of tall and short men tended to be more similar to the population mean, hence **regression to the mean**.
 
 The causal reasons for regression to the mean are diverse. In the case of height, the causal explanation is a key piece of the foundation of population genetics. But this phenomenon arises statistically whenever individual measurements are assigned a common distribution, leading to shrinkage as each measurement informs the others. In the context of Galton’s height data, attempting to predict each son’s height on the basis of only his father’s height is folly. Better to use the population of fathers. This leads to a prediction for each son which is similar to each father but “shrunk” towards the overall mean. Such predictions are routinely better. This same regression/shrinkage phenomenon applies at higher levels of abstraction and forms one basis of multilevel modeling.
 
-##### The Linear Model Strategy
+------------------------------------------------------------------------
+
+### The Linear Model Strategy
 
 The strategy is to make the parameter for the mean of a Gaussian distribution, $μ$, into a linear function of the predictor variable and other, new parameters that we invent. This strategy is often simply called the **linear model**. The linear model strategy instructs the model to assume that the **predictor variable has a constant and additive relationship to the mean of the outcome**. The model then computes the posterior distribution of this constant relationship.
 
@@ -87,9 +96,13 @@ h_{i} &\sim \text{Normal}(\mu_i, \sigma)\tag{Likelihood}\\
 \sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
 \end{align*}$$
 
-**1) Probability of the data**. Let’s begin with just the probability of the observed height, the first line of the model. This is nearly identical to before, except now there is a little index $i$ on the $μ$ as well as the $h$. You can read $h_i$ as “each $h$” and $μ_i$ as “each $μ$.” The mean $μ$ now depends upon unique values on each row $i$. So the little $i$ on $μ_i$ indicates that the mean depends upon the row.
+#### Probability of the data
 
-**2) Linear model**. The mean $μ$ is no longer a parameter to be estimated. Rather, as seen in the second line of the model, $μ_i$ is constructed from other parameters, $α$ and $β$, and the observed variable $x$. This line is not a stochastic relationship—there is no $\sim$ in it, but rather an $=$ in it—because the definition of $μ_i$ is deterministic. That is to say that, once we know $α$ and $β$ and $x_i$, we know $μ_i$ with certainty.
+Let’s begin with just the probability of the observed height, the first line of the model. This is nearly identical to before, except now there is a little index $i$ on the $μ$ as well as the $h$. You can read $h_i$ as “each $h$” and $μ_i$ as “each $μ$.” The mean $μ$ now depends upon unique values on each row $i$. So the little $i$ on $μ_i$ indicates that the mean depends upon the row.
+
+#### Linear model
+
+The mean $μ$ is no longer a parameter to be estimated. Rather, as seen in the second line of the model, $μ_i$ is constructed from other parameters, $α$ and $β$, and the observed variable $x$. This line is not a stochastic relationship—there is no $\sim$ in it, but rather an $=$ in it—because the definition of $μ_i$ is deterministic. That is to say that, once we know $α$ and $β$ and $x_i$, we know $μ_i$ with certainty.
 
 The value $x_i$ is just the weight value on row $i$. It refers to the same individual as the height value, $h_i$, on the same row. The parameters $α$ and $β$ are more mysterious. Where did they come from? We made them up. The parameters $μ$ and $σ$ are necessary and sufficient to describe a Gaussian distribution. But $α$ and $β$ are instead devices we invent for manipulating $μ$, allowing it to vary systematically across cases in the data.
 
@@ -104,13 +117,21 @@ What this tells the regression golem is that you are asking two questions about 
 
 Jointly these two parameters ask the model to find a line that relates $x$ to $h$, a line that passes through $α$ when $x_i = \bar{x}$ and has slope $β$. That is a task that models are very good at. It’s up to you, though, to be sure it’s a good question.
 
-**Nothing special or natural about linear models**. Note that there’s nothing special about the linear model, really. You can choose a different relationship between $α$ and $β$ and $μ$. For example, the following is a perfectly legitimate definition for $μ_i$:
+------------------------------------------------------------------------
+
+#### Nothing special or natural about linear models
+
+Note that there’s nothing special about the linear model, really. You can choose a different relationship between $α$ and $β$ and $μ$. For example, the following is a perfectly legitimate definition for $μ_i$:
 
 $$\mu_i = \alpha \space \text{exp}(-\beta x_i)$$
 
-This does not define a linear regression, but it does define a regression model. The linear relationship we are using instead is conventional, but nothing requires that you use it. It is very common in some fields, like ecology and demography, to use functional forms for $μ$ that come from theory, rather than the geocentrism of linear models. Models built out of substantive theory can dramatically outperform linear models of the same phenomena. We’ll revisit this point later in the book.
+This does not define a linear regression, but it does define a regression model. The linear relationship we are using instead is conventional, but nothing requires that you use it. It is very common in some fields, like ecology and demography, to use functional forms for $μ$ that come from theory, rather than the geocentrism of linear models. Models built out of substantive theory can dramatically outperform linear models of the same phenomena. We’ll revisit this point later.
 
-**Units and regression models**. Readers who had a traditional training in physical sciences will know how to carry units through equations of this kind. For their benefit, here’s the model again (omitting priors for brevity), now with units of each symbol added.
+------------------------------------------------------------------------
+
+#### Units and regression models 
+
+Readers who had a traditional training in physical sciences will know how to carry units through equations of this kind. For their benefit, here’s the model again (omitting priors for brevity), now with units of each symbol added.
 
 $$\begin{align*}
 h_{i}\text{cm} &\sim \text{Normal}(\mu_i\text{cm}, \sigma\text{cm})\\
@@ -119,43 +140,46 @@ h_{i}\text{cm} &\sim \text{Normal}(\mu_i\text{cm}, \sigma\text{cm})\\
 
 So you can see that $β$ must have units of cm/kg in order for the mean $μ_i$ to have units of cm. One of the facts that labeling with units clears up is that a parameter like $β$ is a kind of rate—centimeters per kilogram. There’s also a tradition called *dimensionless analysis* that advocates constructing variables so that they are unit-less ratios. In this context, for example, we might divide height by a reference height, removing its units. Measurement scales are arbitrary human constructions, and sometimes the unit-less analysis is more natural and general.
 
-**3) Priors**. The remaining lines in the model define distributions for the **unobserved variables**. These variables are commonly known as parameters, and their distributions as priors. There are three parameters: $α$, $β$, and $σ$. You’ve seen priors for $α$ and $σ$ before, although $α$ was called $μ$ back then.
+------------------------------------------------------------------------
+
+#### Priors
+
+The remaining lines in the model define distributions for the **unobserved variables**. These variables are commonly known as parameters, and their distributions as priors. There are three parameters: $α$, $β$, and $σ$. You’ve seen priors for $α$ and $σ$ before, although $α$ was called $μ$ back then.
 
 The prior for $β$ deserves explanation. Why have a Gaussian prior with mean zero? This prior places just as much probability below zero as it does above zero, and when $β=0$, weight has no relationship to height. To figure out what this prior implies, we have to simulate the prior predictive distribution. There is no other reliable way to understand.
 
 The goal is to simulate heights from the model, using only the priors. First, let’s consider a range of weight values to simulate over. The range of observed weights will do fine. Then we need to simulate a bunch of lines, the lines implied by the priors for $α$ and $β$. Here’s how to do it:
 
-```{python}
-N = 100         # 100 lines
-xbar = d2['weight'].mean()
-x = np.linspace(np.min(d2['weight']), np.max(d2['weight']), 100)
-```
-
-Now we have 100 pairs of $α$ and $β$ values. Now to plot the lines:
+We have to plot line corresponding to 100 pairs of $α$ and $β$ values:
 
 ```{python}
-a = stats.norm.rvs(loc=178, scale = 20, size=N)
-b = stats.norm.rvs(loc=0, scale = 10, size=N)
-
-fig, axs = plt.subplots(ncols=2, figsize=(9, 4))
-for i in range(N):
-    axs[0].plot(x, a[i] + b[i] * (x - xbar), color="black", alpha=0.2, linewidth=0.5)
-axs[0].set_title(r'$\beta \sim \text{Normal}(0,10)$')
+def plot_prior_pred():
+    N = 100         # 100 lines
+    x = np.linspace(np.min(d2['weight']), np.max(d2['weight']), 100)
+    xbar = d2['weight'].mean()
+    a = stats.norm.rvs(loc=178, scale = 20, size=N)
+    b = stats.norm.rvs(loc=0, scale = 10, size=N)
+    fig, axs = plt.subplots(ncols=2, figsize=(9, 4))
+    for i in range(N):
+        axs[0].plot(x, a[i] + b[i] * (x - xbar), color="black", alpha=0.2, linewidth=0.5)
+    axs[0].set_title(r'$\beta \sim \text{Normal}(0,10)$')
+        
+    # Sample from new prior
+    a = stats.norm.rvs(loc=178, scale=20, size=N)
+    b = stats.lognorm.rvs(scale=np.exp(0), s=1, size=N)
     
-# Sample from new prior
-a = stats.norm.rvs(loc=178, scale=20, size=N)
-b = stats.lognorm.rvs(scale=np.exp(0), s=1, size=N)
+    for i in range(N):
+        axs[1].plot(x, a[i] + b[i] * (x - xbar), color="black", alpha=0.2, linewidth=0.5)
+    axs[1].set_title(r'$\text{log}(\beta) \sim \text{Normal}(0,1)$')
+    
+    for ax in axs:
+        ax.axhline(272, color="black", linewidth=0.5)
+        ax.axhline(0, color="black", linestyle="--", linewidth=0.5)
+        ax.set(xlabel="Weight", ylabel="Height", ylim=(-100, 400))
 
-for i in range(N):
-    axs[1].plot(x, a[i] + b[i] * (x - xbar), color="black", alpha=0.2, linewidth=0.5)
-axs[1].set_title(r'$\text{log}(\beta) \sim \text{Normal}(0,1)$')
+    fig.tight_layout()
 
-for ax in axs:
-    ax.axhline(272, color="black", linewidth=0.5)
-    ax.axhline(0, color="black", linestyle="--", linewidth=0.5)
-    ax.set(xlabel="Weight", ylabel="Height", ylim=(-100, 400))
-
-fig.tight_layout()
+utils.inline_plot(plot_prior_pred)
 ```
 
 Prior predictive simulation for the height and weight model. Left: Simulation using the $β \sim \text{Normal}(0,10)$ prior. Right: A more sensible $log(β)\sim \text{Normal}(0,1)$ prior.
@@ -168,22 +192,24 @@ Defining $β$ as Log-Normal(0,1) means to claim that the logarithm of $β$ has a
 
 $$\beta \sim \text{Log-Normal}(0,1)$$
 
-SciPy provices the `stats.lognorm.rvs` and `stats.lognorm.pdf` densities for working with log-normal distributions. We can simulate this relationship to see what this means for $\beta$:
+SciPy provides the `stats.lognorm.rvs` and `stats.lognorm.pdf` densities for working with log-normal distributions. We can simulate this relationship to see what this means for $\beta$:
 
 ```{python}
-b = stats.lognorm.rvs(s=1, scale=np.exp(0), size=int(1e4))
+def plot_dens():
+    b = stats.lognorm.rvs(s=1, scale=np.exp(0), size=int(1e4))
+    bw = utils.bw_nrd0(b)
+    az.plot_kde(b, bw=bw*0.1)
+    plt.xlabel(r"$\mu$")
+    plt.ylabel("Density")
+    plt.xlim(-0.5,5)
 
-bw = utils.bw_nrd0(b)
-print(bw*0.1)
-az.plot_kde(b, bw=bw*0.1)
-plt.xlabel(r"$\mu$")
-plt.ylabel("Density")
-plt.xlim(-0.5,5);
+utils.inline_plot(plot_dens)
 ```
 
 If the logarithm of $β$ is normal, then $β$ itself is strictly positive. The reason is that exp(x) is greater than zero for any real number $x$. This is the reason that Log-Normal priors are commonplace. They are an easy way to enforce positive relationships. So what does this earn us? Do the prior predictive simulation again, now with the Log-Normal prior:
 
 ```{python}
+N = 100
 a = stats.norm.rvs(loc=178, scale=20, size=N)
 b = stats.lognorm.rvs(scale=np.exp(0), s=1, size=N)
 ```
@@ -192,17 +218,27 @@ Plotting as before produces the right-hand plot above. This is much more sensibl
 
 We’re fussing about this prior, even though as you’ll see in the next section there is so much data in this example that the priors end up not mattering. We fuss for two reasons. First, there are many analyses in which no amount of data makes the prior irrelevant. In such cases, non-Bayesian procedures are no better off. They also depend upon structural features of the model. Paying careful attention to those features is essential. Second, thinking about the priors helps us develop better models, maybe even eventually going beyond geocentrism.
 
-**What’s the correct prior**? People commonly ask what the correct prior is for a given analysis. The question sometimes implies that for any given set of data, there is a uniquely correct prior that must be used, or else the analysis will be invalid. This is a mistake. There is no more a uniquely correct prior than there is a uniquely correct likelihood. Statistical models are machines for inference. Many machines will work, but some work better than others. Priors can be wrong, but only in the same sense that a kind of hammer can be wrong for building a table.
+------------------------------------------------------------------------
+
+#### What’s the correct prior? 
+
+People commonly ask what the correct prior is for a given analysis. The question sometimes implies that for any given set of data, there is a uniquely correct prior that must be used, or else the analysis will be invalid. This is a mistake. There is no more a uniquely correct prior than there is a uniquely correct likelihood. Statistical models are machines for inference. Many machines will work, but some work better than others. Priors can be wrong, but only in the same sense that a kind of hammer can be wrong for building a table.
 
 In choosing priors, there are simple guidelines to get you started. Priors encode states of information before seeing data. So priors allow us to explore the consequences of beginning with different information. In cases in which we have good prior information that discounts the plausibility of some parameter values, like negative associations between height and weight, we can encode that information directly into priors. When we don’t have such information, we still usually know enough about the plausible range of values. And you can vary the priors and repeat the analysis in order to study how different states of initial information influence inference. Frequently, there are many reasonable choices for a prior, and all of them produce the same inference. And conventional Bayesian priors are conservative, relative to conventional non-Bayesian approaches. We’ll see how this conservatism arises later.
 
 Making choices tends to make novices nervous. There’s an illusion sometimes that default procedures are more objective than procedures that require user choice, such as choosing priors. If that’s true, then all “objective” means is that everyone does the same thing. It carries no guarantees of realism or accuracy.
 
-**Prior predictive simulation and *p*-hacking**. A serious problem in contemporary applied statistics is “*p*-hacking,” the practice of adjusting the model and the data to achieve a desired result. The desired result is usually a *p*-value less then 5%. The problem is that when the model is adjusted in light of the observed data, then *p*-values no longer retain their original meaning. False results are to be expected. We don’t pay any attention to *p*-values in this book. But the danger remains, if we choose our priors conditional on the observed sample, just to get some desired result. The procedure we’ve performed here is to choose priors conditional on pre-data knowledge of the variables—their constraints, ranges, and theoretical relationships. This is why the actual data are not shown in the earlier section. We are judging our priors against general facts, not the sample. We’ll look at how the model performs against the real data next.
+------------------------------------------------------------------------
 
-##### Finding The Posterior Distribution
+#### Prior predictive simulation and *p*-hacking
 
-The code needed to approximate the posterior is a straightforward modification of the kind of code you’ve already seen. All we have to do is incorporate our new model for the mean into the model specification inside PyMC and be sure to add a prior for the new parameter, $β$. Let’s repeat the model definition:
+A serious problem in contemporary applied statistics is “*p*-hacking,” the practice of adjusting the model and the data to achieve a desired result. The desired result is usually a *p*-value less then 5%. The problem is that when the model is adjusted in light of the observed data, then *p*-values no longer retain their original meaning. False results are to be expected. We don’t pay any attention to *p*-values in this book. But the danger remains, if we choose our priors conditional on the observed sample, just to get some desired result. The procedure we’ve performed here is to choose priors conditional on pre-data knowledge of the variables—their constraints, ranges, and theoretical relationships. This is why the actual data are not shown in the earlier section. We are judging our priors against general facts, not the sample. We’ll look at how the model performs against the real data next.
+
+------------------------------------------------------------------------
+
+### Finding The Posterior Distribution
+
+The code needed to approximate the posterior is a straightforward modification of the kind of code you’ve already seen. All we have to do is incorporate our new model for the mean into the model specification inside the Stan code and be sure to add a prior for the new parameter, $β$. Let’s repeat the model definition:
 
 $$\begin{align*}
 h_{i} &\sim \text{Normal}(\mu_i, \sigma)\\
@@ -213,50 +249,102 @@ h_{i} &\sim \text{Normal}(\mu_i, \sigma)\\
 \end{align*}$$
 
 ```{python}
-xbar = d2.weight.mean()
+m4_3 = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+    vector[N] weight;
+    real xbar;
+}
+parameters {
+    real a;
+    real<lower=0> b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * (weight - xbar);
+    
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(178, 20);
+    b ~ lognormal(0, 1);
+    sigma ~ uniform(0, 50);
+}
+'''
 
-with pm.Model() as m4_3:
-    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
-    a = pm.Normal("a", mu=178, sigma=20)
-    b = pm.LogNormal("b", mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b * (weight - xbar), dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
+data = {'N': len(d2), 
+        'xbar': d2['weight'].mean(),
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist()}
+
+m4_3_model = utils.StanQuap('stan_models/m4_3', m4_3, data, algorithm = 'Newton')
+m4_3_model.precis().round(2)
+m4_3_model.vcov_matrix().round(3)
+```
+
+------------------------------------------------------------------------
+
+#### Everything that depends upon parameters has a posterior distribution 
+
+In the model above, the parameter $μ$ is no longer a parameter, since it has become a function of the parameters $α$ and $β$. But since the parameters $α$ and $β$ have a joint posterior, so too does $μ$. Later in the chapter, you’ll work directly with the posterior distribution of $μ$, even though it’s not a parameter anymore. Since parameters are uncertain, everything that depends upon them is also uncertain. This includes statistics like $μ$, as well as model-based predictions, measures of fit, and everything else that uses parameters. By working with samples from the posterior, all you have to do to account for posterior uncertainty in any quantity is to compute that quantity for each sample from the posterior. The resulting quantities, one for each posterior sample, will approximate the quantity’s posterior distribution.
+
+------------------------------------------------------------------------
+
+#### Logs and exps, oh my
+
+My experience is that many natural and social scientists have naturally forgotten whatever they once knew about logarithms. Logarithms appear all the time in applied statistics. You can usefully think of $y=log(x)$ as assigning to $y$ the order of magnitude of $x$. The function $x=exp(y)$ is the reverse, turning a magnitude into a value. These definitions will make a mathematician shriek. But much of our computational work relies only on these intuitions.
+
+These definitions allow the Log-Normal prior for $β$ to be coded another way. Instead of defining a parameter $β$, we define a parameter that is the logarithm of $β$ and then assign it a normal distribution. Then we can reverse the logarithm inside the linear model. It looks like this:
+
+```{python}
+m4_3b = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+    vector[N] weight;
+    real xbar;
+}
+parameters {
+    real a;
+    real log_b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + exp(log_b) * (weight - xbar);
+    
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(178, 20);
+    log_b ~ normal(0, 1);
+    sigma ~ uniform(0, 50);
+}
+'''
+
+data = {'N': len(d2), 
+        'xbar': d2['weight'].mean(),
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist()}
+
+m4_3b_model = utils.StanQuap('stan_models/m4_3b', m4_3b, data, algorithm = 'Newton')
+m4_3b_model.precis().round(2)
+m4_3b_model.vcov_matrix().round(3)
 ```
 
 ```{python}
-with m4_3:
-    custom_step_m4_3 = utils.QuadraticApproximation([a, b, sigma], m4_3)
-    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_3, progressbar=False)  
-```
-
-```{python}
-with m4_3:
-    trace_mcmc = pm.sample(10_000, tune=1000, progressbar=False)
-```
-
-```{python}
-pm.model_to_graphviz(m4_3)
-```
-
-**Everything that depends upon parameters has a posterior distribution**. In the model above, the parameter $μ$ is no longer a parameter, since it has become a function of the parameters $α$ and $β$. But since the parameters $α$ and $β$ have a joint posterior, so too does $μ$. Later in the chapter, you’ll work directly with the posterior distribution of $μ$, even though it’s not a parameter anymore. Since parameters are uncertain, everything that depends upon them is also uncertain. This includes statistics like $μ$, as well as model-based predictions, measures of fit, and everything else that uses parameters. By working with samples from the posterior, all you have to do to account for posterior uncertainty in any quantity is to compute that quantity for each sample from the posterior. The resulting quantities, one for each posterior sample, will approximate the quantity’s posterior distribution.
-
-**Logs and exps, oh my**. My experience is that many natural and social scientists have naturally forgotten whatever they once knew about logarithms. Logarithms appear all the time in applied statistics. You can usefully think of $y=log(x)$ as assigning to $y$ the order of magnitude of $x$. The function $x=exp(y)$ is the reverse, turning a magnitude into a value. These definitions will make a mathematician shriek. But much of our computational work relies only on these intuitions. These definitions allow the Log-Normal prior for $β$ to be coded another way. Instead of defining a parameter $β$, we define a parameter that is the logarithm of $β$ and then assign it a normal distribution. Then we can reverse the logarithm inside the linear model. It looks like this:
-
-```{python}
-with pm.Model() as m4_3b:
-    weight = pm.ConstantData("w", d2.weight.values)
-    a = pm.Normal("a", mu=178, sigma=20)
-    log_b = pm.LogNormal("log_b", mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + np.exp(log_b) * (weight - xbar))
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values)
-    trace_mcmc_2 = pm.sample(1000, tune=1000, progressbar=False)
+np.exp(m4_3b_model.precis()['Mean'][1])
 ```
 
 Note the `exp(log_b)` in the definition of `mu`. This is the same model as `m4_3`. It will make the same predictions. But instead of $β$ in the posterior distribution, you get $\text{log}(β)$. It is easy to translate between the two, because $β=\text{exp}(\text{log}(β))$. In code form: `b = np.exp(log_b)`.
 
-##### Interpreting the Posterior Distribution
+------------------------------------------------------------------------
+
+### Interpreting the Posterior Distribution
 
 One trouble with statistical models is that they are hard to understand. Once you’ve fit the model, it can only report posterior distribution. This is the right answer to the question you asked. But it’s your responsibility to process the answer and make sense of it.
 
@@ -273,59 +361,43 @@ In addition, once you get the hang of processing posterior distributions into pl
 
 So in the remainder of this section, I first spend a little time talking about tables of estimates. Then I move on to show how to plot estimates that always incorporate information from the full posterior distribution, including correlations among parameters.
 
-**What do parameters mean?** A basic issue with interpreting model-based estimates is in knowing the meaning of parameters. There is no consensus about what a parameter means, however, because different people take different philosophical stances towards models, probability, and prediction. The perspective in this book is a common Bayesian perspective: *Posterior probabilities of parameter values describe the relative compatibility of different states of the world with the data, according to the model*. These are small world numbers. So reasonable people may disagree about the large world meaning, and the details of those disagreements depend strongly upon context. Such disagreements are productive, because they lead to model criticism and revision, something that models cannot do for themselves. Later, we'll see that parameters can refer to observable quantities—data—as well as unobservable values. This makes parameters even more useful and their interpretation even more context dependent.
+------------------------------------------------------------------------
 
-##### Tables of Marginal Distributions
+#### What do parameters mean? 
+
+A basic issue with interpreting model-based estimates is in knowing the meaning of parameters. There is no consensus about what a parameter means, however, because different people take different philosophical stances towards models, probability, and prediction. The perspective in this book is a common Bayesian perspective: *Posterior probabilities of parameter values describe the relative compatibility of different states of the world with the data, according to the model*. These are small world numbers. So reasonable people may disagree about the large world meaning, and the details of those disagreements depend strongly upon context. Such disagreements are productive, because they lead to model criticism and revision, something that models cannot do for themselves. Later, we'll see that parameters can refer to observable quantities—data—as well as unobservable values. This makes parameters even more useful and their interpretation even more context dependent.
+
+------------------------------------------------------------------------
+
+#### Tables of Marginal Distributions
 
 With the new linear regression trained on the Kalahari data, we inspect the marginal posterior distributions of the parameters:
 
 ```{python}
-utils.precis(trace_quap)
-```
-
-```{python}
-utils.precis(trace_mcmc)
+m4_3_model.precis().round(2)
 ```
 
 The first row gives the quadratic approximation for $α$, the second the approximation for $β$, and the third approximation for $σ$. Let’s try to make some sense of them.
 
-Let’s focus on `b` ($β$), because it’s the new parameter. Since $β$ is a slope, the value 0.90 can be read as a person 1 kg heavier is expected to be 0.90 cm taller. 89% of the posterior probability lies between 0.84 and 0.97. That suggests that $β$ values close to zero or greatly above one are highly incompatible with these data and this model. It is most certainly not evidence that the relationship between weight and height is linear, because the model only considered lines. It just says that, if you are committed to a line, then lines with a slope around 0.9 are plausible ones.
+Let’s focus on `b` ($β$), because it’s the new parameter. Since $β$ is a slope, the value 0.90 can be read as *a person 1 kg heavier is expected to be 0.90 cm taller*. 89% of the posterior probability lies between 0.84 and 0.97. That suggests that $β$ values close to zero or greatly above one are highly incompatible with these data and this model. It is most certainly not evidence that the relationship between weight and height is linear, because the model only considered lines. It just says that, if you are committed to a line, then lines with a slope around 0.9 are plausible ones.
 
 Remember, the numbers in the default `precis` output aren’t sufficient to describe the quadratic posterior completely. For that, we also require the variance-covariance matrix. You can see the covariances among the parameters with `vcov`:
 
 ```{python}
-np.round(utils.vcov(custom_step_m4_3), 3)
-```
-
-```{python}
-np.round(utils.cov2cor(utils.vcov(custom_step_m4_3)), 3)
-```
-
-```{python}
-trace_quap_df = trace_quap.posterior.to_dataframe()
-trace_quap_df.cov().round(3)
-```
-
-```{python}
-trace_quap_df.corr().round(3)
-```
-
-```{python}
-trace_mcmc_df = trace_mcmc.posterior.to_dataframe()
-trace_mcmc_df.cov().round(3)
-```
-
-```{python}
-trace_mcmc_df.corr().round(2)
+np.round(m4_3_model.vcov_matrix(), 3)
 ```
 
 Very little covariation among the parameters in this case. Constructing a pairs plot shows both the marginal posteriors and the covariance. Later, you’ll see that the lack of covariance among the parameters results from **centering**.
 
 ```{python}
-az.plot_pair(trace_quap, var_names=['a','b','sigma'], figsize=[6, 6], marginals=True, scatter_kwargs={'alpha': 0.2});
+def plot_pair():
+    posterior = m4_3_model.extract_samples(n=1000)
+    az.plot_pair(posterior, var_names=['a','b','sigma'], figsize=[6, 6], marginals=True, scatter_kwargs={'alpha': 0.2})
+
+utils.inline_plot(plot_pair)
 ```
 
-##### Plotting Posterior Inference Against the Data
+#### **Plotting Posterior Inference Against the Data**
 
 It’s almost always much more useful to plot the posterior inference against the data. Not only does plotting help in interpreting the posterior, but it also provides an informal check on model assumptions. When the model’s predictions don’t come close to key observations or patterns in the plotted data, then you might suspect the model either did not fit correctly or is rather badly specified. But even if you only treat plots as a way to help in interpreting the posterior, they are invaluable. For simple models like this one, it is possible (but not always easy) to just read the table of numbers and understand what the model says. But for even slightly more complex models, especially those that include interaction effects, interpreting posterior distributions is hard. Combine with this the problem of incorporating the information in `vcov` into your interpretations, and the plots are irreplaceable.
 
@@ -334,31 +406,24 @@ We’re going to start with a simple version of that task, superimposing just th
 We’ll start with just the raw data and a single line. The code below plots the raw data, computes the posterior mean values for `a` and `b`, then draws the implied line:
 
 ```{python}
-plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
-a_map = trace_quap.posterior["a"].mean().values
-b_map = trace_quap.posterior["b"].mean().values
-plt.plot(d2['weight'], a_map + b_map * (d2['weight'] - xbar), linewidth=1.5)
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)");
+def plot_post_infer():
+    plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
+    posterior = pd.DataFrame(m4_3_model.extract_samples())
+    a_map = posterior["a"].mean()
+    b_map = posterior["b"].mean()
+    xbar = d2['weight'].mean()
+    plt.plot(d2['weight'], a_map + b_map * (d2['weight'] - xbar), linewidth=1.5)
+    plt.ylabel("Height (cm)")
+    plt.xlabel("Weight (kg)")
+
+utils.inline_plot(plot_post_infer)
 ```
 
-Height in centimeters (vertical) plotted against weight in kilograms (horizontal), with the line at the posterior mean plotted in black.
+Height in centimeters (vertical) plotted against weight in kilograms (horizontal), with the line at the posterior mean plotted in blue.
 
-```{python}
-plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
-plt.plot(
-    d2.weight,
-    trace_mcmc.posterior["a"].mean().item(0)
-    + trace_mcmc.posterior["b"].mean().item(0) * (d2.weight - xbar),
-    linewidth=1.5
-)
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)");
-```
+Each point in this plot is a single individual. The blue line is defined by the mean slope $β$ and mean intercept $α$. This is not a bad line. It certainly looks highly plausible. But there are an infinite number of other highly plausible lines near it. Let’s draw those too.
 
-ach point in this plot is a single individual. The blue line is defined by the mean slope $β$ and mean intercept $α$. This is not a bad line. It certainly looks highly plausible. But there are an infinite number of other highly plausible lines near it. Let’s draw those too.
-
-##### Adding Uncertainty Around the Mean
+#### Adding Uncertainty Around the Mean
 
 The posterior mean line is just the posterior mean, the most plausible line in the infinite universe of lines the posterior distribution has considered. Plots of the average line, like the plot above, are useful for getting an impression of the magnitude of the estimated influence of a variable. But they do a poor job of communicating uncertainty. Remember, the posterior distribution considers every possible regression line connecting height to weight. It assigns a relative plausibility to each. This means that each combination of $α$ and $β$ has a posterior probability. It could be that there are many lines with nearly the same posterior probability as the average line. Or it could be instead that the posterior distribution is rather narrow near the average line.
 
@@ -367,7 +432,8 @@ So how can we get that uncertainty onto the plot? Together, a combination of $α
 To better appreciate how the posterior distribution contains lines, we work with all of the samples from the model. Let’s take a closer look at the samples now:
 
 ```{python}
-trace_quap_df.head()
+posterior = pd.DataFrame(m4_3_model.extract_samples())
+posterior.head()
 ```
 
 Each row is a correlated random sample from the joint posterior of all three parameters, using the covariances provided by the model. The paired values of `a` and `b` on each row define a line. The average of very many of these lines is the posterior mean line. But the scatter around that average is meaningful, because it alters our confidence in the relationship between the predictor and the outcome.
@@ -378,81 +444,77 @@ So now let’s display a bunch of these lines, so you can see the scatter. This 
 N = 10
 dN = d2[:N]
 
-with pm.Model() as m:
-    a = pm.Normal("a", 178, 20)
-    b = pm.LogNormal("b", 0, 1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic("mu", a + b * (dN['weight'] - dN['weight'].mean()))
-    # Define likelihood
-    likelihood = pm.Normal("w", mu=mu, sigma=sigma, observed=dN['height'])
-    custom_step = utils.QuadraticApproximation([a, b, sigma], m)
-    idata = pm.sample(draws=1000, chains=1, tune=0, step=custom_step, progressbar=False)
+data = {'N': len(dN), 
+        'xbar': dN['weight'].mean(),
+        'height': dN['height'].tolist(), 
+        'weight': dN['weight'].tolist()}
+
+mN = utils.StanQuap('stan_models/m4_3', m4_3, data, algorithm = 'Newton')
 ```
 
 Now let’s plot 20 of these lines, to see what the uncertainty looks like.
 
 ```{python}
-sample_size = 20
-samples = az.extract(idata, num_samples=sample_size, rng=True)
+# extract 20 samples from the posterior
+post = pd.DataFrame(mN.extract_samples(n=20))
 
-plt.scatter(dN['weight'], dN['height'], facecolor="none", edgecolor="C0")
-for i in range(sample_size):
-    a = samples.get("a")[i].values
-    b = samples.get("b")[i].values
-    x = np.linspace(d2['weight'].min(), d2['weight'].max(), 10)
-    y = a + b * (x - dN['weight'].mean())
-    plt.plot(x, y, "C1-", alpha=0.5)
+def plot_post_infer():
+    plt.scatter(dN['weight'], dN['height'], facecolor="none", edgecolor="C0")
+    for i in range(20):
+        a, b = post['a'][i], post['b'][i]
+        x = np.linspace(d2['weight'].min(), d2['weight'].max(), 10)
+        y = a + b * (x - dN['weight'].mean())
+        plt.plot(x, y, "C1-", alpha=0.5)
 
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)")
-plt.tight_layout();
+    plt.ylabel("Height (cm)")
+    plt.xlabel("Weight (kg)")
+    plt.tight_layout()
+
+utils.inline_plot(plot_post_infer)
 ```
 
 By plotting multiple regression lines, sampled from the posterior, it is easy to see both the highly confident aspects of the relationship and the less confident aspects. The cloud of regression lines displays greater uncertainty at extreme values for weight.
 
-The other plots in below show the same relationships, but for increasing amounts of data. Just re-use the code from before, but change N \<- 10 to some other value. Notice that the cloud of regression lines grows more compact as the sample size increases. This is a result of the model growing more confident about the location of the mean.
+The other plots in below show the same relationships, but for increasing amounts of data. Just re-use the code from before, but change `N = 10` to some other value. Notice that the cloud of regression lines grows more compact as the sample size increases. This is a result of the model growing more confident about the location of the mean.
 
 ```{python}
-fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(9, 9), sharey=True, sharex=True)
+def plot_reg_rel():
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(9, 9), sharey=True, sharex=True)
 
-for N, ax in zip((10, 50, 150, 352), axes.flatten()):
-    weight, height = d2['weight'][:N], d2['height'][:N]
-    xbar = np.mean(weight)
+    for N, ax in zip((10, 50, 150, 352), axes.flatten()):
+        weight, height = d2['weight'][:N], d2['height'][:N]
+        xbar = np.mean(weight)
     
-    with pm.Model() as m:
-        a = pm.Normal("a", 178, 20)
-        b = pm.LogNormal("b", 0, 1)
-        sigma = pm.Uniform("sigma", 0, 50)
-        mu = pm.Deterministic("mu", a + b * (weight - xbar))
-        # Define likelihood
-        likelihood = pm.Normal("w", mu=mu, sigma=sigma, observed=height)
-        custom_step = utils.QuadraticApproximation([a, b, sigma], m)
-        idata = pm.sample(draws=1000, chains=1, tune=0, step=custom_step, progressbar=False)
+        data = {'N': len(height), 
+                'xbar': xbar,
+                'height': height.tolist(), 
+                'weight': weight.tolist()}
+        
+        mN = utils.StanQuap('stan_models/m4_3', m4_3, data, algorithm = 'Newton')    
+        post = pd.DataFrame(mN.extract_samples(n=20))
+    
+        ax.scatter(weight, height, facecolor="none", edgecolor="C0")
+    
+        for i in range(20):
+            a, b = post['a'][i], post['b'][i]
+            x = np.linspace(d2['weight'].min(), d2['weight'].max(), 10)
+            y = a + b * (x - xbar)
+            ax.plot(x, y, "C1-", alpha=0.5)
+        ax.set(xlabel="Weight (kg)", ylabel="Height (cm)", title=f"N = {N}")
+    
+    fig.tight_layout()
 
-    sample_size = 20
-    samples = az.extract(idata, num_samples=sample_size, rng=True)
-
-    ax.scatter(weight, height, facecolor="none", edgecolor="C0")
-
-    for i in range(sample_size):
-        a = samples.get("a")[i].values
-        b = samples.get("b")[i].values
-        x = np.linspace(d2['weight'].min(), d2['weight'].max(), 10)
-        y = a + b * (x - xbar)
-        ax.plot(x, y, "C1-", alpha=0.5)
-    ax.set(xlabel="Weight (kg)", ylabel="Height (cm)", title=f"N = {N}")
-
-fig.tight_layout()
+utils.inline_plot(plot_reg_rel)
 ```
 
-##### Plotting Regression Intervals and Contours
+#### Plotting Regression Intervals and Contours
 
 The cloud of regression lines in the plot above is an appealing display, because it communicates uncertainty about the relationship in a way that many people find intuitive. But it’s more common, and often much clearer, to see the uncertainty displayed by plotting an interval or contour around the average regression line. In this section, I’ll walk you through how to compute any arbitrary interval you like, using the underlying cloud of regression lines embodied in the posterior distribution.
 
 Focus for the moment on a single weight value, say 50 kilograms. You can quickly make a list of 10,000 values of $μ$ for an individual who weighs 50 kilograms, by using your samples from the posterior:
 
 ```{python}
-post = az.extract(trace_quap, 'posterior', num_samples=10_000, rng=True)
+post = pd.DataFrame(m4_3_model.extract_samples())
 mu_at_50 = post["a"] + post["b"] * (50 - d2.weight.mean())
 ```
 
@@ -463,27 +525,30 @@ $$\mu_i = \alpha + \beta(x_i - \bar{x})$$
 The value of $x_i$ in this case is 50. Go ahead and take a look inside the result, `mu_at_50`. It’s a vector of predicted means, one for each random sample from the posterior. Since joint `a` and `b` went into computing each, the variation across those means incorporates the uncertainty in and correlation between both parameters. It might be helpful at this point to actually plot the density for this vector of means:
 
 ```{python}
-bw = utils.bw_nrd0(mu_at_50.values)
-az.plot_kde(mu_at_50.values, bw=bw*0.5)
-plt.xlabel(r"$\mu \mid Weight = 50$")
-plt.ylabel("Density");
+def plot_dens():
+    bw = utils.bw_nrd0(mu_at_50.values)
+    az.plot_kde(mu_at_50.values, bw=bw*0.5)
+    plt.xlabel(r"$\mu \mid Weight = 50$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
 ```
 
 The quadratic approximate posterior distribution of the mean height, $μ$, when weight is 50 kg. This distribution represents the relative plausibility of different values of the mean.
 
 Since the components of $μ$ have distributions, so too does $μ$. And since the distributions of $α$ and $β$ are Gaussian, so too is the distribution of $μ$ (adding Gaussian distributions always produces a Gaussian distribution).
 
-Since the posterior for $μ$ is a distribution, you can find intervals for it, just like for any posterior distribution. To find the 89% compatibility interval of $μ$ at 50 kg, just use the `arviz.hdi` command as usual:
+Since the posterior for $μ$ is a distribution, you can find intervals for it, just like for any posterior distribution. To find the 89% compatibility interval of $μ$ at 50 kg, we can use the quantile or `precis` function as usual:
 
 ```{python}
-az.hdi(mu_at_50.values, hdi_prod=0.89)
+utils.precis(pd.DataFrame({'mu': mu_at_50}))
 ```
 
 What these numbers mean is that the central 89% of the ways for the model to produce the data place the average height between about 159 cm and 160 cm (conditional on the model and data), assuming the weight is 50 kg.
 
 That’s good so far, but we need to repeat the above calculation for every weight value on the horizontal axis, not just when it is 50 kg. We want to draw 89% intervals around the average slope.
 
-First, we start by looking at an operation that samples from the posterior distribution for each case in the data: we will take our quadratic approximation, sample from the posterior distribution, and then compute $μ$ for each case in the data and sample from the posterior distribution. Here’s what it looks like for the data you used to fit the model:
+We will take our quadratic approximation, sample from the posterior distribution, and then compute $μ$ for each case in the data and sample from the posterior distribution. Here’s what it looks like for the data you used to fit the model:
 
 ```{python}
 mu = az.extract(trace_quap, 'posterior', var_names='mu', num_samples=1000).to_dataframe()

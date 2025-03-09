@@ -1597,7 +1597,7 @@ The terms **PMF**, **PDF, CDF**, and **PPF** are fundamental concepts in probabi
 **Key Differences**
 
 | **Term** | **Full Name** | **Applies To** | **Description** |
-|------------------|------------------|------------------|------------------|
+|----|----|----|----|
 | PMF | Probability Mass Function | Discrete random variables | Probability that a discrete random variable takes on a specific value. |
 | CDF | Cumulative Distribution Function | Discrete and continuous random variables | Probability that a random variable is less than or equal to a specific value. |
 | PDF | Probability Density Function | Continuous random variables | Relative likelihood of a continuous random variable taking on a specific value. |
