@@ -56,20 +56,20 @@ class BridgeStan(bs.StanModel):
             super().__init__(stan_so, data, make_args=make_args, warn=False)
 
 class StanQuap(object):
-  '''
-  Description:
-  Find mode of posterior distribution for arbitrary fixed effect models and 
-  then produce an approximation of the full posterior using the quadratic    
-  curvature at the mode.
+    """
+    Description:
+    Find mode of posterior distribution for arbitrary fixed effect models and 
+    then produce an approximation of the full posterior using the quadratic    
+    curvature at the mode.
   
-  This command provides a convenient interface for finding quadratic approximations 
-  of posterior distributions for models defined in Stan. This procedure is equivalent 
-  to penalized maximum likelihood estimation and the use of a Hessian for profiling, 
-  and therefore can be used to define many common regularization procedures. The point 
-  estimates returned correspond to a maximum a posterior, or MAP, estimate. However the 
-  intention is that users will use `draws` and `laplace_sample` and other methods to work 
-  with the full posterior.
-  '''
+    This command provides a convenient interface for finding quadratic approximations 
+    of posterior distributions for models defined in Stan. This procedure is equivalent 
+    to penalized maximum likelihood estimation and the use of a Hessian for profiling, 
+    and therefore can be used to define many common regularization procedures. The point 
+    estimates returned correspond to a maximum a posterior, or MAP, estimate. However the 
+    intention is that users will use `extract_samples` and `laplace_sample` and other methods to work 
+    with the full posterior.
+    """
     def __init__(self,
                  stan_file: str, 
                  stan_code: str, 
@@ -87,9 +87,10 @@ class StanQuap(object):
                               jacobian=jacobian,
                               **kwargs
                         )
-        self.params = self.opt_model.stan_variables()
+        self.param_names = self.bs_model.param_names()
+        self.opt_params = {param: self.opt_model.stan_variable(param) for param in self.param_names}
         self.params_unc = self.bs_model.param_unconstrain(
-                              np.array(list(self.params.values()))
+                              np.array(list(self.opt_params.values()))
                         )
         self.jacobian = jacobian
 
@@ -106,8 +107,10 @@ class StanQuap(object):
         cov_matrix = self.transform_vcov(vcov_unc, param_types, eps)
         return cov_matrix
     
-    def laplace_sample(self, draws: int = 100_000):
-        return self.stan_model.laplace_sample(data=self.train_data, 
+    def laplace_sample(self, data: dict = None, draws: int = 100_000):
+        if data is None:
+            data = self.train_data
+        return self.stan_model.laplace_sample(data=data, 
                                               mode=self.opt_model, 
                                               draws=draws, 
                                               jacobian=self.jacobian)
@@ -115,7 +118,22 @@ class StanQuap(object):
     def extract_samples(self, n: int = 100_000, dict_out: bool = True):
         laplace_obj = self.laplace_sample(draws=n)
         if dict_out:
-          return laplace_obj.stan_variables()
+            stan_var_dict = laplace_obj.stan_variables()
+            return {param: stan_var_dict[param] for param in self.param_names}
+        return laplace_obj.draws()
+    
+    def sim(self, data: dict = None, n = 1000, dict_out: bool = True):
+        """
+        Simulate posterior observations - Posterior Predictive Sampling
+        https://mc-stan.org/docs/stan-users-guide/posterior-prediction.html
+        https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html
+        """
+        if data is None:
+            data = self.train_data      
+        laplace_obj = self.laplace_sample(data=data, draws=n)
+        if dict_out:
+            stan_var_dict = laplace_obj.stan_variables()
+            return {param: stan_var_dict[param] for param in stan_var_dict if param not in self.param_names}
         return laplace_obj.draws()
 
     def compute_jacobian_analytical(self, param_types):
@@ -180,19 +198,27 @@ class StanQuap(object):
 
     def precis(self, param_types=None, prob=0.89, eps=1e-6):
         vcov_mat = self.vcov_matrix(param_types, eps)
-        pos_mu = np.array(list(self.params.values()))
+        pos_mu = np.array(list(self.opt_params.values()))
         pos_sigma = np.sqrt(np.diag(vcov_mat))
         plo = (1-prob)/2
         phi = 1 - plo
         lo = pos_mu + pos_sigma * stats.norm.ppf(plo)
         hi = pos_mu + pos_sigma * stats.norm.ppf(phi)
         res = pd.DataFrame({
-          'Parameter': list(self.params.keys()),
+          'Parameter': list(self.opt_params.keys()),
           'Mean': pos_mu,
           'StDev': pos_sigma,
           f'{plo:.1%}': lo,
           f'{phi:.1%}': hi})
         return res.set_index('Parameter')
+
+
+def link(fit, lm_func, data, n=1000, post=None):
+    # Extract Posterior Samples
+    if post is None:
+        post = fit.extract_samples(n=n, dict_out=True)
+    return lm_func(post, data)
+
 
 # ----------------------- Stat Functions -----------------------
 def center(vals: np.ndarray) -> np.ndarray:
@@ -216,19 +242,19 @@ def invlogit(x: float) -> float:
     return 1 / (1 + np.exp(-x))
 
 
-def precis(samples, prob=0.89):
+def precis(samples, prob=0.89, index_name='Parameter'):
     if isinstance(samples, dict) or isinstance(samples, pd.Series):
         samples = pd.DataFrame(samples)
     plo = (1-prob)/2
     phi = 1 - plo   
     res = pd.DataFrame({
-        'Parameter':samples.columns.to_numpy(),
+        f'{index_name}':samples.columns.to_numpy(),
         'Mean': samples.mean().to_numpy(),
         'StDev': samples.std().to_numpy(),
         f'{plo:.1%}': samples.quantile(q=plo).to_numpy(),
         f'{phi:.1%}': samples.quantile(q=phi).to_numpy()
     })
-    return res.set_index('Parameter')
+    return res.set_index(f'{index_name}')
 
 
 def precis_az(samples, var_names=None):

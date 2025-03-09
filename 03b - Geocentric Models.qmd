@@ -64,7 +64,7 @@ To make this vague observation into a more precise quantitative model that relat
 
 ------------------------------------------------------------------------
 
-#### What is "regression"? 
+#### What is "regression"?
 
 Many diverse types of models are called “regression.” The term has come to mean using one or more predictor variables to model the distribution of one or more outcome variables. The original use of term, however, arose from anthropologist Francis Galton’s (1822–1911) observation that the sons of tall and short men tended to be more similar to the population mean, hence **regression to the mean**.
 
@@ -129,7 +129,7 @@ This does not define a linear regression, but it does define a regression model.
 
 ------------------------------------------------------------------------
 
-#### Units and regression models 
+#### Units and regression models
 
 Readers who had a traditional training in physical sciences will know how to carry units through equations of this kind. For their benefit, here’s the model again (omitting priors for brevity), now with units of each symbol added.
 
@@ -220,7 +220,7 @@ We’re fussing about this prior, even though as you’ll see in the next sectio
 
 ------------------------------------------------------------------------
 
-#### What’s the correct prior? 
+#### What’s the correct prior?
 
 People commonly ask what the correct prior is for a given analysis. The question sometimes implies that for any given set of data, there is a uniquely correct prior that must be used, or else the analysis will be invalid. This is a mistake. There is no more a uniquely correct prior than there is a uniquely correct likelihood. Statistical models are machines for inference. Many machines will work, but some work better than others. Priors can be wrong, but only in the same sense that a kind of hammer can be wrong for building a table.
 
@@ -287,7 +287,7 @@ m4_3_model.vcov_matrix().round(3)
 
 ------------------------------------------------------------------------
 
-#### Everything that depends upon parameters has a posterior distribution 
+#### Everything that depends upon parameters has a posterior distribution
 
 In the model above, the parameter $μ$ is no longer a parameter, since it has become a function of the parameters $α$ and $β$. But since the parameters $α$ and $β$ have a joint posterior, so too does $μ$. Later in the chapter, you’ll work directly with the posterior distribution of $μ$, even though it’s not a parameter anymore. Since parameters are uncertain, everything that depends upon them is also uncertain. This includes statistics like $μ$, as well as model-based predictions, measures of fit, and everything else that uses parameters. By working with samples from the posterior, all you have to do to account for posterior uncertainty in any quantity is to compute that quantity for each sample from the posterior. The resulting quantities, one for each posterior sample, will approximate the quantity’s posterior distribution.
 
@@ -363,7 +363,7 @@ So in the remainder of this section, I first spend a little time talking about t
 
 ------------------------------------------------------------------------
 
-#### What do parameters mean? 
+#### What do parameters mean?
 
 A basic issue with interpreting model-based estimates is in knowing the meaning of parameters. There is no consensus about what a parameter means, however, because different people take different philosophical stances towards models, probability, and prediction. The perspective in this book is a common Bayesian perspective: *Posterior probabilities of parameter values describe the relative compatibility of different states of the world with the data, according to the model*. These are small world numbers. So reasonable people may disagree about the large world meaning, and the details of those disagreements depend strongly upon context. Such disagreements are productive, because they lead to model criticism and revision, something that models cannot do for themselves. Later, we'll see that parameters can refer to observable quantities—data—as well as unobservable values. This makes parameters even more useful and their interpretation even more context dependent.
 
@@ -548,36 +548,44 @@ What these numbers mean is that the central 89% of the ways for the model to pro
 
 That’s good so far, but we need to repeat the above calculation for every weight value on the horizontal axis, not just when it is 50 kg. We want to draw 89% intervals around the average slope.
 
-We will take our quadratic approximation, sample from the posterior distribution, and then compute $μ$ for each case in the data and sample from the posterior distribution. Here’s what it looks like for the data you used to fit the model:
+This is made simple by strategic use of the `link` function. What `link` will do is take our `StanQuap` approximation, sample from the posterior distribution, and then compute $μ$ for each case in the data and sample from the posterior distribution. Here’s what it looks like for the data you used to fit the model:
 
 ```{python}
-mu = az.extract(trace_quap, 'posterior', var_names='mu', num_samples=1000).to_dataframe()
-mu
+def lm(post, data):
+    weight = data
+    xbar = d2['weight'].mean() # ensure that xbar is based on the dataset supplied during fit 
+    a, b = post['a'].reshape(-1,1), post['b'].reshape(-1,1)
+    return a + b * (weight - xbar)
+
+mu = utils.link(m4_3_model, lm_func=lm, data=d2['weight'].to_numpy())
+print(mu)
 ```
 
-We end up with a big dataframe of values of $μ$. The dataframe is indexed in such a way that `mu_dim_0` has 352 groups, corresponding to 352 individuals. Each group has 1000 $\mu$ entries associated to each individual which is computed from 1000 samples from the posterior distribution. Therefore, there are 1000 \* 352 = 352,000 entires in the dataframe.
+We end up with a big matrix of values of $μ$. Each row is a sample from the posterior distribution. The default is 1000 samples, but you can use as many or as few as you like. Each column is a case (row) in the data. There are 352 rows in `d2`, corresponding to 352 individuals. So there are 352 columns in the matrix `mu` above.
 
-Now what can we do with this big dataframe? Lots of things. The function `arviz.extract` provides a posterior distribution of $μ$ for each case we feed it. So above we have a distribution of $μ$ for each individual in the original data. We actually want something slightly different: a distribution of $μ$ for each unique weight value on the horizontal axis.
+Now what can we do with this big matrix? Lots of things. The function `link` provides a posterior distribution of $μ$ for each case we feed it. So above we have a distribution of $μ$ for each individual in the original data. We actually want something slightly different: a distribution of $μ$ for each unique weight value on the horizontal axis. It’s only slightly harder to compute that, by just passing `link` some new data:
 
 ```{python}
 # define sequence of weights to compute predictions for
 # these values will be on the horizontal axis
 weight_seq = np.arange(25, 71)
 
-samples = az.extract(trace_quap, 'posterior', var_names=['a', 'b'], num_samples=1000)
-
-a = samples.get('a').to_numpy()
-b = samples.get('b').to_numpy()
-
-mu = a + b * ((weight_seq - d2['weight'].mean())).reshape(-1,1)
+# use link to compute mu
+# for each sample from posterior
+# and for each weight in weight.seq
+mu = utils.link(m4_3_model, lm_func=lm, data=weight_seq)
+mu
 ```
 
 And now there are only 46 rows in `mu`, because we fed it 46 different values for weight. To visualize what you’ve got here, let’s plot the distribution of $μ$ values at each height.
 
 ```{python}
-plt.plot(weight_seq, mu[:,:100], "C0.", alpha=0.1)
-plt.xlabel("Weight")
-plt.ylabel("Height");
+def plot_mu():
+    plt.plot(weight_seq, mu[:100,:].T, "C0.", alpha=0.1)
+    plt.xlabel("Weight")
+    plt.ylabel("Height")
+
+utils.inline_plot(plot_mu)
 ```
 
 The first 100 values in the distribution of $μ$ at each weight value.
@@ -587,47 +595,28 @@ At each weight value in `weight_seq`, a pile of computed $μ$ values are shown. 
 The final step is to summarize the distribution for each weight value:
 
 ```{python}
-mu_mean = np.mean(mu, axis=1)
-mu_PI = az.hdi(mu.T)
+# summarize the distribution of mu
+mu_df = pd.DataFrame(
+    {str(weight): mu[:, i] for i, weight in enumerate(weight_seq)}
+    )
+mu_summary = utils.precis(mu_df, index_name='Weight')
+mu_summary
 ```
 
-Now `mu_mean` contains the average $μ$ at each weight value, and `mu_PI` contains 89% lower and upper bounds for each weight value. They are just different kinds of summaries of the distributions in `mu`, with each column being for a different weight value. These summaries are only summaries. The “estimate” is the entire distribution.
+Now `mu_summary` contains the average $μ$ at each weight value and 89% lower and upper bounds for each weight value. They are just different kinds of summaries of the distributions in `mu`, with each column being for a different weight value. These summaries are only summaries. The “estimate” is the entire distribution.
 
 You can plot these summaries on top of the data:
 
 ```{python}
-plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
-plt.plot(weight_seq, mu_mean)
-az.plot_hdi(weight_seq, mu.T, fill_kwargs={'alpha':0.2})
-plt.xlim(d2['weight'].min()-2, d2['weight'].max()+2)
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)");
-```
+def plot_mu():
+    plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
+    plt.plot(weight_seq, mu_summary['Mean'], 'k')
+    plt.fill_between(weight_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
+    plt.xlim(d2['weight'].min()-2, d2['weight'].max()+2)
+    plt.ylabel("Height (cm)")
+    plt.xlabel("Weight (kg)")
 
-```{python}
-weight_seq = np.arange(25, 71)
-
-with m4_3:  
-    # update values of predictors:
-    pm.set_data({"w": weight_seq})
-    # use the updated values and predict outcomes and probabilities:
-    pred = pm.sample_posterior_predictive(
-        trace_quap,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=False,
-        progressbar=False
-    )
-```
-
-```{python}
-plt.plot(d2.weight, d2.height, 'o', fillstyle='none')
-plt.plot(weight_seq, pred.predictions['mu'].mean(axis=1)[0])
-az.plot_hdi(weight_seq, pred.predictions['mu'], hdi_prob=0.89, fill_kwargs={'alpha':0.2})
-plt.xlim(d2['weight'].min()-2, d2['weight'].max()+2)
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)");
+utils.inline_plot(plot_mu)
 ```
 
 The !Kung height data again, now with 89% compatibility interval of the mean indicated by the shaded region. Compare this region to the distributions of points in the above plot.
@@ -636,33 +625,41 @@ Using this approach, you can derive and plot **posterior prediction means and in
 
 To summarize, here’s the recipe for generating predictions and intervals from the posterior of a fit model.
 
-1)  Use `pymc.sample` & `arviz.extract` to generate distributions of posterior values for $μ$. `arviz.extract` outputs $\mu$ based the original sampled data. Therefore, we can use the `a` and `b` to compute $\mu$ for custom/generated weights for which you want to plot posterior predictions across.
-2)  Use summary functions like `numpy.mean` or `arviz.hdi` to find averages and lower and upper bounds of $μ$ for each value of the predictor variable.
-3)  Finally, use plotting functions draw the lines and intervals. Or you might plot the distributions of the predictions, or do further numerical calculations with them.
+1)  Use `link` to generate distributions of posterior values for $μ$. The default behavior of `link` is to use the original data, so you have to pass it a list of new horizontal axis values you want to plot posterior predictions across.
+2)  Use summary functions like `numpy.mean` or `arviz.hdi` or `precis` to find averages and lower and upper bounds of $μ$ for each value of the predictor variable.
+3)  Finally, use plotting functions to draw the lines and intervals. Or you might plot the distributions of the predictions, or do further numerical calculations with them.
 
 This recipe works for every model we fit in this repo. As long as you know the structure of the model—how parameters relate to the data—you can use samples from the posterior to describe any aspect of the model’s behavior.
 
-**Overconfident intervals**. The compatibility interval for the regression line in the plot above clings tightly to the MAP line. Thus there is very little uncertainty about the *average height as a function of average weight*. But you have to keep in mind that these inferences are always conditional on the model. Even a very bad model can have very tight compatibility intervals. It may help if you think of the regression line as saying: *Conditional on the assumption that height and weight are related by a straight line, then this is the most plausible line, and these are its plausible bounds*.
+------------------------------------------------------------------------
 
-**How deterministic functions are computed**. When we fit the model to compute the value of the linear model, PyMC applies the deterministic formula using each sample from the posterior to each case in the data. We can accomplish the same thing for any model, fit by any means, by performing these steps yourself. This is how it'd look for `m4_3`:
+#### Overconfident intervals
+
+The compatibility interval for the regression line in the plot above clings tightly to the MAP line. Thus there is very little uncertainty about the *average height as a function of average weight*. But you have to keep in mind that these inferences are always conditional on the model. Even a very bad model can have very tight compatibility intervals. It may help if you think of the regression line as saying: *Conditional on the assumption that height and weight are related by a straight line, then this is the most plausible line, and these are its plausible bounds*.
+
+------------------------------------------------------------------------
+
+#### How `link` works
+
+The function `link` is not really very sophisticated. All it is doing is using the linear model function you provide as an argument to compute the value of the linear model. It does this for each sample from the posterior distribution, for each case in the data. You could accomplish the same thing for any model, fit by any means, by performing these steps yourself. This is how it’d look for `m4_3_model`.
 
 ```{python}
+post = m4_3_model.extract_samples(n=1000, dict_out=True)
+xbar = d2['weight'].mean()
+mu_link = lambda weight: post['a'].reshape(-1,1) + post['b'].reshape(-1,1) * (weight - xbar)
 weight_seq = np.arange(25, 71)
-
-samples = az.extract(trace_quap, 'posterior', var_names=['a', 'b'], num_samples=1000)
-
-a = samples.get('a').to_numpy()
-b = samples.get('b').to_numpy()
-
-mu = a + b * ((weight_seq - d2['weight'].mean())).reshape(-1,1)
-
-mu_mean = np.mean(mu, axis=1)
-mu_PI = az.hdi(mu.T)
+mu = mu_link(weight_seq)
+mu_mean = mu.mean(axis=0)
+mu_CI = np.quantile(mu, q=[0.055, 0.945], axis=0)
 ```
 
-Knowing this manual method is useful both for (1) understanding and (2) sheer power. Whatever the model you find yourself with, this approach can be used to generate posterior predictions for any component of it.
+And the values in `mu_mean` and `mu_CI` should be very similar (allowing for simulation variance) to what you got the automated way, using `link`.
 
-##### Prediction Intervals
+Knowing this manual method is useful both for (1) understanding and (2) sheer power. Whatever the model you find yourself with, this approach can be used to generate posterior predictions for any component of it. Automated tools like `link` save effort, but they are never as flexible as the code you can write yourself.
+
+------------------------------------------------------------------------
+
+#### Prediction Intervals
 
 Now let’s walk through generating an 89% prediction interval for actual heights, not just the average height, $μ$. This means we’ll incorporate the standard deviation $σ$ and its uncertainty as well. Remember, the first line of the statistical model here is:
 
@@ -673,104 +670,128 @@ What you’ve done so far is just use samples from the posterior to visualize th
 Here’s how you do it. Imagine simulating heights. For any unique weight value, you sample from a Gaussian distribution with the correct mean $μ$ for that weight, using the correct value of $σ$ sampled from the same posterior distribution. If you do this for every sample from the posterior, for every weight value of interest, you end up with a collection of simulated heights that embody the uncertainty in the posterior as well as the uncertainty in the Gaussian distribution of heights. This is how we can do it:
 
 ```{python}
-# This code was executed above to compute the posterior prediction of `mu` for predictor `weight_seq` and can be used to again for `height`
+m4_3_pred = '''
+data {
+    int<lower=1> N;
+    vector[N] height;
+    vector[N] weight;
+    real xbar;
+    
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_tilde;
+}
+parameters {
+    real a;
+    real<lower=0> b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * (weight - xbar);
+    
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(178, 20);
+    b ~ lognormal(0, 1);
+    sigma ~ uniform(0, 50);
+}
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(a + b * (weight_tilde[i] - xbar), sigma);
+    }
+}
+'''
 
-# weight_seq = np.arange(25, 71)
+data = {'N': len(d2), 
+        'xbar': d2['weight'].mean(),
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist(),
+        'N_tilde': len(weight_seq),
+        'weight_tilde': weight_seq.tolist()}
 
-# with m4_3:  
-#     # update values of predictors:
-#     pm.set_data({"w": weight_seq})
-#     # use the updated values and predict outcomes and probabilities:
-#     pred = pm.sample_posterior_predictive(
-#         trace_quap,
-#         var_names=["height", "mu"],
-#         return_inferencedata=True,
-#         predictions=True,
-#         extend_inferencedata=False,
-#     )
-
-pred
+m4_3_pred_model = utils.StanQuap('stan_models/m4_3_pred', m4_3_pred, data, algorithm = 'Newton')
+sim_height = m4_3_pred_model.sim(data=data)['y_tilde']
+sim_height
 ```
 
-The above operation now stores simulated heights (not distribution of plausible average height $\mu$) for every weight in `trace_quap` by extending it using `sample_posterior_predictive` under the `posterior_predictive` label.
+This matrix is much like the earlier one, `mu`, but it contains simulated heights, not distributions of plausible average height, `µ`.
 
-We can summarize these simulated heights in the same way we summarized the distributions of μ:
+We can summarize these simulated heights in the same way we summarized the distributions of `µ`:
 
 ```{python}
-height_PI = az.hdi(pred.predictions['height'], hdi_prob=0.89)
+sim_height_df = pd.DataFrame(
+    {str(weight): sim_height[:, i] for i, weight in enumerate(weight_seq)}
+    )
+
+sim_height_df = utils.precis(sim_height_df, index_name='Weight')
+sim_height_df
 ```
 
-Now `height_PI` contains the 89% posterior prediction interval of observable (according to the model) heights, across the values of weight.
+Now `sim_height_df` contains the 89% posterior prediction interval of observable (according to the model) heights, across the values of weight in `weight_seq`.
 
 Let’s plot everything we’ve built up: (1) the average line, (2) the shaded region of 89% plausible $μ$, and (3) the boundaries of the simulated heights the model expects.
 
 ```{python}
-fig, ax = plt.subplots()
+def plot_post_sim():
+    plt.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.plot(weight_seq, mu_summary['Mean'], 'k', label='Mean')
+    plt.fill_between(weight_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
+    plt.fill_between(weight_seq, sim_height_df['5.5%'], sim_height_df['94.5%'], alpha=0.2)
 
-hdi_1 = az.plot_hdi(weight_seq, pred.predictions["height"], 
-                     hdi_prob=0.89, smooth=False, color='C1')  
-
-hdi_2 = az.plot_hdi(weight_seq, pred.predictions["mu"], 
-                     hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(weight_seq, pred.predictions["mu"].mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Weight (kg)",
-       ylabel="Height (cm)",
-       xlim=(d2.weight.min() - 2, d2.weight.max() + 2),
-       ylim=(d2.height.min() - 2, d2.height.max() + 2))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+utils.inline_plot(plot_post_sim)
 ```
 
 89% prediction interval for height, as a function of weight. The solid line is the average line for the mean height at each weight. The two shaded regions show different 89% plausible regions. The narrow shaded interval around the line is the distribution of $μ$. The wider shaded region represents the region within which the model expects to find 89% of actual heights in the population, at each weight.
+
+The wide shaded region in the figure represents the area within which the model expects to find 89% of actual heights in the population, at each weight. There is nothing special about the value 89% here. You could plot the boundary for other percents, such as 67% and 97% (also both primes), and add those to the plot. Doing so would help you see more of the shape of the predicted distribution of heights.
 
 Notice that the outline for the wide shaded interval is a little rough. This is the simulation variance in the tails of the sampled Gaussian values. If it really bothers you, increase the number of samples you take from the posterior distribution.
 
 With extreme percentiles, it can be very hard to get out all of the roughness. Luckily, it hardly matters, except for aesthetics. Moreover, it serves to remind us that all statistical inference is approximate. The fact that we can compute an expected value to the 10th decimal place does not imply that our inferences are precise to the 10th decimal place.
 
-**Two kinds of uncertainty**. In the procedure above, we encountered both **uncertainty in parameter values** and **uncertainty in a sampling process**. These are distinct concepts, even though they are processed much the same way and end up blended together in the **posterior predictive simulation**. The *posterior distribution is a ranking of the relative plausibilities of every possible combination of parameter values*. The distribution of simulated outcomes, like height, is instead a distribution that includes sampling variation from some process that generates Gaussian random variables. This sampling variation is still a model assumption. It’s no more or less objective than the posterior distribution. Both kinds of uncertainty matter, at least sometimes. But it’s important to keep them straight, because they depend upon different model assumptions. Furthermore, it’s possible to view the **Gaussian likelihood as a purely epistemological assumption (a device for estimating the mean and variance of a variable), rather than an ontological assumption about what future data will look like**. In that case, it may not make complete sense to simulate outcomes.
+------------------------------------------------------------------------
 
-Just like with `arviz.extract`, it’s useful to know a little about how `sample_posterior_predictive` operates. For every distribution like `stats.norm.pdf`, there is a companion simulation function. For the Gaussian distribution, the companion is `stats.norm.rvs`, and it simulates sampling from a Gaussian distribution. What we want Python to do is simulate a height for each set of samples, and to do this for each value of weight. The following will do it:
+#### Two kinds of uncertainty
+
+In the procedure above, we encountered both **uncertainty in parameter values** and **uncertainty in a sampling process**. These are distinct concepts, even though they are processed much the same way and end up blended together in the **posterior predictive simulation**. The *posterior distribution is a ranking of the relative plausibilities of every possible combination of parameter values*. The distribution of simulated outcomes, like height, is instead a distribution that includes sampling variation from some process that generates Gaussian random variables. This sampling variation is still a model assumption. It’s no more or less objective than the posterior distribution. Both kinds of uncertainty matter, at least sometimes. But it’s important to keep them straight, because they depend upon different model assumptions. Furthermore, it’s possible to view the **Gaussian likelihood as a purely epistemological assumption (a device for estimating the mean and variance of a variable), rather than an ontological assumption about what future data will look like**. In that case, it may not make complete sense to simulate outcomes.
+
+------------------------------------------------------------------------
+
+#### Rolling your own `sim`
+
+Just like with `link`, it’s useful to know a little about how `sim` operates. For every distribution like `stats.norm.pdf`, there is a companion simulation (random number generator `rng`) function. For the Gaussian distribution, the companion is `stats.norm.rvs`, and it simulates sampling from a Gaussian distribution. What we want Python to do is simulate a height for each set of samples, and to do this for each value of weight. The following will do it:
 
 ```{python}
+post = m4_3_model.extract_samples(n=1000)
 weight_seq = np.arange(25, 71)
+xbar = d2['weight'].mean()
+sim_height = stats.norm.rvs(
+        loc=post['a'] + post['b'] * (weight_seq.reshape(-1,1) - xbar),
+        scale=post['sigma']
+        ).T
+        
+sim_height_df = pd.DataFrame(
+    {str(weight): sim_height[:, i] for i, weight in enumerate(weight_seq)}
+    )
 
-samples = az.extract(trace_quap, 'posterior', var_names=['a', 'b', 'sigma'], num_samples=1000)
-
-a = samples.get('a').to_numpy()
-b = samples.get('b').to_numpy()
-sigma = samples.get('sigma').to_numpy()
-
-mu = a + b * ((weight_seq - d2['weight'].mean())).reshape(-1,1)
-
-sim_height = stats.norm.rvs(loc=mu, scale=sigma)
-
-height_PI = az.hdi(sim_height.T)
-mu_mean = np.mean(mu, axis=1)
-mu_PI = az.hdi(mu.T)
-
-az.plot_hdi(weight_seq, hdi_data=height_PI)
-az.plot_hdi(weight_seq, hdi_data=mu_PI)
-plt.plot(weight_seq, mu_mean)
-plt.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
-plt.xlim(d2.weight.min() - 2, d2.weight.max() + 2)
-plt.ylim(d2.height.min() - 2, d2.height.max() + 2)
-plt.xlabel('Weight (kg)')
-plt.ylabel('Height (cm)');
+sim_height_df = utils.precis(sim_height_df, index_name='Weight')
+sim_height_df
 ```
 
-#### Curves from Lines
+The values in `sim_height` are practically identical to the ones computed in the main text and displayed in the plot above.
+
+------------------------------------------------------------------------
+
+## Curves from Lines
 
 In the next notebook, you’ll see how to use linear models to build regressions with more than one predictor variable. But before then, it helps to see how to model the outcome as a curved function of a predictor. The models so far all assume that a straight line describes the relationship. But there’s nothing special about straight lines, aside from their simplicity.
 
 We’ll consider two commonplace methods that use linear regression to build curves. The first is **polynomial regression**. The second is **B-splines**. Both approaches work by transforming a single predictor variable into several synthetic variables. But splines have some clear advantages. Neither approach aims to do more than describe the function that relates one variable to another. Causal inference, which we’ll consider much more beginning in the next note, wants more.
 
-##### Polynomial Regression
+### Polynomial Regression
 
 Polynomial regression uses powers of a variable—squares and cubes—as extra predictors. This is an easy way to build curved associations. Polynomial regressions are very common, and understanding how they work will help scaffold later models. To understand how polynomial regression works, let’s work through an example, using the full !Kung data, not just the adults:
 
