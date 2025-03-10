@@ -1,0 +1,1273 @@
+---
+title: 03c - Geocentric Models
+author: "Abdullah Mahmood"
+date: "last-modified"
+format:
+  html:
+    theme: cosmo # united is darker
+    css: style.css
+    highlight-style: atom-one
+    mainfont: Palatino
+    fontcolor: black
+    monobackgroundcolor: white
+    monofont: "Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace"
+    fontsize: 13pt
+    linestretch: 1.4
+    number-sections: true
+    number-depth: 3
+    toc: true
+    toc-location: right
+    code-fold: false
+    code-copy: true
+    cap-location: bottom
+    format-links: false
+    embed-resources: true
+    anchor-sections: true
+    html-math-method:
+        method: mathjax
+        url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+editor: source
+jupyter: main
+---
+
+### Imports
+
+```{python}
+from init import *
+from formulaic import Formula
+```
+
+## Practice Problems
+
+### 4E1
+
+In the model definition below, which line is the likelihood?
+
+$$\begin{align*}
+y_{i} &\sim \text{Normal}(\mu, \sigma)\\
+\mu &\sim \text{Normal}(0,10)\\
+\sigma &\sim \text{Exponential}(1)\\
+\end{align*}$$
+
+The first line $y_{i} \sim \text{Normal}(\mu, \sigma)$ is the likelihood. The second line is very similar, but is instead the prior for the parameter $μ$. The third line is the prior for the parameter $σ$. Likelihoods and priors can look very similar, because a likelihood is effectively a prior for the residuals.
+
+### 4E2
+
+In the model definition just above, how many parameters are in the posterior distribution?
+
+There are two parameters in the posterior distribution $\mu$ and $\sigma$.
+
+### 4E3
+
+Using the model definition above, write down the appropriate form of Bayes’ theorem that includes the proper likelihood and priors.
+
+Ignoring the specific distributions for the moment:
+
+$$Pr(\mu, \sigma \mid y) = \frac{Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma)}{\int\int Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma) d\mu d\sigma}$$
+
+Now inserting the distributional assumptions: $$Pr(\mu, \sigma \mid y) = \frac{\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1) }{\int\int\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1)d\mu d\sigma}$$
+
+$$
+Pr(\mu,\sigma | \underline{x}) = \frac{Pr(\underline{x}|\mu,\sigma)Pr(\mu)Pr(\sigma)}{Pr(\underline{h})} \propto \frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2) \times  exp(-\frac{1}{2}(\frac{\mu}{10})^2) \times exp(-\sigma) \\
+\implies Pr(\mu,\sigma | \underline{x}) = \frac{\frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2)exp(-\frac{1}{2}(\frac{\mu}{10})^2)exp(-\sigma)}{\int \int \frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2)exp(-\frac{1}{2}(\frac{\mu}{10})^2)exp(-\sigma) d\mu d\sigma}
+$$
+
+### 4E4
+
+In the model definition below, which line is the linear model?
+
+$$\begin{align*}
+y_{i} &\sim \text{Normal}(\mu, \sigma)\\
+\mu_{i} &= \alpha + \beta x_i\\
+\alpha &\sim \text{Normal}(0,10)\\
+\beta &\sim \text{Normal}(0,1)\\
+\sigma &\sim \text{Exponential}(2)\\
+\end{align*}$$
+
+The second line $\mu_{i} = \alpha + \beta x_i$ is the linear model.
+
+### 4E5
+
+In the model definition just above, how many parameters are in the posterior distribution?
+
+There are three parameters in the posterior distribution: $\alpha, \beta, \sigma$. The symbol $\mu$ is no longer a parameter in the posterior, because it is entirely determined by $\alpha, \beta$ and $x$
+
+### 4M1
+
+For the model definition below, simulate observed $y$ values from the prior (not the posterior).
+
+$$\begin{align*}
+y_{i} &\sim \text{Normal}(\mu, \sigma)\\
+\mu &\sim \text{Normal}(0,10)\\
+\sigma &\sim \text{Exponential}(1)\\
+\end{align*}$$
+
+To sample from the prior distribution of `y`, we use `stats.norm.rvs` to simulate, while averaging over the prior distributions of $μ$ and $σ$. The easiest way to do this is to sample from the priors and then pass those samples to `stats.norm.rvs` to simulate `y`. This code will sample from the priors:
+
+```{python}
+mu_prior = stats.norm.rvs(loc=0, scale=10, size=int(1e4))
+sigma_prior = stats.expon.rvs(1, size=int(1e4))
+```
+
+You may want to visualize these samples, just to help school your intuition for the priors.
+
+Now to simulate heights that average over these prior distributions of parameters:
+
+```{python}
+y_sim = stats.norm.rvs(loc=mu_prior, scale=sigma_prior, size=int(1e4))
+def plot_dens():
+    bw = utils.bw_nrd0(y_sim)
+    az.plot_kde(y_sim, bw=bw*0.5)
+    plt.xlabel(r"Sample $y$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+Note that the prior distribution of `y` is centered on zero. If that strikes you as odd, remember that a continuous variable like `y` can always be re-centered to any value you like, without changing any of the information in the data.
+
+### 4M2
+
+Translate the model just above into a `Stan` model.
+
+```{python}
+m4_4m1 = '''
+data {
+  int<lower=0> N;
+}
+generated quantities {
+  real mu = normal_rng(0, 10);
+  real sigma = exponential_rng(1);
+  array[N] real y_sim;
+  for (i in 1:N) {
+      y_sim[i] = normal_rng(mu, sigma);
+  }
+}
+'''
+
+m4_4m1_model = utils.Stan('stan_models/m4_4m1', m4_4m1)
+y_sim = m4_4m1_model.laplace_sample(data={'N': 1}, draws=int(1e4)).stan_variable('y_sim').flatten()
+
+def plot_dens():
+    bw = utils.bw_nrd0(y_sim)
+    az.plot_kde(y_sim, bw=bw*0.5)
+    plt.xlabel(r"Sample $y$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+### 4M3
+
+Translate the `quap` model formula below into a mathematical model definition.
+
+``` r
+y ~ dnorm( mu , sigma ),
+mu <- a + b*x,
+a ~ dnorm( 0 , 10 ),
+b ~ dunif( 0 , 1 ),
+sigma ~ dexp( 1 )
+```
+
+$$\begin{align*}
+y_{i} &\sim \text{Normal}(\mu_i, \sigma)\\
+\mu_{i} &= \alpha + \beta x_i\\
+\alpha &\sim \text{Normal}(0,10)\\
+\beta &\sim \text{Normal}(0,1)\\
+\sigma &\sim \text{Exponential}(2)\\
+\end{align*}$$
+
+### 4M4
+
+A sample of students is measured for height each year for 3 years. After the third year, you want to fit a linear regression predicting height using year as a predictor. Write down the mathematical model definition for this regression, using any variable names and priors you choose. Be prepared to defend your choice of priors.
+
+$$\begin{align*}
+h_{i} &\sim \text{Normal}(\mu, \sigma)\\
+\mu_{i} &= \alpha + \beta y_i\\
+\alpha &\sim \text{Normal}(0,100)\\
+\beta &\sim \text{Log-Normal}(0,1)\\
+\sigma &\sim \text{Uniform}(0,50)\\
+\end{align*}$$
+
+Where $h$ is height and $y$ is year. These priors aren’t great, but they’ll do. The prior on the intercept $α$ is effectively uninformative. The problem didn’t say what scale height is measured on, so it’s hard to do much else here. The prior on $β$ is very weakly informative, centered on zero, which corresponds to no impact of year. This doesn’t seem like a great prior, because surely height increases each year or stays the same. So maybe a uniform prior above zero would be better?
+
+-   $\mu = \alpha + \beta y$ \<- Assume the mean has some linear dependence on time.
+
+-   $\beta \sim \text{Log-Normal}(0,1)$ \<- It seems perfectly sensible that the amount an average student's height changes per year should only be positive. Additionally, I have no idea what the growth rate is so this encodes ignorance about the rate of change of height per year.
+
+There are other options, including **truncated distributions** or **log-Normal distributions**, but this hasn’t been introduced yet.
+
+```{python}
+a = stats.norm.rvs(0, 100, size=50)
+b = stats.lognorm.rvs(s=np.exp(0), size=50)
+sigma = stats.uniform.rvs(0, 50, size=50)
+
+year = (np.arange(3)+1).reshape(-1,1)
+
+height_pred = stats.norm.rvs(a + (b * year), sigma)
+
+def plot_ppc():
+    plt.plot(year, height_pred, color='k', alpha=0.2)
+    plt.xlabel('Year')
+    plt.ylabel('Height')
+
+utils.inline_plot(plot_ppc)
+```
+
+$$
+\begin{align}
+  h_{ij} &\sim \text{Normal}(\mu_{ij}, \sigma) \\
+  \mu_{ij} &= \alpha + \beta(y_j - \bar{y}) \\
+  \alpha &\sim \text{Normal}(100, 10) \\
+  \beta &\sim \text{Normal}(0, 10) \\
+  \sigma &\sim \text{Exponential}(1)
+\end{align}
+$$ Because height is centered, $\alpha$ represents the average height in the average year (i.e., year 2). The prior of $\text{Normal}(100, 10)$ was chosen assuming that height is measured in centimeters and that that sample is of children who are still growing.
+
+The slope is extremely vague. The a prior centered on zero, and the standard deviation of the prior of 10 represents a wide range of possible growth (or shrinkage). During growth spurts, height growth averages 6--13 cm/year. The standard deviation of 10 encompasses the range we might expect to see if growth were occurring at a high rate.
+
+Finally, the exponential prior on $\sigma$ assumes an average deviation of 1.
+
+Prior predictive simulations also appear to give reasonably plausible regression lines, given our current assumptions.
+
+```{python}
+a = stats.norm.rvs(100, 10, size=50)
+b = stats.norm.rvs(0, 10, size=50)
+sigma = stats.expon.rvs(1, size=50)
+
+year = (np.arange(3)+1).reshape(-1,1)
+
+height_pred = stats.norm.rvs(a + b * (year - np.mean(year)), sigma)
+
+def plot_ppc():
+    plt.plot(year, height_pred, color='k', alpha=0.2)
+    plt.xlabel('Year')
+    plt.ylabel('Height')
+
+utils.inline_plot(plot_ppc)
+```
+
+### 4M5
+
+Now suppose I remind you that every student got taller each year. Does this information lead you to change your choice of priors? How?
+
+This one is subtle. On the one hand, having information on measurement scale lets us set a more sensible prior for the intercept, $α$. You might center it on 120 now, for example. On the other hand, for the prior to really be “prior,” it needs to be ignorance of the actual data values. Since the observed mean is a feature of the sample, not of the measurement scale, basing the prior on it could get you into trouble. What kind of trouble? It could lead to an illusionary fit to data, as essentially you’ve used the data twice: once in setting the prior and once in conditioning on the data (computing the posterior).
+
+Much later, we’ll see how constraints on the data can be used to design models, without running the risk of using the data twice.
+
+Because we know that an increase in year will always lead to increased height, we know that $\beta$ will be positive. Therefore, our prior should reflect this by using, for example, a log-normal distribution.
+
+$$
+\beta \sim \text{Log-Normal}(1,0.5)
+$$
+
+This prior gives an expectation of about 3cm per year, with the 89% highest density interval between 0.87cm and 5.18cm per year.
+
+```{python}
+def plot_dens():
+    x = np.linspace(0,11,1000)
+    samples = stats.lognorm.pdf(x, s=0.5, scale=np.exp(1))
+    
+    plt.plot(x, samples)
+    plt.xlim(-1,11)
+    plt.xlabel(r"$\beta$")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+```
+
+```{python}
+prior_lnorm = stats.lognorm.rvs(s=0.5, scale=np.exp(1), size=int(1e5))
+
+np.quantile(prior_lnorm, 0.055)
+np.quantile(prior_lnorm, 1-0.055)
+
+az.hdi(prior_lnorm, hdi_prob=0.89)
+```
+
+Prior predictive simulations of plausible lines using this new log-normal prior indicate that these priors still represent plausible values. Most the lines are positive, due to the prior constraint. However, because of variation around the mean, some lines do show a decrease in height. If it is truly impossible for students to shrink, then data like this might arise from measurement error.
+
+```{python}
+a = stats.norm.rvs(100, 10, size=50)
+b = stats.lognorm.rvs(s=0.5, scale=np.exp(1), size=50)
+sigma = stats.expon.rvs(1, size=50)
+
+year = (np.arange(3)+1).reshape(-1,1)
+
+height_pred = stats.norm.rvs(a + b * (year - np.mean(year)), sigma)
+
+def plot_ppc():
+    plt.plot(year, height_pred, color='k', alpha=0.2)
+    plt.xlabel('Year')
+    plt.ylabel('Height')
+
+utils.inline_plot(plot_ppc)
+```
+
+### 4M6
+
+Now suppose I tell you that the variance among heights for students of the same age is never more than 64cm. How does this lead you to revise your priors?
+
+Again, this is a subtle issue. All the advice from just above applies. But it’s not clear here whether “variance among heights for students of the same age is never more than 64cm” is a feature of the sample or of the population. If it’s of the population, then setting a prior for it may be okay. In that case:
+
+$$
+\sigma \sim \text{Uniform}(0,64)
+$$
+
+would make sense.
+
+### 4M7
+
+Refit model `m4_3` from the notebook, but omit the mean weight `xbar` this time. Compare the new model’s posterior to that of the original model. In particular, look at the covariance among the parameters. What is different? Then compare the posterior predictions of both models.
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d2 = d[d['age'] >= 18]
+```
+
+```{python}
+xbar = d2.weight.mean()
+
+with pm.Model() as m4_3:
+    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
+    a = pm.Normal("a", mu=178, sigma=20)
+    b = pm.LogNormal("b", mu=0, sigma=1)
+    sigma = pm.Uniform("sigma", 0, 50)
+    mu = pm.Deterministic('mu', a + b * (weight - xbar), dims="obs_id")
+    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
+    custom_step_m4_3 = utils.QuadraticApproximation([a, b, sigma], m4_3)
+    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_3, progressbar=False)  
+```
+
+```{python}
+az.summary(trace_quap, var_names=['~mu'], kind='stats', hdi_prob=0.89)
+```
+
+```{python}
+trace_quap_df = trace_quap.posterior.to_dataframe()
+trace_quap_df.cov().round(3)
+```
+
+```{python}
+weight_seq = np.arange(25, 71)
+
+with m4_3:  
+    pm.set_data({"w": weight_seq})
+    pred = pm.sample_posterior_predictive(
+        trace_quap,
+        var_names=["height", "mu"],
+        return_inferencedata=True,
+        predictions=True,
+        extend_inferencedata=False,
+        progressbar=False
+    )
+
+fig, ax = plt.subplots()
+
+hdi_1 = az.plot_hdi(weight_seq, pred.predictions["height"], 
+                     hdi_prob=0.89, smooth=False, color='C1')  
+
+hdi_2 = az.plot_hdi(weight_seq, pred.predictions["mu"], 
+                     hdi_prob=0.89, smooth=False, color='green') 
+
+mean_line, = ax.plot(weight_seq, pred.predictions["mu"].mean(axis=1)[0], 'k', label='Mean')
+obs_data, = ax.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
+
+hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+ax.set(xlabel="Weight (kg)",
+       ylabel="Height (cm)",
+       xlim=(d2.weight.min() - 2, d2.weight.max() + 2),
+       ylim=(d2.height.min() - 2, d2.height.max() + 2))
+
+ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+```
+
+```{python}
+with pm.Model() as m4_3_mod:
+    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
+    a = pm.Normal("a", mu=178, sigma=20)
+    b = pm.LogNormal("b", mu=0, sigma=1)
+    sigma = pm.Uniform("sigma", 0, 50)
+    mu = pm.Deterministic('mu', a + b * weight, dims="obs_id")
+    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
+    custom_step_m4_3 = utils.QuadraticApproximation([a, b, sigma], m4_3_mod)
+    trace_quap_mod = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_3, progressbar=False)  
+```
+
+```{python}
+az.summary(trace_quap_mod, var_names=['~mu'], kind='stats', hdi_prob=0.89)
+```
+
+```{python}
+trace_quap_mod_df = trace_quap_mod.posterior.to_dataframe()
+trace_quap_mod_df.cov().round(3)
+```
+
+```{python}
+weight_seq = np.arange(25, 71)
+
+with m4_3_mod:  
+    pm.set_data({"w": weight_seq})
+    pred = pm.sample_posterior_predictive(
+        trace_quap_mod,
+        var_names=["height", "mu"],
+        return_inferencedata=True,
+        predictions=True,
+        extend_inferencedata=False,
+        progressbar=False
+    )
+
+fig, ax = plt.subplots()
+
+hdi_1 = az.plot_hdi(weight_seq, pred.predictions["height"], 
+                     hdi_prob=0.89, smooth=False, color='C1')  
+
+hdi_2 = az.plot_hdi(weight_seq, pred.predictions["mu"], 
+                     hdi_prob=0.89, smooth=False, color='green') 
+
+mean_line, = ax.plot(weight_seq, pred.predictions["mu"].mean(axis=1)[0], 'k', label='Mean')
+obs_data, = ax.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
+
+hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+ax.set(xlabel="Weight (kg)",
+       ylabel="Height (cm)",
+       xlim=(d2.weight.min() - 2, d2.weight.max() + 2),
+       ylim=(d2.height.min() - 2, d2.height.max() + 2))
+
+ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+```
+
+It can be seen that the posterior values of both models look rather similar to each other. However the in the variance-covariance matrix appear to be a couple of orders of magnitude larger when one doesn't subtract the mean values from the data. Why is this? It's because the parameters signify different things in the two different models.
+
+Inspect the model again:
+
+Originally we had
+
+$$
+\mu_i = \alpha + \beta(x_i - \bar{x})
+$$
+
+and in the second run we are instead deciding to fit
+
+$$
+\mu_i = \alpha' + \beta x_i
+$$
+
+We can see that doing this in no way changes the model that is being fit to the data as we can derive one from the other as follows
+
+$$
+\mu_i = \alpha + \beta(x_i - \bar{x}) = \alpha - \beta \bar{x} + \beta x_i = \alpha' + \beta x_i
+$$
+
+That is to say
+
+$$
+\alpha' = \alpha - \beta \bar{x}
+$$
+
+So as we can see, we can literally derive one parameter from the other. So why is the variance and covariance for the posterior of $\alpha'$ so much larger than for $\alpha$? It's because of what these parameters represent. For $\alpha$, it can be seen that $\mu = \alpha$ when $x = \bar{x}$. That is $\alpha$ represents the mean height at the mean weight. Therefore, the uncertainty in $\alpha$ is equivalent to the uncertainty in $\mu$ when $x = \bar{x}$, the mean of the weight. On the other hand, $\mu = \alpha'$ when $x = 0$, that is $\alpha$ represent the y-intercept of the data.
+
+### 4M8
+
+In the chapter, we used 15 knots with the cherry blossom spline. Increase the number of knots and observe what happens to the resulting spline. Then adjust also the width of the prior on the weights—change the standard deviation of the prior and watch what happens. What do you think the combination of knot number and the prior on the weights controls?
+
+```{python}
+d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
+d2 = d[d[['doy']].notna().all(axis=1)]
+
+num_knots = 20
+knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
+
+
+bspline_regression_plots(d2, knot_list, degree=3, w_std_prior=20)
+```
+
+```{python}
+num_knots = 30
+knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
+
+
+bspline_regression_plots(d2, knot_list, degree=3, w_std_prior=10)
+```
+
+```{python}
+num_knots = 30
+knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
+
+
+bspline_regression_plots(d2, knot_list, degree=3, w_std_prior=30)
+```
+
+Increasing the number of knots increases the 'wiggles' and the increasing the standard deviation of the weight increases the width/thickness of $\mu$'s HDI plot.
+
+### 4H1
+
+The weights listed below were recorded in the !Kung census, but heights were not recorded for these individuals. Provide predicted heights and 89% intervals for each of these individuals. That is, fill in the table below, using model-based predictions.
+
+| Individual | Weight | Expected Height | 89% Interval |
+|------------|--------|-----------------|--------------|
+| 1          | 46.95  |                 |              |
+| 2          | 43.72  |                 |              |
+| 3          | 64.78  |                 |              |
+| 4          | 32.59  |                 |              |
+| 5          | 54.63  |                 |              |
+
+Method 1: PyMC's sample posterior predictive function
+
+```{python}
+missing_data = pd.DataFrame({'individual': np.arange(5)+1,
+                             'weight': np.array([46.95, 43.72, 64.78, 32.59, 54.63])})
+
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d2 = d[d['age'] >= 18]
+
+xbar = d2.weight.mean()
+
+with pm.Model() as m4_3:
+    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
+    a = pm.Normal("a", mu=178, sigma=20)
+    b = pm.LogNormal("b", mu=0, sigma=1)
+    sigma = pm.Uniform("sigma", 0, 50)
+    mu = pm.Deterministic('mu', a + b * (weight - xbar), dims="obs_id")
+    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
+    
+    # mean_q = pm.find_MAP()
+    # Hess = pm.find_hessian(mean_q, vars=[a, b, sigma])
+    
+    custom_step_m4_3 = utils.QuadraticApproximation([a, b, sigma], m4_3)
+    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_3, progressbar=False) 
+     
+    pm.set_data({"w": missing_data.weight})
+    pred = pm.sample_posterior_predictive(
+        trace_quap,
+        var_names=["height", "mu"],
+        return_inferencedata=True,
+        predictions=True,
+        extend_inferencedata=False,
+        progressbar=False
+    )
+```
+
+```{python}
+missing_data['expected_height'] = pred.predictions.mu.mean(axis=1)[0]
+hdi_vals = az.hdi(pred.predictions.height, hdi_prob=0.89).height
+missing_data['hdi_5.5'] = hdi_vals[:,0]
+missing_data['hdi_94.5'] = hdi_vals[:,1]
+
+missing_data.round(2)
+```
+
+### 4H2
+
+Select out all the rows in the Howell1 data with ages below 18 years of age. If you do it right, you should end up with a new data frame with 192 rows in it.
+
+1)  Fit a linear regression to these data, using `PyMC`. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets?
+2)  Plot the raw data, with height on the vertical axis and weight on the horizontal axis. Super-impose the MAP regression line and 89% interval for the mean. Also superimpose the 89% interval for predicted heights.
+3)  What aspects of the model fit concern you? Describe the kinds of assumptions you would change, if any, to improve the model. You don’t have to write any new code. Just explain what the model appears to be doing a bad job of, and what you hypothesize would be a better model.
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d2 = d[d['age'] < 18]
+```
+
+```{python}
+plt.plot(d2.weight, d2.height, 'o', fillstyle='none')
+plt.ylabel("Height (cm)")
+plt.xlabel("Weight (kg)");
+```
+
+1)  Fit a linear regression to these data, using `PyMC`. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets?
+
+```{python}
+weight_seq = np.linspace(1, 45, 50)
+
+with pm.Model() as m4:
+    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
+    a = pm.Normal("a", mu=100, sigma=100)
+    b = pm.Normal("b", mu=0, sigma=10)
+    sigma = pm.Uniform("sigma", 0, 50)
+    mu = pm.Deterministic('mu', a + b * weight, dims="obs_id")
+    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
+    
+    custom_step_m4 = utils.QuadraticApproximation([a, b, sigma], m4)
+    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4, progressbar=False)
+    
+    pm.set_data({"w": weight_seq})
+    pred = pm.sample_posterior_predictive(
+        trace_quap,
+        var_names=["height", "mu"],
+        return_inferencedata=True,
+        predictions=True,
+        extend_inferencedata=False,
+        progressbar=False
+    )
+```
+
+```{python}
+az.summary(trace_quap, var_names=['~mu'], kind='stats', hdi_prob=0.89).round(2)
+```
+
+The estimates suggest that the MAP coefficient for weight is 2.7. This implies that for a unit change of 1kg of weight, we predict an average of 2.7cm of increase in height.
+
+2)  Plot the raw data, with height on the vertical axis and weight on the horizontal axis. Super-impose the MAP regression line and 89% interval for the mean. Also superimpose the 89% interval for predicted heights.
+
+We will sample from the posterior predictive, then compute 90% intervals for the mean and predicted heights.
+
+```{python}
+fig, ax = plt.subplots()
+
+hdi_1 = az.plot_hdi(weight_seq, pred.predictions.height, 
+                     hdi_prob=0.89, smooth=False, color='C1')  
+
+hdi_2 = az.plot_hdi(weight_seq, pred.predictions.mu, 
+                     hdi_prob=0.89, smooth=False, color='green') 
+
+mean_line, = ax.plot(weight_seq, pred.predictions.mu.mean(axis=1)[0], 'k', label='Mean')
+obs_data, = ax.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
+
+hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+ax.set(xlabel="Weight (kg)",
+       ylabel="Height (cm)",
+       xlim=(d2.weight.min() - 2, d2.weight.max() + 2),
+       ylim=(d2.height.min() - 2, d2.height.max() + 2))
+
+ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+```
+
+3)  What aspects of the model fit concern you? Describe the kinds of assumptions you would change, if any, to improve the model. You don’t have to write any new code. Just explain what the model appears to be doing a bad job of, and what you hypothesize would be a better model.
+
+The major problem with this model appears to be that the relationship between weight and height, for non-adults, isn’t very linear. Instead it is curved. As a result, at low weight values, the predicted mean is above most of the actual heights. At middle weight values, the predicted mean is below most of the heights. Then again at high weight values, the mean is above the heights.
+
+A parabolic model would likely fit these data much better. But that’s not the only option. What we’re after essentially is some way to model a reduction of the slope between height and weight, as weight increases.
+
+### 4H3
+
+Suppose a colleague of yours, who works on allometry, glances at the practice problems just above. Your colleague exclaims, “That’s silly. Everyone knows that it’s only the logarithm of body weight that scales with height!” Let’s take your colleague’s advice and see what happens.
+
+1)  Model the relationship between height (cm) and the natural logarithm of weight (log-kg). Use the entire Howell1 data frame, all 544 rows, adults and non-adults. Can you interpret the resulting estimates?
+
+2)  Begin with this plot. Then use samples from the quadratic approximate posterior of the model in (a) to superimpose on the plot: (1) the predicted mean height as a function of weight, (2) the 97% interval for the mean, and (3) the 97% interval for predicted heights.
+
+3)  Model the relationship between height (cm) and the natural logarithm of weight (log-kg). Use the entire Howell1 data frame, all 544 rows, adults and non-adults. Can you interpret the resulting estimates?
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d['log_weight'] = np.log(d['weight'])
+```
+
+```{python}
+log_weight_seq = np.linspace(1.4, 4.2, 50)
+
+with pm.Model() as m4:
+    weight = pm.ConstantData("w", d.log_weight, dims="obs_id")
+    a = pm.Normal("a", mu=100, sigma=100)
+    b = pm.Normal("b", mu=0, sigma=10)
+    sigma = pm.Uniform("sigma", 0, 50)
+    mu = pm.Deterministic('mu', a + b * weight, dims="obs_id")
+    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
+    
+    custom_step_m4 = utils.QuadraticApproximation([a, b, sigma], m4)
+    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4, progressbar=False)
+    
+    pm.set_data({"w": log_weight_seq})
+    pred = pm.sample_posterior_predictive(
+        trace_quap,
+        var_names=["height", "mu"],
+        return_inferencedata=True,
+        predictions=True,
+        extend_inferencedata=False,
+        progressbar=False
+    )
+```
+
+```{python}
+az.summary(trace_quap, var_names=['~mu'], kind='stats', hdi_prob=0.89).round(2)
+```
+
+```{python}
+fig, ax = plt.subplots()
+
+hdi_1 = az.plot_hdi(log_weight_seq, pred.predictions.height, 
+                     hdi_prob=0.89, smooth=False, color='C1')  
+
+hdi_2 = az.plot_hdi(log_weight_seq, pred.predictions.mu, 
+                     hdi_prob=0.89, smooth=False, color='green') 
+
+mean_line, = ax.plot(log_weight_seq, pred.predictions.mu.mean(axis=1)[0], 'k', label='Mean')
+obs_data, = ax.plot(d.log_weight, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
+
+hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+ax.set(xlabel="Log Weight",
+       ylabel="Height (cm)",
+       xlim=(d.log_weight.min()-0.1, d.log_weight.max()+0.01),
+       ylim=(d.height.min()-2, d.height.max()+2))
+
+ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+```
+
+```{python}
+weight_seq = np.exp(log_weight_seq)
+
+fig, ax = plt.subplots()
+
+hdi_1 = az.plot_hdi(weight_seq, pred.predictions.height, 
+                     hdi_prob=0.89, smooth=False, color='C1')  
+
+hdi_2 = az.plot_hdi(weight_seq, pred.predictions.mu, 
+                     hdi_prob=0.89, smooth=False, color='green') 
+
+mean_line, = ax.plot(weight_seq, pred.predictions.mu.mean(axis=1)[0], 'k', label='Mean')
+obs_data, = ax.plot(d.weight, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
+
+hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+ax.set(xlabel="Weight (kg)",
+       ylabel="Height (cm)",
+       xlim=(d.weight.min() - 2, d.weight.max() + 1),
+       ylim=(d.height.min() - 2, d.height.max() + 2))
+
+ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+```
+
+The model may have been linear, but plotted on the raw scale of measurement, it is clearly non-linear. Not only is the trend for the mean curved, but the variance around the mean is not constant, on this scale. Instead, the variance around the mean increases with weight. On the scale you fit the model on, the variance was assumed to be constant. But once you transform the measurement scale, it usually won’t be.
+
+Notice also that the estimate for the mean is so precise that you can hardly even see the confidence interval for it. Don’t get too confident about such results, though. Remember, all inferences of the model are conditional on the model. Even estimated trends that do a terrible job of prediction can have tight confidence intervals, when the data set is large.
+
+### 4H4
+
+Plot the prior predictive distribution for the parabolic polynomial regression model in the notebook. You can modify the code that plots the linear regression prior predictive distribution. Can you modify the prior distributions of $α$, $β_1$, and $β_2$ so that the prior predictions stay within the biologically reasonable outcome space? That is to say: Do not try to fit the data by hand. But do try to keep the curves consistent with what you know about height and weight, before seeing these exact data.
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d['weight_s'] = (d.weight.values - d.weight.mean())/d.weight.std()
+d['weight_s2'] = d.weight_s**2
+```
+
+```{python}
+with pm.Model() as m4_poly:
+    weight = pm.ConstantData("w", d.weight_s, dims="obs_id")
+    weight_s = pm.ConstantData("w_s", d.weight_s2, dims="obs_id")
+    a = pm.Normal("a", mu=178, sigma=20)
+    b1 = pm.LogNormal("b1", mu=0, sigma=1)
+    b2 = pm.Normal('b2', mu=0, sigma=1)
+    sigma = pm.Uniform("sigma", 0, 50)
+    mu = pm.Deterministic('mu', a + b1 * weight + b2 * weight_s, dims="obs_id")
+    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
+    pp = pm.sample_prior_predictive(samples=10_000)
+```
+
+```{python}
+a_dens = np.random.normal(178, 20, size=int(1e4))
+b1_dens = np.random.lognormal(0, 1, size=int(1e4))
+b2_dens = np.random.normal(0, 1, size=int(1e4))
+sigma_dens = np.random.uniform(0, 50, size=int(1e4))
+
+dens_list = [a_dens, b1_dens, b2_dens, sigma_dens]
+labels = [r'$\alpha$', r'$\beta_1$', r'$\beta_2$', r'$\sigma$']
+
+_ , axs = plt.subplots(2, 2, figsize=(6,6))
+
+for i, (dens, ax) in enumerate(zip(dens_list, axs.flatten())):
+    bw = utils.bw_nrd0(dens)
+    az.plot_kde(dens, bw=bw*0.5, ax=ax)
+    ax.set(xlabel=labels[i], ylabel='Density')
+```
+
+```{python}
+rand_index = np.random.choice(len(d))
+mu_dens = a_dens + b1_dens * d.weight_s[rand_index] + b2_dens * d.weight_s2[rand_index]
+prior_h = np.random.normal(loc=mu_dens, scale=sigma_dens)
+
+bw = utils.bw_nrd0(prior_h)
+az.plot_kde(prior_h, bw=bw*0.5);
+```
+
+```{python}
+prior_h = pp.prior_predictive.height[0][:,rand_index].to_numpy()
+bw = utils.bw_nrd0(prior_h)
+az.plot_kde(prior_h, bw=bw*0.5);
+```
+
+```{python}
+n = 1000
+a = stats.norm.rvs(178, 20, size=n)
+b1 = stats.lognorm.rvs(s=1, scale=np.exp(0), size=n)
+b2 = stats.norm.rvs(0, 1, size=n)
+
+weight = np.linspace(27,70,100).reshape(-1,1)
+weight_s = (weight - d.weight.mean())/d.weight.std()
+weight_s2 = weight_s**2
+
+height_pred = a + (b1 * weight_s) + (b2 * weight_s)
+
+plt.plot(weight, height_pred, color='k', alpha=0.2)
+plt.xlabel('Year')
+plt.ylabel('Height');
+```
+
+```{python}
+x = np.linspace(0, 70)
+weight_s = (x - d.weight.mean()) / d.weight.std()
+means = pp.prior["a"] + np.outer(weight_s, pp.prior["b1"]) + np.outer(weight_s**2, pp.prior["b2"])
+
+az.plot_hdi(d.weight, pp.prior.mu[0].to_numpy(), hdi_prob=0.89)
+plt.plot(d.weight, d.height, 'o', fillstyle='none')
+plt.ylabel("Height (cm)")
+plt.xlabel("Weight (kg)")
+plt.title("Prior predictions");
+```
+
+The justifications for the priors are written along side:
+
+$H_i \sim N(\mu_i,\sigma)$
+
+\$\mu\_i = \alpha + \beta\_1 (x_i - \overline{x}) - \beta\_2(x_i - \overline{x})\^2 \$ -\> Note that it's $-\beta_2$. Positive prior on $\beta$ ensures the paraboloid curves in the correct direction.
+
+$\alpha \sim N(150,30^2)$ -\> Reduced mean height at mean weight, as we are looking at a much larger age range now, so we expect younger people to drag the mean height down at any given weight relative to the adult only data set
+
+$\beta_1 \sim Lognormal(0,1)$ -\> Need a linear base line to perturb with a quadratic term
+
+The seconds term puts a small deviation from linearity
+
+$\beta_2 \sim exp(0.05)$ -\> This should be positive to ensure concavity, and small to ensure small only small perturbation from linearity in weights
+
+$\sigma$ \~ $Unif(0,50)$
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d['weight_s'] = d.weight - d.weight.mean()
+d['weight_s2'] = d.weight_s**2
+```
+
+```{python}
+with pm.Model() as m4_poly:
+    weight = pm.ConstantData("w", d.weight_s, dims="obs_id")
+    weight_s = pm.ConstantData("w_s", d.weight_s2, dims="obs_id")
+    a = pm.Normal("a", mu=150, sigma=30)
+    b1 = pm.LogNormal("b1", mu=0, sigma=1)
+    b2 = pm.Exponential('b2', 1 / 0.05)
+    sigma = pm.Uniform("sigma", 0, 1)
+    mu = pm.Deterministic('mu', a + b1 * weight - b2 * weight_s, dims="obs_id")
+    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
+    pp = pm.sample_prior_predictive(samples=10_000)
+```
+
+```{python}
+a_dens = np.random.normal(150, 30, size=int(1e4))
+b1_dens = np.random.lognormal(0, 1, size=int(1e4))
+b2_dens = np.random.exponential(1/0.05, size=int(1e4))
+sigma_dens = np.random.uniform(0, 1, size=int(1e4))
+
+dens_list = [a_dens, b1_dens, b2_dens, sigma_dens]
+labels = [r'$\alpha$', r'$\beta_1$', r'$\beta_2$', r'$\sigma$']
+
+_ , axs = plt.subplots(2, 2, figsize=(6,6))
+
+for i, (dens, ax) in enumerate(zip(dens_list, axs.flatten())):
+    bw = utils.bw_nrd0(dens)
+    az.plot_kde(dens, bw=bw*0.5, ax=ax)
+    ax.set(xlabel=labels[i], ylabel='Density')
+```
+
+```{python}
+rand_index = np.random.choice(len(d))
+mu_dens = a_dens + b1_dens * d.weight_s[rand_index] - b2_dens * d.weight_s2[rand_index]
+prior_h = np.random.normal(loc=mu_dens, scale=sigma_dens)
+
+bw = utils.bw_nrd0(prior_h)
+az.plot_kde(prior_h, bw=bw*0.5);
+```
+
+```{python}
+prior_h = pp.prior_predictive.height[0][:,rand_index].to_numpy()
+bw = utils.bw_nrd0(prior_h)
+az.plot_kde(prior_h, bw=bw*0.5);
+```
+
+```{python}
+n = 1000
+a = np.random.normal(150, 30, size=n)
+b1 = np.random.lognormal(0, 1, size=n)
+b2 = np.random.exponential(1/0.05, size=n)
+
+weight = np.linspace(27,70,100).reshape(-1,1)
+weight_s = (weight - d.weight.mean())/d.weight.std()
+weight_s2 = weight_s**2
+
+height_pred = a + (b1 * weight_s) + (b2 * weight_s2)
+
+plt.plot(weight, height_pred, color='k', alpha=0.2)
+plt.xlabel('Year')
+plt.ylabel('Height');
+```
+
+```{python}
+x = np.linspace(0, 70)
+mh = x - np.mean(d.weight)
+means = pp.prior["a"] + np.outer(mh, pp.prior["b1"]) - np.outer(mh ** 2, pp.prior["b2"])
+az.plot_hdi(x, means.T, hdi_prob=0.89)
+plt.plot(d.weight, d.height, 'o', fillstyle='none')
+plt.ylabel("Height (cm)")
+plt.xlabel("Weight (kg)")
+plt.title("Prior predictions");
+```
+
+By using an exponential prior on $\beta_2$ this ensures the parabolic curve must be concave, thus no increasing growth in height with weight is possible and makes perfect sense on physical grounds. However, extreme and absurd values are still found near the extremes of the data. One could tighten the parameters to ensure this didn't happen, but as a first approximation this isn't too bad.
+
+Clearly there is room for improvement here. However, because it’s not intuitive how exactly each parameter effects the parabolic curve, finding a good prior distribution is really hard! After much trial and error and playing with parabola calculators online, here is what I ended up with:
+
+$$
+\begin{align}
+  h_i &\sim \text{Normal}(\mu_i,\sigma) \\
+  \mu_i &= \alpha + \beta_1x_i + \beta_2x_i^2 \\
+  \alpha &\sim \text{Normal}(-190,5) \\
+  \beta_1 &\sim \text{Normal}(13,0.2) \\
+  \beta_2 &\sim \text{Uniform}(-0.13,-0.10) \\
+  \sigma &\sim \text{Uniform}(0,50)
+\end{align}
+$$
+
+Which has the following prior predictive distribution.
+
+```{python}
+n = 1000
+a = np.random.normal(-190, 5, size=n)
+b1 = np.random.normal(13, 0.1, size=n)
+b2 = np.random.uniform(-0.13, -0.1, size=n)
+
+weight = np.linspace(27,70,100).reshape(-1,1)
+
+height_pred = a + (b1 * weight) + (b2 * weight**2)
+
+plt.plot(weight, height_pred, color='k', alpha=0.2)
+plt.xlabel('Year')
+plt.ylabel('Height');
+```
+
+### 4H5
+
+Return to `cherry_blossoms` and model the association between blossom date (`doy`) and March temperature (`temp`). Note that there are many missing values in both variables. You may consider a linear model, a polynomial, or a spline on temperature. How well does temperature trend predict the blossom trend?
+
+```{python}
+d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
+d2 = d.dropna(subset=["doy", "temp"]).reset_index(drop=True)
+d2['temp_c'] = d2.temp - d2.temp.mean()
+d2['temp_s'] = d2.temp_c / d2.temp.std()
+```
+
+We’ll try each type of model: linear, polynomial, and spline. For each, we’ll fit the model, and then visualize the predictions with the observed data.
+
+**Linear Model**: $$
+\begin{aligned}
+    \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
+    \mu_i &= \alpha + \beta \cdot \text{t}_{i} - \bar{\text{t}} \\
+    \alpha &\sim \mathcal{N}(100, 10) \\
+    \beta &\sim \mathcal{N}(0, 10) \\
+    \sigma &\sim \text{Exponential}(1)
+\end{aligned}
+$$
+
+**Quadratic Model** $$
+\begin{aligned}
+    \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
+    \mu_i &= \alpha + \beta_1 \cdot \text{t}_{s,i} + \beta_2 \cdot \text{t}_{s,i}^2 \\
+    \alpha &\sim \mathcal{N}(100, 10) \\
+    \beta_1 &\sim \mathcal{N}(0, 10) \\
+    \beta_2 &\sim \mathcal{N}(0, 1) \\
+    \sigma &\sim \text{Exponential}(1)
+\end{aligned}
+$$
+
+**Cubic Model** $$
+\begin{aligned}
+    \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
+    \mu_i &= \alpha + \beta_1 \cdot \text{t}_{s,i} + \beta_2 \cdot \text{t}_{s,i}^2 + \beta_3 \cdot \text{t}_{s,i}^3 \\
+    \alpha &\sim \mathcal{N}(100, 10) \\
+    \beta_1 &\sim \mathcal{N}(0, 10) \\
+    \beta_2 &\sim \mathcal{N}(0, 1) \\
+    \beta_3 &\sim \mathcal{N}(0, 1) \\
+    \sigma &\sim \text{Exponential}(1)
+\end{aligned}
+$$
+
+**Spline Model** $$
+\begin{aligned}
+    \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
+    \mu_i &= \alpha + \sum_{j=1}^{k} \beta_j B_{j,i} \\
+    \alpha &\sim \mathcal{N}(100, 10) \\
+    \beta_j &\sim \mathcal{N}(0, 10), \quad \text{for } j = 1, \dots, k \\
+    \sigma &\sim \text{Exponential}(1)
+\end{aligned}
+$$
+
+```{python}
+plt.figure(figsize=(8,3))
+plt.plot(d2.temp, d2.doy, 'o', fillstyle='none')
+plt.xlabel('March Temperature')
+plt.ylabel('Day in Year');
+```
+
+```{python}
+temp_seq = np.linspace(d2.temp.min(), d2.temp.max(), 100)
+temp_seq_c = temp_seq - d2.temp.mean()
+temp_seq_s = temp_seq_c / d2.temp.std()
+
+# Linear Model
+with pm.Model() as linear:
+    temp_c = pm.ConstantData("temp_c", d2.temp_c.values, dims="obs_id")
+    a = pm.Normal("a", mu=100, sigma=10)
+    b = pm.Normal("b", mu=0, sigma=10)
+    sigma = pm.Exponential("sigma", 1)
+    mu = pm.Deterministic('mu', a + b * temp_c, dims="obs_id")
+    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d2.doy.values, dims="obs_id")    
+    steps_linear = utils.QuadraticApproximation([a, b, sigma], linear)
+    trace_linear = pm.sample(draws=4_000, chains=4, tune=0, cores=4, step=steps_linear, progressbar=False)  
+    pm.set_data({'temp_c': temp_seq_c})
+    pm.sample_posterior_predictive(
+        trace_linear,
+        var_names=["D", "mu"],
+        predictions=True,
+        extend_inferencedata=True,
+        progressbar=False
+    )
+
+# Quadratic Model
+with pm.Model() as quad:
+    temp_s = pm.ConstantData("temp_s", d2.temp_s, dims="obs_id")
+    a = pm.Normal("a", mu=100, sigma=10)
+    b1 = pm.Normal("b1", mu=0, sigma=10)
+    b2 = pm.Normal("b2", mu=0, sigma=1)
+    sigma = pm.Exponential("sigma", 1)
+    mu = pm.Deterministic('mu', a + (b1 * temp_s) + (b2 * temp_s**2), dims="obs_id")
+    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d2.doy.values, dims="obs_id")    
+    steps_quad = utils.QuadraticApproximation([a, b1, b2, sigma], quad)
+    trace_quad = pm.sample(draws=4_000, chains=4, tune=0, cores=4, step=steps_quad, progressbar=False)  
+    pm.set_data({'temp_s': temp_seq_s})
+    pm.sample_posterior_predictive(
+        trace_quad,
+        var_names=["D", "mu"],
+        predictions=True,
+        extend_inferencedata=True,
+        progressbar=False
+    )    
+
+# Cubic Model
+with pm.Model() as cubic:
+    temp_s = pm.ConstantData("temp_s", d2.temp_s, dims="obs_id")
+    a = pm.Normal("a", mu=100, sigma=10)
+    b1 = pm.Normal("b1", mu=0, sigma=10)
+    b2 = pm.Normal("b2", mu=0, sigma=1)
+    b3 = pm.Normal("b3", mu=0, sigma=1)
+    sigma = pm.Exponential("sigma", 1)
+    mu = pm.Deterministic('mu', a + (b1 * temp_s) + (b2 * temp_s**2) + (b3 * temp_s**3), dims="obs_id")
+    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d2.doy.values, dims="obs_id")    
+    steps_cubic = utils.QuadraticApproximation([a, b1, b2, b3, sigma], cubic)
+    trace_cubic = pm.sample(draws=4_000, chains=4, tune=0, cores=4, step=steps_cubic, progressbar=False)
+    pm.set_data({'temp_s': temp_seq_s})
+    pm.sample_posterior_predictive(
+        trace_cubic,
+        var_names=["D", "mu"],
+        predictions=True,
+        extend_inferencedata=True,
+        progressbar=False
+    )       
+    
+    
+# Spline Model
+import bambi as bmb
+
+knot_list = np.quantile(d2.temp, np.linspace(0, 1, 30))
+iknots = knot_list[1:-1]
+
+priors = {
+    "Intercept": bmb.Prior("Normal", mu=100, sigma=10),
+    "common": bmb.Prior("Normal", mu=0, sigma=10), 
+    "sigma": bmb.Prior("Exponential", lam=1)
+}
+
+model = bmb.Model("doy ~ bs(temp, knots=iknots, intercept=True)", d2, priors=priors)
+trace_spline = model.fit(idata_kwargs={"log_likelihood": True}, mp_ctx='forkserver', progressbar=False)
+new_data = pd.DataFrame({"temp": np.linspace(d2.temp.min(), d2.temp.max(), num=100)})
+model.predict(trace_spline, data=new_data, kind='response', inplace=True)
+```
+
+```{python}
+fig, axes = plt.subplots(2, 2, figsize=(9,4), sharex=True, sharey=True)
+
+trace = [trace_linear, trace_quad, trace_cubic, trace_spline]
+title = ['Linear', 'Quadratic', 'Cubic', 'Spline']
+
+for idx, ax in enumerate(axes.flatten()[:-1]):
+    hdi_1 = az.plot_hdi(temp_seq, trace[idx].predictions["D"], 
+                        hdi_prob=0.89, smooth=False, color='C1', ax=ax)  
+
+    hdi_2 = az.plot_hdi(temp_seq, trace[idx].predictions["mu"], 
+                        hdi_prob=0.89, smooth=False, color='green',ax=ax) 
+
+    mean_line, = ax.plot(temp_seq, trace[idx].predictions.mu.mean(dim=["chain", "draw"]), 'k', label='Mean', linewidth=2)
+    obs_data, = ax.plot(d2.temp, d2.doy, 'o', fillstyle='none', label='Observed Data', color='k', markersize=3)
+
+    hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+    hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+    ax.set(title=title[idx])
+    
+    if idx % 2 == 0:
+        ax.set(ylabel="Day of Year")
+    if idx == 2:
+        ax.set(xlabel="March Temperature")
+
+hdi_1 = az.plot_hdi(temp_seq, trace_spline.posterior_predictive["doy"], 
+                    hdi_prob=0.89, smooth=False, color='C1', ax=axes[1][1])  
+
+hdi_2 = az.plot_hdi(temp_seq, trace_spline.posterior["mu"], 
+                    hdi_prob=0.89, smooth=False, color='green',ax=axes[1][1]) 
+
+mean_line, = axes[1][1].plot(temp_seq, trace_spline.posterior.mu.mean(dim=["chain", "draw"]), 'k', label='Mean', linewidth=2)
+obs_data, = axes[1][1].plot(d2.temp, d2.doy, 'o', fillstyle='none', label='Observed Data', color='k', markersize=3)
+
+hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+axes[1][1].set(title="Spline", xlabel='March Temperature')
+
+fig.tight_layout();
+```
+
+### 4H6
+
+Simulate the prior predictive distribution for the cherry blossom spline in the chapter. Adjust the prior on the weights and observe what happens. What do you think the prior on the weights is doing?
+
+As a reminder, here is the cherry blossom spline model from the chapter:
+
+$$
+\begin{align}
+  D_i &\sim \text{Normal}(\mu_i,\sigma) \\
+  \mu_i &= \alpha + \sum_{k=1}^Kw_kB_{k,i} \\
+  \alpha &\sim \text{Normal}(100, 10) \\
+  w_k &\sim \text{Normal}(0,10) \\
+  \sigma &\sim \text{Exponential}(1)
+\end{align}
+$$
+
+We'll also need to recreate the basis functions that that model uses and finally, we can generate data from the priors, and combine those parameters with the basis functions to get the prior predictive distributions.
+
+```{python}
+d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
+d2 = d.dropna(subset=["doy", "temp"]).reset_index(drop=True)
+
+def bspline_prior_predictive(data, knot_list, degree, w_mu=0, w_sigma=10):
+    
+    B_mat = np.asarray(dmatrix(
+        f"bs(year, knots=knots, degree={degree}, include_intercept=True)-1",
+        {"year": data.year.values, "knots": knot_list[1:-1]},
+    ))    
+    
+    with pm.Model() as model:
+        B = pm.ConstantData("B", B_mat)
+        a = pm.Normal("a", mu=100, sigma=10)
+        w = pm.Normal("w", mu=w_mu, sigma=w_sigma, shape=B.shape[1])
+        sigma = pm.Exponential("sigma", 1)
+        mu = pm.Deterministic('mu', a + pm.math.dot(B, w.T))
+        D = pm.Normal("D", mu=mu, sigma=sigma, observed=data.doy.values)    
+        idata = pm.sample_prior_predictive(var_names=['D', 'mu'])
+    
+    prior_pred = az.extract(idata, 'prior_predictive')
+    prior = az.extract(idata, 'prior')
+
+    fig, axes = plt.subplots(2, 1, figsize=(8,5))
+    
+    for i, ax in enumerate(axes.flatten()):
+        az.plot_hdi(d2.year, prior_pred['D'].T, ax=ax, hdi_prob=0.89)
+        for j in knot_list:
+            ax.axvline(j, linestyle='--')
+        title = "DoY Prior Predictive"
+        if i % 2 == 0:
+            title = r"$\mu$ Prior Predictive"
+        ax.set(xlabel='Year', ylabel='Day of Year', title=title)
+    
+    axes[0].plot(d2.year, prior['mu'][:,:50], 'k')
+        
+    axes[1].plot(d2.year, prior_pred['D'][:, 10:50], 'k')
+    
+    fig.suptitle(f'Prior Predictive Distribution - Weight mu = {w_mu}, sigma = {w_sigma}')
+```
+
+```{python}
+knot_list = np.quantile(d2.year, np.linspace(0, 1, 15))
+bspline_prior_predictive(d2, knot_list, degree=3)
+```
+
+Now let's tighten the prior on `w` to $\text{Normal}(0,2)$, as we used for exercise **4M8.** Now the lines are much less wiggly, which is consistent with what we found in the previous exercise, which used the observed data.
+
+```{python}
+knot_list = np.quantile(d2.year, np.linspace(0, 1, 15))
+bspline_prior_predictive(d2, knot_list, degree=3, w_sigma=2)
+```
+
+### 4H8
+
+The cherry blossom spline in the chapter used an intercept α, but technically it doesn’t require one. The first basis functions could substitute for the intercept. Try refitting the cherry blossom spline without the intercept. What else about the model do you need to change to make this work?
+
+```{python}
+d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
+d2 = d.dropna(subset=["doy"]).reset_index(drop=True)
+
+def bspline_prior_predictive(data, knot_list, degree, w_mu=0, w_sigma=10):
+    
+    B_mat = np.asarray(dmatrix(
+        f"bs(year, knots=knots, degree={degree}, include_intercept=True)-1",
+        {"year": data.year.values, "knots": knot_list[1:-1]},
+    ))    
+    
+    with pm.Model() as model:
+        B = pm.ConstantData("B", B_mat)
+        w = pm.Normal("w", mu=w_mu, sigma=w_sigma, shape=B.shape[1])
+        sigma = pm.Exponential("sigma", 1)
+        mu = pm.Deterministic('mu', pm.math.dot(B, w.T))
+        D = pm.Normal("D", mu=mu, sigma=sigma, observed=data.doy.values)    
+        idata = pm.sample_prior_predictive(var_names=['D', 'mu'])
+        custom_steps = utils.QuadraticApproximation([w, sigma], model)
+        idata.extend(pm.sample(draws=1_000, chains=1, tune=0, step=custom_steps, progressbar=False)) 
+        pm.sample_posterior_predictive(
+            idata,
+            var_names=["D", "mu"],
+            predictions=True,
+            extend_inferencedata=True,
+            progressbar=False
+        )                
+    
+    return idata
+```
+
+```{python}
+knot_list = np.quantile(d2.year, np.linspace(0, 1, 15))
+idata = bspline_prior_predictive(d2, knot_list, degree=3)
+
+_, ax = plt.subplots(figsize=(8,3))
+
+hdi_1 = az.plot_hdi(d2.year, idata.predictions["D"], 
+                    hdi_prob=0.89, smooth=False, color='C1', ax=ax)  
+
+hdi_2 = az.plot_hdi(d2.year, idata.predictions["mu"], 
+                    hdi_prob=0.89, smooth=False, color='green',ax=ax) 
+
+mean_line, = ax.plot(d2.year, idata.predictions.mu.mean(dim=["chain", "draw"]), 'k', label='Mean', linewidth=2)
+obs_data, = ax.plot(d2.year, d2.doy, 'o', fillstyle='none', label='Observed Data', color='k', markersize=3)
+
+hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
+hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+
+ax.set(ylabel='Day of Year', xlabel='Year');
+```
+
+This looks a lot like our original model, except the left hand side of the spline is pulled down. This is likely due to the prior on `w`. The prior is centered on 0, but that assumes an intercept is present (i.e., the curves of the spline average a deviation of 0 from the mean). However, without the intercept, the prior drags the line down to actual zero when the first basis function in non-zero.
