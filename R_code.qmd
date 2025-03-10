@@ -590,7 +590,18 @@ precis(m4.6)
 ```
 
 
+```{r}
+library(rethinking)
+data(cherry_blossoms)
+d <- cherry_blossoms
 
+d2 <- d[ complete.cases(d$doy) , ] # complete cases on doy
+num_knots <- 5
+knot_list <- quantile( d2$year , probs=seq(0,1,length.out=num_knots) )
+
+library(splines)
+B <- bs(d2$year, knots=knot_list[-c(1,num_knots)], degree=1 , intercept=TRUE )
+```
 
 
 

@@ -77,7 +77,7 @@ class StanQuap(object):
                  algorithm = 'Newton',
                  jacobian: bool = False,
                  force_compile: bool = False,
-                 generated_var: list = None,
+                 generated_var: list = [],
                  **kwargs):
         self.train_data = data
         self.stan_model = Stan(stan_file, stan_code, force_compile)
@@ -92,7 +92,7 @@ class StanQuap(object):
         self.params = self.opt_model.stan_variables()
         self.opt_params = {param: self.params[param] for param in self.params.keys() if param not in self.generated_var}
         self.params_unc = self.bs_model.param_unconstrain(
-                              np.array(list(self.opt_params.values()))
+                              np.array(self._flatten_dict_values(self.opt_params))
                         )
         self.jacobian = jacobian
 
@@ -117,31 +117,35 @@ class StanQuap(object):
                                               draws=draws, 
                                               jacobian=self.jacobian)
       
-    def extract_samples(self, n: int = 100_000, dict_out: bool = True):
+    def extract_samples(self, n: int = 100_000, dict_out: bool = True, drop: list = None):
+        if drop is None:
+            drop = self.generated_var
         laplace_obj = self.laplace_sample(draws=n)
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
-            return {param: stan_var_dict[param] for param in stan_var_dict.keys() if param not in self.generated_var}
+            return {param: stan_var_dict[param] for param in stan_var_dict.keys() if param not in drop}
         return laplace_obj.draws()
 
-    def link(self, lm_func, data, n=1000, post=None):
+    def link(self, lm_func, data, n=1000, post=None, drop: list = None):
         # Extract Posterior Samples
         if post is None:
-            post = self.extract_samples(n=n, dict_out=True)
+            post = self.extract_samples(n=n, dict_out=True, drop=drop)
         return lm_func(post, data)
     
-    def sim(self, data: dict = None, n = 1000, dict_out: bool = True):
+    def sim(self, data: dict = None, n = 1000, dict_out: bool = True, drop: list = None):
         """
         Simulate posterior observations - Posterior Predictive Sampling
         https://mc-stan.org/docs/stan-users-guide/posterior-prediction.html
         https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html
         """
+        if drop is None:
+            drop = self.generated_var
         if data is None:
             data = self.train_data      
         laplace_obj = self.laplace_sample(data=data, draws=n)
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
-            return {param: stan_var_dict[param] for param in stan_var_dict if param in self.generated_var}
+            return {param: stan_var_dict[param] for param in stan_var_dict if param in drop}
         return laplace_obj.draws()      
 
     def compute_jacobian_analytical(self, param_types):
@@ -206,19 +210,23 @@ class StanQuap(object):
 
     def precis(self, param_types=None, prob=0.89, eps=1e-6):
         vcov_mat = self.vcov_matrix(param_types, eps)
-        pos_mu = np.array(list(self.opt_params.values()))
+        pos_mu = np.array(self._flatten_dict_values(self.opt_params))
         pos_sigma = np.sqrt(np.diag(vcov_mat))
         plo = (1-prob)/2
         phi = 1 - plo
         lo = pos_mu + pos_sigma * stats.norm.ppf(plo)
         hi = pos_mu + pos_sigma * stats.norm.ppf(phi)
         res = pd.DataFrame({
-          'Parameter': list(self.opt_params.keys()),
+          'Parameter': self.bs_model.param_names(),
           'Mean': pos_mu,
           'StDev': pos_sigma,
           f'{plo:.1%}': lo,
           f'{phi:.1%}': hi})
         return res.set_index('Parameter')
+
+    def _flatten_dict_values(self, d):
+        arrays = [np.ravel(np.array(value)) for value in d.values()]
+        return np.concatenate(arrays)
 
 
 def link(fit, lm_func, data, n=1000, post=None):

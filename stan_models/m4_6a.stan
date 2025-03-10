@@ -15,6 +15,9 @@ parameters {
 transformed parameters {
     vector[N] mu;
     mu = X * b;
+    
+    vector[N_tilde] mu_tilde;
+    mu_tilde = X_tilde * b;
 }
 model {
     height ~ normal(mu, sigma);
@@ -31,6 +34,6 @@ model {
 generated quantities {
     vector[N_tilde] y_tilde; 
     for (i in 1:N_tilde) {
-        y_tilde[i] = normal_rng(mu[i], sigma);
+        y_tilde[i] = normal_rng(mu_tilde[i], sigma);
     }
 }
