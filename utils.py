@@ -76,7 +76,8 @@ class StanQuap(object):
                  data: dict, 
                  algorithm = 'Newton',
                  jacobian: bool = False,
-                 force_compile = False,
+                 force_compile: bool = False,
+                 generated_var: list = None,
                  **kwargs):
         self.train_data = data
         self.stan_model = Stan(stan_file, stan_code, force_compile)
@@ -87,8 +88,9 @@ class StanQuap(object):
                               jacobian=jacobian,
                               **kwargs
                         )
-        self.param_names = self.bs_model.param_names()
-        self.opt_params = {param: self.opt_model.stan_variable(param) for param in self.param_names}
+        self.generated_var = generated_var
+        self.params = self.opt_model.stan_variables()
+        self.opt_params = {param: self.params[param] for param in self.params.keys() if param not in self.generated_var}
         self.params_unc = self.bs_model.param_unconstrain(
                               np.array(list(self.opt_params.values()))
                         )
@@ -119,9 +121,9 @@ class StanQuap(object):
         laplace_obj = self.laplace_sample(draws=n)
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
-            return {param: stan_var_dict[param] for param in self.param_names}
+            return {param: stan_var_dict[param] for param in stan_var_dict.keys() if param not in self.generated_var}
         return laplace_obj.draws()
-      
+
     def link(self, lm_func, data, n=1000, post=None):
         # Extract Posterior Samples
         if post is None:
@@ -139,8 +141,8 @@ class StanQuap(object):
         laplace_obj = self.laplace_sample(data=data, draws=n)
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
-            return {param: stan_var_dict[param] for param in stan_var_dict if param not in self.param_names}
-        return laplace_obj.draws()
+            return {param: stan_var_dict[param] for param in stan_var_dict if param in self.generated_var}
+        return laplace_obj.draws()      
 
     def compute_jacobian_analytical(self, param_types):
         """
