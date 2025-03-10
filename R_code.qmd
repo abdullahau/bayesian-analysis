@@ -79,7 +79,8 @@ class StanQuap(object):
                  data: dict, 
                  algorithm = 'Newton',
                  jacobian: bool = False,
-                 force_compile = False,
+                 force_compile: bool = False,
+                 generated_quant: list = None,
                  **kwargs):
         self.train_data = data
         self.stan_model = Stan(stan_file, stan_code, force_compile)
@@ -90,8 +91,9 @@ class StanQuap(object):
                               jacobian=jacobian,
                               **kwargs
                         )
-        self.param_names = self.bs_model.param_names()
-        self.opt_params = {param: self.opt_model.stan_variable(param) for param in self.param_names}
+        self.generated_quant = generated_quant
+        self.params = self.opt_model.stan_variables()
+        self.opt_params = {param: self.params[param] for param in self.params.keys() if param not in self.generated_quant}
         self.params_unc = self.bs_model.param_unconstrain(
                               np.array(list(self.opt_params.values()))
                         )
@@ -122,17 +124,28 @@ class StanQuap(object):
         laplace_obj = self.laplace_sample(draws=n)
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
-            return {param: stan_var_dict[param] for param in self.param_names}
+            return {param: stan_var_dict[param] for param in stan_var_dict.keys() if param not in self.generated_quant}
         return laplace_obj.draws()
+
+    def link(self, lm_func, data, n=1000, post=None):
+        # Extract Posterior Samples
+        if post is None:
+            post = self.extract_samples(n=n, dict_out=True)
+        return lm_func(post, data)
     
     def sim(self, data: dict = None, n = 1000, dict_out: bool = True):
+        """
+        Simulate posterior observations - Posterior Predictive Sampling
+        https://mc-stan.org/docs/stan-users-guide/posterior-prediction.html
+        https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html
+        """
         if data is None:
             data = self.train_data      
         laplace_obj = self.laplace_sample(data=data, draws=n)
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
-            return {param: stan_var_dict[param] for param in stan_var_dict if param not in self.param_names}
-        return laplace_obj.draws()
+            return {param: stan_var_dict[param] for param in stan_var_dict if param in self.generated_quant}
+        return laplace_obj.draws()      
 
     def compute_jacobian_analytical(self, param_types):
         """
@@ -259,11 +272,13 @@ data = {'N': len(d2),
         'N_tilde': len(weight_seq),
         'weight_tilde': weight_seq.tolist()}
 
-m4_3_pred_model = StanQuap('stan_models/m4_3_pred', m4_3_pred, data, algorithm = 'Newton')
+m4_3_pred_model = StanQuap('stan_models/m4_3_pred', m4_3_pred, data, algorithm = 'Newton', generated_quant = ['y_tilde'])
 m4_3_pred_model.precis().round(2)
 m4_3_pred_model.vcov_matrix().round(3)
 
-m4_3_pred_model.sim(data=data, n=100)
+m4_3_pred_model.sim(n=100)
+m4_3_pred_model.opt_params
+m4_3_pred_model.params_unc
 ```
 
 ```{python}
@@ -527,37 +542,55 @@ sigma ~ dunif( 0 , 50 )
 ```
 
 ```{r}
-precis( m4.3 )
-pairs(m4.3)
+library(rethinking)
+data(Howell1)
+d <- Howell1
+
+d$weight_s <- ( d$weight - mean(d$weight) )/sd(d$weight)
+d$weight_s2 <- d$weight_s^2
+m4.5 <- quap(
+alist(
+height ~ dnorm( mu , sigma ) ,
+mu <- a + b1*weight_s + b2*weight_s2 ,
+a ~ dnorm( 178 , 20 ) ,
+b1 ~ dlnorm( 0 , 1 ) ,
+b2 ~ dnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 50 )
+) , data=d )
+
+precis( m4.5 )
 ```
 
 ```{r}
-# define sequence of weights to compute predictions for
-# these values will be on the horizontal axis
-weight.seq <- seq( from=25 , to=70 , by=1 )
-# use link to compute mu
-# for each sample from posterior
-# and for each weight in weight.seq
-mu <- link( m4.3 , data=data.frame(weight=weight.seq) )
-str(mu)
+weight.seq <- seq( from=-2.2 , to=2 , length.out=30 )
+pred_dat <- list( weight_s=weight.seq , weight_s2=weight.seq^2 )
+mu <- link( m4.5 , data=pred_dat )
+mu.mean <- apply( mu , 2 , mean )
+mu.PI <- apply( mu , 2 , PI , prob=0.89 )
+sim.height <- sim( m4.5 , data=pred_dat )
+height.PI <- apply( sim.height , 2 , PI , prob=0.89 )
+
+height.PI
 ```
 
 ```{r}
-# use type="n" to hide raw data
-plot( height ~ weight , d2 , type="n" )
-# loop over samples and plot each mu value
-for ( i in 1:100 )
-points( weight.seq , mu[i,] , pch=16 , col=col.alpha(rangi2,0.1) )
+d$weight_s3 <- d$weight_s^3
+m4.6 <- quap(
+alist(
+height ~ dnorm( mu , sigma ) ,
+mu <- a + b1*weight_s + b2*weight_s2 + b3*weight_s3 ,
+a ~ dnorm( 178 , 20 ) ,
+b1 ~ dlnorm( 0 , 1 ) ,
+b2 ~ dnorm( 0 , 10 ) ,
+b3 ~ dnorm( 0 , 10 ) ,
+sigma ~ dunif( 0 , 50 )
+) , data=d )
+
+precis(m4.6)
 ```
 
-```{r}
-sim.height <- sim( m4.3 , data=list(weight=weight.seq) )
-sim.mean <- apply( sim.height , 2 , mean )
-sim.PI <- apply( sim.height , 2 , PI , prob=0.89 )
 
-sim.mean
-sim.PI
-```
+
 
 
 

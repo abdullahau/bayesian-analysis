@@ -1,4 +1,5 @@
-pymc
+cmdstanpy
+bridgestan
 arviz
 matplotlib
 numpy
@@ -6,9 +7,11 @@ scipy
 pandas
 xarray
 patsy
+formulaic
 graphviz
+networkx
 statsmodels
 seaborn
 watermark
 colorama
-networkx
+

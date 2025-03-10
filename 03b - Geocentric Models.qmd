@@ -548,7 +548,7 @@ What these numbers mean is that the central 89% of the ways for the model to pro
 
 That’s good so far, but we need to repeat the above calculation for every weight value on the horizontal axis, not just when it is 50 kg. We want to draw 89% intervals around the average slope.
 
-This is made simple by strategic use of the `link` function. What `link` will do is take our `StanQuap` approximation, sample from the posterior distribution, and then compute $μ$ for each case in the data and sample from the posterior distribution. Here’s what it looks like for the data you used to fit the model:
+This is made simple by strategic use of the `link` method. What `link` will do is take our `StanQuap` approximation, sample from the posterior distribution, and then pass all parameter samples to a custom defined linear model function (one that mirrors the linear model inside our Stan program) to compute $μ$ for each case in the data and sample from the posterior distribution. Here’s what it looks like for the data you used to fit the model:
 
 ```{python}
 def lm(post, data):
@@ -557,7 +557,7 @@ def lm(post, data):
     a, b = post['a'].reshape(-1,1), post['b'].reshape(-1,1)
     return a + b * (weight - xbar)
 
-mu = utils.link(m4_3_model, lm_func=lm, data=d2['weight'].to_numpy())
+mu = m4_3_model.link(lm_func=lm, data=d2['weight'].to_numpy())
 print(mu)
 ```
 
@@ -573,7 +573,7 @@ weight_seq = np.arange(25, 71)
 # use link to compute mu
 # for each sample from posterior
 # and for each weight in weight.seq
-mu = utils.link(m4_3_model, lm_func=lm, data=weight_seq)
+mu = m4_3_model.link(lm_func=lm, data=weight_seq)
 mu
 ```
 
@@ -641,7 +641,7 @@ The compatibility interval for the regression line in the plot above clings tigh
 
 #### How `link` works
 
-The function `link` is not really very sophisticated. All it is doing is using the linear model function you provide as an argument to compute the value of the linear model. It does this for each sample from the posterior distribution, for each case in the data. You could accomplish the same thing for any model, fit by any means, by performing these steps yourself. This is how it’d look for `m4_3_model`.
+The `link` method is not really very sophisticated. All it is doing is using the linear model function you provide as an argument to compute the value of the linear model. It does this for each sample from the posterior distribution, for each case in the data. You could accomplish the same thing for any model, fit by any means, by performing these steps yourself. This is how it’d look for `m4_3_model`.
 
 ```{python}
 post = m4_3_model.extract_samples(n=1000, dict_out=True)
@@ -740,6 +740,8 @@ def plot_post_sim():
     plt.plot(weight_seq, mu_summary['Mean'], 'k', label='Mean')
     plt.fill_between(weight_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
     plt.fill_between(weight_seq, sim_height_df['5.5%'], sim_height_df['94.5%'], alpha=0.2)
+    plt.xlabel('Weight (kg)')
+    plt.ylabel('Height (cm)')    
 
 utils.inline_plot(plot_post_sim)
 ```
@@ -772,7 +774,7 @@ sim_height = stats.norm.rvs(
         loc=post['a'] + post['b'] * (weight_seq.reshape(-1,1) - xbar),
         scale=post['sigma']
         ).T
-        
+
 sim_height_df = pd.DataFrame(
     {str(weight): sim_height[:, i] for i, weight in enumerate(weight_seq)}
     )
@@ -803,9 +805,12 @@ d.head()
 Go ahead and plot height and weight. The relationship is visibly curved, now that we’ve included the non-adult individuals.
 
 ```{python}
-plt.plot(d.weight, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-plt.xlabel('Weight (kg)')
-plt.ylabel('Height (cm)');
+def plot_scatter():
+    plt.plot(d.weight, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.xlabel('Weight (kg)')
+    plt.ylabel('Height (cm)')
+
+utils.inline_plot(plot_scatter)
 ```
 
 The most common polynomial regression is a parabolic model of the mean. Let $x$ be standardized body weight. Then the parabolic equation for the mean height is:
@@ -827,37 +832,62 @@ h_{i} &\sim \text{Normal}(\mu_i, \sigma)\tag{Likelihood}\\
 
 The confusing issue here is assigning a prior for $β_2$, the parameter on the squared value of $x$. Unlike $β_1$, we don’t want a positive constraint. In the practice problems at the end of the chapter, you’ll use prior predictive simulation to understand why. These polynomial parameters are in general very difficult to understand. But prior predictive simulation does help a lot.
 
-Approximating the posterior is straightforward. Just modify the definition of `mu` so that it contains both the linear and quadratic terms. But in general it is better to pre-process any variable transformations—you don’t need the computer to recalculate the transformations on every iteration of the fitting procedure. So I’ll also build the square of `weight_s` as a separate variable:
+Approximating the posterior is straightforward. Just modify the definition of `mu` so that it contains both the linear and quadratic terms. But in general it is better to pre-process any variable transformations—you don’t need the computer to recalculate the transformations on every iteration of the fitting procedure. So I’ll also build the square of `weight_s` as a separate variable and place `weight_s2` inside Stan's `transformed data` block:
 
 ```{python}
+m4_5 = '''
+data {
+    int<lower=1> N;
+    vector[N] height;
+    vector[N] weight_s;
+    
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_s_tilde;
+}
+transformed data {
+    vector[N] weight_s2 = weight_s^2;
+    vector[N_tilde] weight_s2_tilde = weight_s_tilde^2;
+}
+parameters {
+    real a;
+    real<lower=0> b1;
+    real b2;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b1 * weight_s + b2 * weight_s2;
+    
+    height ~ normal(mu, sigma);
+    
+    a ~ normal(178, 20);
+    b1 ~ lognormal(0, 1);
+    b2 ~ normal(0, 1);
+    sigma ~ uniform(0, 50);
+}
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(a + b1 * weight_s_tilde[i] + b2 * weight_s2_tilde[i], sigma);
+    }
+}
+'''
 d['weight_s'] = (d.weight.values - d.weight.mean())/d.weight.std()
-d['weight_s2'] = d.weight_s**2
+weight_s_seq = np.linspace(-2.2, 2, 30)
 
-with pm.Model() as m4_5_quad:
-    weight = pm.ConstantData("w", d.weight_s, dims="obs_id")
-    weight_s = pm.ConstantData("w_s", d.weight_s2, dims="obs_id")
-    a = pm.Normal("a", mu=178, sigma=20)
-    b1 = pm.LogNormal("b1", mu=0, sigma=1)
-    b2 = pm.Normal('b2', mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b1 * weight + b2 * weight_s, dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
-```
+data = {'N': len(d), 
+        'height': d['height'].tolist(), 
+        'weight_s': d['weight_s'].tolist(),
+        'N_tilde': len(weight_s_seq),
+        'weight_s_tilde': weight_s_seq.tolist()}
 
-```{python}
-with m4_5_quad:
-    custom_step_m4_5 = utils.QuadraticApproximation([a, b1, b2, sigma], m4_5_quad)
-    trace_quap_quad = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_5, progressbar=False)  
-```
-
-```{python}
-pm.model_to_graphviz(m4_5_quad)
+m4_5_model = utils.StanQuap('stan_models/m4_5', m4_5, data, algorithm = 'Newton')
 ```
 
 Now, since the relationship between the outcome `height` and the predictor `weight` depends upon two slopes, `b1` and `b2`, it isn’t so easy to read the relationship off a table of coefficients:
 
 ```{python}
-az.summary(trace_quap_quad, var_names=["~mu"], hdi_prob=0.89, kind="stats", round_to=2)
+m4_5_model.precis().round(2)
 ```
 
 The parameter $α$ (a) is still the intercept, so it tells us the expected value of height when weight is at its mean value. But it is no longer equal to the mean height in the sample, since there is no guarantee it should in a polynomial regression. And those $β_1$ and $β_2$ parameters are the linear and square components of the curve. But that doesn’t make them transparent.
@@ -865,45 +895,42 @@ The parameter $α$ (a) is still the intercept, so it tells us the expected value
 You have to plot these model fits to understand what they are saying. So let’s do that. We’ll calculate the mean relationship and the 89% intervals of the mean and the predictions, like in the previous section. Here’s the working code:
 
 ```{python}
-weight_seq = np.linspace(-2.2, 2, 30)
+def lm(post, data):
+    weight_s = data.reshape(-1,1)
+    a, b1, b2 = post['a'], post['b1'], post['b2']
+    return (a + b1 * weight_s + b2 * weight_s**2).T
 
-with m4_5_quad:  
-    pm.set_data({"w": weight_seq, 'w_s': weight_seq**2})
-    trace_quap_quad = pm.sample_posterior_predictive(
-        trace_quap_quad,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=True,
-        progressbar=False
+weight_s_seq = np.linspace(-2.2, 2, 30)
+mu = m4_5_model.link(lm_func=lm, data=weight_s_seq)
+mu_df = pd.DataFrame(
+    {str(round(weight, 2)): mu[:, i] for i, weight in enumerate(weight_s_seq)}
     )
+mu_summary = utils.precis(mu_df, index_name='Weight_s')
+sim_height = m4_5_model.sim(data=data)['y_tilde']
+sim_height_df = pd.DataFrame(
+    {str(round(weight, 2)): sim_height[:, i] for i, weight in enumerate(weight_s_seq)}
+    )
+sim_summary = utils.precis(sim_height_df, index_name='Weight_s')
 ```
 
+Plotting all of this is straightforward:
+
 ```{python}
-fig, ax = plt.subplots()
+def plot_post_sim():
+    plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.plot(weight_s_seq, mu_summary['Mean'], 'k', label='Mean')
+    plt.fill_between(weight_s_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
+    plt.fill_between(weight_s_seq, sim_summary['5.5%'], sim_summary['94.5%'], alpha=0.2)
+    plt.xlabel('Weight (Standardized)')
+    plt.ylabel('Height (cm)')    
 
-hdi_1 = az.plot_hdi(weight_seq, trace_quap_quad.predictions["height"], 
-                     hdi_prob=0.89, smooth=False)  
-
-hdi_2 = az.plot_hdi(weight_seq, trace_quap_quad.predictions["mu"], 
-                     hdi_prob=0.89, smooth=False) 
-
-mean_line, = ax.plot(weight_seq, trace_quap_quad.predictions["mu"].mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C0', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='C1', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Weight",
-       ylabel="Height (cm)",
-       xlim=(weight_seq.min(), weight_seq.max()))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+utils.inline_plot(plot_post_sim)
 ```
 
 Let build a higher-order polynomial regression, a cubic regression on weight. The model is:
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu_i, \sigma)\tag{Likelihood}\\
 \mu_i &= \alpha + \beta_1 x_i + \beta_2 x^2_i + \beta_3 x^3_i\tag{Cubic Model}\\
 \alpha &\sim \text{Normal}(178,20)\tag{α prior} \\
@@ -911,74 +938,188 @@ h_{i} &\sim \text{Normal}(\mu_i, \sigma)\tag{Likelihood}\\
 \beta_2 &\sim \text{Normal}(0,1)\tag{β2 prior} \\
 \beta_3 &\sim \text{Normal}(0,1)\tag{β3 prior} \\
 \sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
-\end{align*}$$
+\end{align*}
+$$
+
+Fit the model with a slight modification of the parabolic model’s code:
 
 ```{python}
-d['weight_s3'] = d.weight_s**3
+m4_6 = '''
+data {
+    int<lower=1> N;
+    vector[N] height;
+    vector[N] weight_s;
+    
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_s_tilde;
+}
+transformed data {
+    vector[N] weight_s2 = weight_s^2;
+    vector[N] weight_s3 = weight_s^3;
+    vector[N_tilde] weight_s2_tilde = weight_s_tilde^2;
+    vector[N_tilde] weight_s3_tilde = weight_s_tilde^3;
+}
+parameters {
+    real a;
+    real<lower=0> b1;
+    real b2;
+    real b3;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b1 * weight_s + b2 * weight_s2 + b3 * weight_s3;
+    
+    height ~ normal(mu, sigma);
+    
+    a ~ normal(178, 20);
+    b1 ~ lognormal(0, 1);
+    b2 ~ normal(0, 10);
+    b3 ~ normal(0, 10);
+    sigma ~ uniform(0, 50);
+}
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(
+            a + b1 * weight_s_tilde[i] + b2 * weight_s2_tilde[i] + b3 * weight_s3_tilde[i], 
+            sigma);
+    }
+}
+'''
+d['weight_s'] = (d.weight.values - d.weight.mean())/d.weight.std()
+weight_s_seq = np.linspace(-2.2, 2, 30)
 
-with pm.Model() as m4_5_cubic:
-    weight = pm.ConstantData("w", d.weight_s, dims="obs_id")
-    weight_s = pm.ConstantData("w_s", d.weight_s2, dims="obs_id")
-    weight_s3 = pm.ConstantData("w_s3", d.weight_s3, dims="obs_id")
-    a = pm.Normal("a", mu=178, sigma=20)
-    b1 = pm.LogNormal("b1", mu=0, sigma=1)
-    b2 = pm.Normal('b2', mu=0, sigma=1)
-    b3 = pm.Normal('b3', mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b1 * weight + b2 * weight_s + b3 * weight_s3, dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
+data = {'N': len(d), 
+        'height': d['height'].tolist(), 
+        'weight_s': d['weight_s'].tolist(),
+        'N_tilde': len(weight_s_seq),
+        'weight_s_tilde': weight_s_seq.tolist()}
+
+m4_6_model = utils.StanQuap('stan_models/m4_6', m4_6, data, algorithm = 'Newton')
 ```
 
-```{python}
-with m4_5_cubic:
-    custom_step_m4_5 = utils.QuadraticApproximation([a, b1, b2, b3, sigma], m4_5_cubic)
-    trace_quap_cubic = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_5, progressbar=False)  
-```
+Computing the curve and intervals is similarly a small modification of the previous code. This cubic curve is even more flexible than the parabola, so it fits the data even better.
 
 ```{python}
-weight_seq = np.linspace(-2.2, 2, 30)
+def lm(post, data):
+    weight_s = data.reshape(-1,1)
+    a, b1, b2, b3 = post['a'], post['b1'], post['b2'], post['b3']
+    return (a + b1 * weight_s + b2 * weight_s**2 + b3 * weight_s**3).T
 
-with m4_5_cubic:  
-    pm.set_data({"w": weight_seq, 'w_s': weight_seq**2, 'w_s3': weight_seq**3})
-    trace_quap_cubic = pm.sample_posterior_predictive(
-        trace_quap_cubic,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=True,
-        progressbar=False
+weight_s_seq = np.linspace(-2.2, 2, 30)
+mu = m4_6_model.link(lm_func=lm, data=weight_s_seq)
+mu_df = pd.DataFrame(
+    {str(round(weight, 2)): mu[:, i] for i, weight in enumerate(weight_s_seq)}
     )
+mu_summary = utils.precis(mu_df, index_name='Weight_s')
+sim_height = m4_6_model.sim(data=data)['y_tilde']
+sim_height_df = pd.DataFrame(
+    {str(round(weight, 2)): sim_height[:, i] for i, weight in enumerate(weight_s_seq)}
+    )
+sim_summary = utils.precis(sim_height_df, index_name='Weight_s')
+
+def plot_post_sim():
+    plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.plot(weight_s_seq, mu_summary['Mean'], 'k', label='Mean')
+    plt.fill_between(weight_s_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
+    plt.fill_between(weight_s_seq, sim_summary['5.5%'], sim_summary['94.5%'], alpha=0.2)
+    plt.xlabel('Weight (Standardized)')
+    plt.ylabel('Height (cm)')    
+
+utils.inline_plot(plot_post_sim)
 ```
-
-```{python}
-fig, ax = plt.subplots()
-
-hdi_1 = az.plot_hdi(weight_seq, trace_quap_cubic.predictions["height"], 
-                     hdi_prob=0.89, smooth=False)  
-
-hdi_2 = az.plot_hdi(weight_seq, trace_quap_cubic.predictions["mu"], 
-                     hdi_prob=0.89, smooth=False) 
-
-mean_line, = ax.plot(weight_seq, trace_quap_cubic.predictions["mu"].mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C0', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='C1', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Weight",
-       ylabel="Height (cm)",
-       xlim=(weight_seq.min(), weight_seq.max()))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
-```
-
-This cubic curve is even more flexible than the parabola, so it fits the data even better.
 
 But it’s not clear that any of these models make a lot of sense. They are good geocentric descriptions of the sample, yes. But there are two problems. First, a better fit to the sample might not actually be a better model. Second, the model contains no biological information. We aren’t learning any causal relationship between height and weight.
 
-**Linear, additive, funky**. The parabolic model of $μ_i$ above is still a “linear model” of the mean, even though the equation is clearly not of a straight line. Unfortunately, the word “linear” means different things in different contexts, and different people use it differently in the same context. What “linear” means in this context is that $μ_i$ is a linear function of any single parameter. Such models have the advantage of being easier to fit to data. They are also often easier to interpret, because they assume that parameters act independently on the mean. They have the disadvantage of being used thoughtlessly. When you have expert knowledge, it is often easy to do better than a linear model. These models are geocentric devices for describing partial correlations. We should feel embarrassed to use them, just so we don’t become satisfied with the phenomenological explanations they provide.
+------------------------------------------------------------------------
 
-**Converting back to natural scale**. The plots in above have standard units on the horizontal axis. These units are sometimes called **z-scores**. But suppose you fit the model using standardized variables, but want to plot the estimates on the original scale. All that’s really needed is to transform the `xticks` when you plot the raw data:
+#### Stan Tips
+
+We can combine the 3 separate Stan model definitions into one by turning `weight` (and its transformations as regressors), its associated $\beta_{j}$ coefficients, and the $\alpha$ intercept into a matrix.[^1]
+
+[^1]: [A Matrix Formulation of the Multiple Regression Model](https://online.stat.psu.edu/stat462/node/132/)
+
+```{python}
+from formulaic import Formula
+
+m4_6a = '''
+data {
+    int<lower=1> N;             // Number of Observations
+    int<lower=1> K;             // Number of Coefficients (including intercept)
+    vector[N] height;           // Outcome
+    matrix[N, K] X;             // Regressors 
+    
+    int<lower=1> N_tilde;
+    matrix[N_tilde, K] X_tilde;
+}
+parameters {
+    vector[K] b;
+    real<lower=0, upper=50> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = X * b;
+}
+model {
+    height ~ normal(mu, sigma);
+    
+    b[1] ~ normal(178, 20);
+    b[2] ~ lognormal(0, 1);
+    if (K > 2) {
+        for (i in 3:K) {
+            b[i] ~ normal(0, 10);
+        }
+    }
+    sigma ~ uniform(0, 50);
+}
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(mu[i], sigma);
+    }
+}
+'''
+d['weight_s'] = (d.weight.values - d.weight.mean())/d.weight.std()
+
+def stan_data_dict(degree):
+    # Dynamically construct polynomial terms
+    poly_terms = " + ".join([f"I(weight_s**{i})" for i in range(1, degree + 1)])   
+    formula = Formula(f"1 + {poly_terms}")
+    X = formula.get_model_matrix(d).to_numpy()
+    weight_seq = pd.DataFrame({'weight_s': np.linspace(-2.2, 2, 30)})
+    X_tilde = formula.get_model_matrix(weight_seq).to_numpy()
+    return {'N': len(d),
+            'K': 4,
+            'height': d['height'].tolist(),
+            'X': X.tolist(),
+            'N_tilde': len(weight_seq),
+            'X_tilde': X_tilde.tolist()}
+
+# m4_6a_model = utils.StanQuap('stan_models/m4_6a', m4_6a, data = stan_data_dict(3), algorithm = 'Newton')
+
+test_stan = utils.Stan('stan_models/m4_6a', m4_6a)
+test_bs = utils.BridgeStan('stan_models/m4_6a', stan_data_dict(3))
+test_bs.param_names()
+test_opt = test_stan.optimize(data = stan_data_dict(3), algorithm = 'Newton', jacobian=False)
+# test_opt.stan_variables()
+
+test_bs.param_num()
+test_bs.param_unc_names()
+test_opt._metadata.stan_vars
+```
+
+------------------------------------------------------------------------
+
+#### Linear, additive, funky
+
+The parabolic model of $μ_i$ above is still a “linear model” of the mean, even though the equation is clearly not of a straight line. Unfortunately, the word “linear” means different things in different contexts, and different people use it differently in the same context. What “linear” means in this context is that $μ_i$ is a linear function of any single parameter. Such models have the advantage of being easier to fit to data. They are also often easier to interpret, because they assume that parameters act independently on the mean. They have the disadvantage of being used thoughtlessly. When you have expert knowledge, it is often easy to do better than a linear model. These models are geocentric devices for describing partial correlations. We should feel embarrassed to use them, just so we don’t become satisfied with the phenomenological explanations they provide.
+
+------------------------------------------------------------------------
+
+#### Converting back to natural scale
+
+The plots in above have standard units on the horizontal axis. These units are sometimes called **z-scores**. But suppose you fit the model using standardized variables, but want to plot the estimates on the original scale. All that’s really needed is to transform the `xticks` when you plot the raw data:
 
 ```{python}
 fig, ax = plt.subplots()
@@ -1008,7 +1149,9 @@ ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
 
 The `xticks` at the end there overrides the horizontal axis. Then you explicitly construct the axis, by reversing the `(d.weight.values - d.weight.mean())/d.weight.std()` transformation back to original scale.
 
-##### Splines
+------------------------------------------------------------------------
+
+### Splines
 
 The second way to introduce a curve is to construct something known as a **spline**. The word spline originally referred to a long, thin piece of wood or metal that could be anchored in a few places in order to aid drafters or designers in drawing curves. In statistics, a spline is a smooth function built out of smaller, component functions. There are actually many types of splines. The **b-spline** we’ll look at here is commonplace. The “B” stands for “basis,” which here just means “component.” B-splines build up wiggly functions from simpler less-wiggly components. Those components are called basis functions. While there are fancier splines, we want to start B-splines because they force you to make a number of choices that other types of splines automate. You’ll need to understand B-splines before you can understand fancier splines.
 
