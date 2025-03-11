@@ -37,12 +37,14 @@
         "Lucida",
         "mainfont",
         "mathcal",
+        "matplotlib",
         "Menlo",
         "monobackgroundcolor",
         "monofont",
         "progressbar",
         "propto",
         "Quap",
+        "uncons",
         "vcov",
         "xbar"
     ]
