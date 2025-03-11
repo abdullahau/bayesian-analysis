@@ -837,6 +837,8 @@ def plot_post():
     plt.plot(weight_seq, mu_ci[:,1], 'k--')
     plt.plot(weight_seq, pred_ci[:,0], 'k--')
     plt.plot(weight_seq, pred_ci[:,1], 'k--')
+    plt.xlabel('Weight')
+    plt.ylabel('Height')
 
 utils.inline_plot(plot_post)
 ```
@@ -853,90 +855,91 @@ Suppose a colleague of yours, who works on allometry, glances at the practice pr
 
 1)  Model the relationship between height (cm) and the natural logarithm of weight (log-kg). Use the entire Howell1 data frame, all 544 rows, adults and non-adults. Can you interpret the resulting estimates?
 
-2)  Begin with this plot. Then use samples from the quadratic approximate posterior of the model in (a) to superimpose on the plot: (1) the predicted mean height as a function of weight, (2) the 97% interval for the mean, and (3) the 97% interval for predicted heights.
+2)  Begin with this plot: `plt.plot(d2.weight, d2.height)`. Then use samples from the quadratic approximate posterior of the model in (a) to superimpose on the plot: (1) the predicted mean height as a function of weight, (2) the 97% interval for the mean, and (3) the 97% interval for predicted heights.
 
-3)  Model the relationship between height (cm) and the natural logarithm of weight (log-kg). Use the entire Howell1 data frame, all 544 rows, adults and non-adults. Can you interpret the resulting estimates?
+1)  Model the relationship between height (cm) and the natural logarithm of weight (log-kg). Use the entire Howell1 data frame, all 544 rows, adults and non-adults. Can you interpret the resulting estimates?
 
+We can just use log inside the Stan mode:
 ```{python}
 d = pd.read_csv("data/Howell1.csv", sep=';')
-d['log_weight'] = np.log(d['weight'])
-```
 
-```{python}
-log_weight_seq = np.linspace(1.4, 4.2, 50)
-
-with pm.Model() as m4:
-    weight = pm.ConstantData("w", d.log_weight, dims="obs_id")
-    a = pm.Normal("a", mu=100, sigma=100)
-    b = pm.Normal("b", mu=0, sigma=10)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b * weight, dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
+mlw = '''
+data {
+    int<lower=1> N;
+    vector[N] height;
+    vector[N] weight;
     
-    custom_step_m4 = utils.QuadraticApproximation([a, b, sigma], m4)
-    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4, progressbar=False)
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_tilde;
+}
+parameters {
+    real a;
+    real b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * log(weight);
     
-    pm.set_data({"w": log_weight_seq})
-    pred = pm.sample_posterior_predictive(
-        trace_quap,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=False,
-        progressbar=False
-    )
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(138, 100);
+    b ~ normal(0, 100);
+    sigma ~ uniform(0, 50);
+}
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(a + b * weight_tilde[i], sigma);
+    }
+}
+'''
+
+lw_seq = np.linspace(1.4,4.2,50)
+data = {'N': len(d), 
+        'height': d['height'].tolist(), 
+        'weight': d['weight'].tolist(),
+        'N_tilde': len(lw_seq),
+        'weight_tilde': lw_seq.tolist()}
+
+mlw_model = utils.StanQuap('stan_models/mlw', mlw,
+                            data, algorithm = 'Newton',
+                            generated_var=['y_tilde'])
+
+mlw_model.precis().round(2)
 ```
+Pretty hard to know what to make of these estimates, aside from the fact that the confidence intervals are quite narrow, owing to there being 544 rows. The estimate for `b` ($β$) is hard to understand, because it refers to log-kg, not raw kg. It means that for every increase of 1 log-kg of weight, you expect a increase of 47 cm of height. But what’s a log-kg? You want to know what the model predicts on the natural scale of measurement. So now to plotting...
+
+2)  Begin with this plot: `plt.plot(d2.weight, d2.height)`. Then use samples from the quadratic approximate posterior of the model in (a) to superimpose on the plot: (1) the predicted mean height as a function of weight, (2) the 97% interval for the mean, and (3) the 97% interval for predicted heights.
+
+Begin by sampling from the naive posterior and computing the confidence intervals as per the examples in the book. Again, I’ll not use the convenience functions, but it’s fine if you did.
 
 ```{python}
-az.summary(trace_quap, var_names=['~mu'], kind='stats', hdi_prob=0.89).round(2)
+post = mlw_model.extract_samples(n=10_000)
+mu = post['a'].reshape(-1,1) + post['b'].reshape(-1,1) * lw_seq
+mu_mean = mu.mean(axis=0)
+mu_ci = az.hdi(mu, hdi_prob=0.89)
+pred = stats.norm.rvs(loc=mu, scale=post['sigma'].reshape(-1,1))
+pred_ci = az.hdi(pred, hdi_prob=0.89)
 ```
 
-```{python}
-fig, ax = plt.subplots()
-
-hdi_1 = az.plot_hdi(log_weight_seq, pred.predictions.height, 
-                     hdi_prob=0.89, smooth=False, color='C1')  
-
-hdi_2 = az.plot_hdi(log_weight_seq, pred.predictions.mu, 
-                     hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(log_weight_seq, pred.predictions.mu.mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d.log_weight, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Log Weight",
-       ylabel="Height (cm)",
-       xlim=(d.log_weight.min()-0.1, d.log_weight.max()+0.01),
-       ylim=(d.height.min()-2, d.height.max()+2))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
-```
+Now you have lists of numbers that can be plotted to produce the confidence curves. But how to translate back to the non-log scale of measurement on the horizontal axis? Just exponentiate the x-axis coordinates in `lw_seq`, and the job is done:
 
 ```{python}
-weight_seq = np.exp(log_weight_seq)
+def plot_post():
+    weight_seq = np.exp(lw_seq)
+    plt.plot(d.weight, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.plot(weight_seq, mu_mean, 'k', label='Mean')
+    plt.plot(weight_seq, mu_ci[:,0], 'k--')
+    plt.plot(weight_seq, mu_ci[:,1], 'k--')
+    plt.plot(weight_seq, pred_ci[:,0], 'k--')
+    plt.plot(weight_seq, pred_ci[:,1], 'k--')
+    plt.xlabel('Weight')
+    plt.ylabel('Height')    
 
-fig, ax = plt.subplots()
-
-hdi_1 = az.plot_hdi(weight_seq, pred.predictions.height, 
-                     hdi_prob=0.89, smooth=False, color='C1')  
-
-hdi_2 = az.plot_hdi(weight_seq, pred.predictions.mu, 
-                     hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(weight_seq, pred.predictions.mu.mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d.weight, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Weight (kg)",
-       ylabel="Height (cm)",
-       xlim=(d.weight.min() - 2, d.weight.max() + 1),
-       ylim=(d.height.min() - 2, d.height.max() + 2))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+utils.inline_plot(plot_post)
 ```
 
 The model may have been linear, but plotted on the raw scale of measurement, it is clearly non-linear. Not only is the trend for the mean curved, but the variance around the mean is not constant, on this scale. Instead, the variance around the mean increases with weight. On the scale you fit the model on, the variance was assumed to be constant. But once you transform the measurement scale, it usually won’t be.
