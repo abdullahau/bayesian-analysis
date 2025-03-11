@@ -826,14 +826,18 @@ The above is a parabolic (second order) polynomial. The $α+β_1 x_i$ part is th
 
 Fitting these models to data is easy. Interpreting them can be hard. We’ll begin with the easy part, fitting a parabolic model of height on weight. The first thing to do is to **standardize the predictor variable**. We’ve done this in previous examples. But this is especially helpful for working with polynomial models. When predictor variables have very large values in them, there are sometimes numerical glitches. Even well-known statistical software can suffer from these glitches, leading to mistaken estimates. These problems are very common for polynomial regression, because the square or cube of a large number can be truly massive. Standardizing largely resolves this issue. It should be your default behavior.
 
-To define the parabolic model, just modify the definition of $μ_i$. Here’s the model: $$\begin{align*}
+To define the parabolic model, just modify the definition of $μ_i$. Here’s the model: 
+
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu_i, \sigma)\tag{Likelihood}\\
 \mu_i &= \alpha + \beta_1 x_i + \beta_2 x^2_i\tag{Quadratic Model}\\
 \alpha &\sim \text{Normal}(178,20)\tag{α prior} \\
 \beta_1 &\sim \text{Log-Normal}(0,1)\tag{β1 prior} \\
 \beta_2 &\sim \text{Normal}(0,1)\tag{β2 prior} \\
 \sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
-\end{align*}$$
+\end{align*}
+$$
 
 The confusing issue here is assigning a prior for $β_2$, the parameter on the squared value of $x$. Unlike $β_1$, we don’t want a positive constraint. In the practice problems at the end of the chapter, you’ll use prior predictive simulation to understand why. These polynomial parameters are in general very difficult to understand. But prior predictive simulation does help a lot.
 

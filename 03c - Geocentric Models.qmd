@@ -150,15 +150,12 @@ data {
 generated quantities {
   real mu = normal_rng(0, 10);
   real sigma = exponential_rng(1);
-  array[N] real y_sim;
-  for (i in 1:N) {
-      y_sim[i] = normal_rng(mu, sigma);
-  }
+  real y_sim = normal_rng(mu, sigma);
 }
 '''
 
 m4_4m1_model = utils.Stan('stan_models/m4_4m1', m4_4m1)
-y_sim = m4_4m1_model.laplace_sample(data={'N': 1}, draws=int(1e4)).stan_variable('y_sim').flatten()
+y_sim = m4_4m1_model.laplace_sample(data={'N': 1}, draws=int(1e4)).stan_variable('y_sim')
 
 def plot_dens():
     bw = utils.bw_nrd0(y_sim)
@@ -955,178 +952,159 @@ Notice also that the estimate for the mean is so precise that you can hardly eve
 Plot the prior predictive distribution for the parabolic polynomial regression model in the notebook. You can modify the code that plots the linear regression prior predictive distribution. Can you modify the prior distributions of $α$, $β_1$, and $β_2$ so that the prior predictions stay within the biologically reasonable outcome space? That is to say: Do not try to fit the data by hand. But do try to keep the curves consistent with what you know about height and weight, before seeing these exact data.
 
 ```{python}
-d = pd.read_csv("data/Howell1.csv", sep=';')
-d['weight_s'] = (d.weight.values - d.weight.mean())/d.weight.std()
-d['weight_s2'] = d.weight_s**2
+m4_5_priors = '''
+data {
+    int<lower=0> N;
+    vector[N] weight_s;
+}
+generated quantities {
+    real a = normal_rng(178, 20);
+    real<lower=0> b1 = lognormal_rng(0, 1);
+    real b2 = normal_rng(0, 1);
+    vector[N] y_sim = a + b1 * weight_s + b2 * weight_s^2;
+}
+'''
+
+weight_s_seq = np.linspace(-2.2, 2, 30)
+data = {'N': len(weight_s_seq), 'weight_s': weight_s_seq}
+
+prior_pred = utils.Stan('stan_models/m4_5_priors', m4_5_priors)
+y_sim = prior_pred.laplace_sample(data=data, draws=1000).stan_variable('y_sim')
+
+
+def plot_dens():
+    bw = utils.bw_nrd0(y_sim)
+    az.plot_kde(y_sim, bw=bw*0.5)
+    plt.xlabel("Sample Height")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+
+def plot_ppc():
+    plt.plot(weight_s_seq, y_sim.T, color='k', alpha=0.2)
+    plt.xlabel("Weight (Standardized)")
+    plt.ylabel("Height")
+
+utils.inline_plot(plot_ppc)
+
 ```
 
 ```{python}
-with pm.Model() as m4_poly:
-    weight = pm.ConstantData("w", d.weight_s, dims="obs_id")
-    weight_s = pm.ConstantData("w_s", d.weight_s2, dims="obs_id")
-    a = pm.Normal("a", mu=178, sigma=20)
-    b1 = pm.LogNormal("b1", mu=0, sigma=1)
-    b2 = pm.Normal('b2', mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b1 * weight + b2 * weight_s, dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
-    pp = pm.sample_prior_predictive(samples=10_000)
+n = int(1e4)
+a_dens = np.random.normal(178, 20, size=n)
+b1_dens = np.random.lognormal(0, 1, size=n)
+b2_dens = np.random.normal(0, 1, size=n)
+sigma_dens = np.random.uniform(0, 50, size=n)
+
+def plot_dens():
+  dens_list = [a_dens, b1_dens, b2_dens, sigma_dens]
+  labels = [r'$\alpha$', r'$\beta_1$', r'$\beta_2$', r'$\sigma$']
+  
+  _ , axs = plt.subplots(2, 2, figsize=(6,6))
+  for i, (dens, ax) in enumerate(zip(dens_list, axs.flatten())):
+      bw = utils.bw_nrd0(dens)
+      az.plot_kde(dens, bw=bw*0.5, ax=ax)
+      ax.set(xlabel=labels[i], ylabel='Density')
+
+utils.inline_plot(plot_dens)
 ```
 
 ```{python}
-a_dens = np.random.normal(178, 20, size=int(1e4))
-b1_dens = np.random.lognormal(0, 1, size=int(1e4))
-b2_dens = np.random.normal(0, 1, size=int(1e4))
-sigma_dens = np.random.uniform(0, 50, size=int(1e4))
-
-dens_list = [a_dens, b1_dens, b2_dens, sigma_dens]
-labels = [r'$\alpha$', r'$\beta_1$', r'$\beta_2$', r'$\sigma$']
-
-_ , axs = plt.subplots(2, 2, figsize=(6,6))
-
-for i, (dens, ax) in enumerate(zip(dens_list, axs.flatten())):
-    bw = utils.bw_nrd0(dens)
-    az.plot_kde(dens, bw=bw*0.5, ax=ax)
-    ax.set(xlabel=labels[i], ylabel='Density')
-```
-
-```{python}
-rand_index = np.random.choice(len(d))
-mu_dens = a_dens + b1_dens * d.weight_s[rand_index] + b2_dens * d.weight_s2[rand_index]
+rand_index = np.random.choice(len(weight_s_seq)) # select a random weight
+mu_dens = a_dens + b1_dens * weight_s_seq[rand_index] + b2_dens * weight_s_seq[rand_index]
 prior_h = np.random.normal(loc=mu_dens, scale=sigma_dens)
 
-bw = utils.bw_nrd0(prior_h)
-az.plot_kde(prior_h, bw=bw*0.5);
+def plot_dens():
+  bw = utils.bw_nrd0(prior_h)
+  az.plot_kde(prior_h, bw=bw*0.5)
+
+utils.inline_plot(plot_dens)
 ```
 
-```{python}
-prior_h = pp.prior_predictive.height[0][:,rand_index].to_numpy()
-bw = utils.bw_nrd0(prior_h)
-az.plot_kde(prior_h, bw=bw*0.5);
-```
-
-```{python}
-n = 1000
-a = stats.norm.rvs(178, 20, size=n)
-b1 = stats.lognorm.rvs(s=1, scale=np.exp(0), size=n)
-b2 = stats.norm.rvs(0, 1, size=n)
-
-weight = np.linspace(27,70,100).reshape(-1,1)
-weight_s = (weight - d.weight.mean())/d.weight.std()
-weight_s2 = weight_s**2
-
-height_pred = a + (b1 * weight_s) + (b2 * weight_s)
-
-plt.plot(weight, height_pred, color='k', alpha=0.2)
-plt.xlabel('Year')
-plt.ylabel('Height');
-```
-
-```{python}
-x = np.linspace(0, 70)
-weight_s = (x - d.weight.mean()) / d.weight.std()
-means = pp.prior["a"] + np.outer(weight_s, pp.prior["b1"]) + np.outer(weight_s**2, pp.prior["b2"])
-
-az.plot_hdi(d.weight, pp.prior.mu[0].to_numpy(), hdi_prob=0.89)
-plt.plot(d.weight, d.height, 'o', fillstyle='none')
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)")
-plt.title("Prior predictions");
-```
-
-The justifications for the priors are written along side:
+Modified priors and their justifications are written along side:
 
 $H_i \sim N(\mu_i,\sigma)$
 
-\$\mu\_i = \alpha + \beta\_1 (x_i - \overline{x}) - \beta\_2(x_i - \overline{x})\^2 \$ -\> Note that it's $-\beta_2$. Positive prior on $\beta$ ensures the paraboloid curves in the correct direction.
+$\mu_i = \alpha + \beta_1 (x_i - \overline{x}) - \beta_2(x_i - \overline{x})^2$ -> Note that it's $-\beta_2$. Positive prior on $\beta$ ensures the paraboloid curves in the correct direction.
 
-$\alpha \sim N(150,30^2)$ -\> Reduced mean height at mean weight, as we are looking at a much larger age range now, so we expect younger people to drag the mean height down at any given weight relative to the adult only data set
+$\alpha \sim N(150,30^2)$ -> Reduced mean height at mean weight, as we are looking at a much larger age range now, so we expect younger people to drag the mean height down at any given weight relative to the adult only data set
 
-$\beta_1 \sim Lognormal(0,1)$ -\> Need a linear base line to perturb with a quadratic term
+$\beta_1 \sim \text{Lognormal}(0,1)$ -> Need a linear base line to perturb with a quadratic term
 
 The seconds term puts a small deviation from linearity
 
-$\beta_2 \sim exp(0.05)$ -\> This should be positive to ensure concavity, and small to ensure small only small perturbation from linearity in weights
+$\beta_2 \sim \text{Exponential}(0.05)$ -> This should be positive to ensure concavity, and small to ensure small only small perturbation from linearity in weights
 
-$\sigma$ \~ $Unif(0,50)$
+$\sigma \sim \text{Uniform}(0,50)$
 
 ```{python}
-d = pd.read_csv("data/Howell1.csv", sep=';')
-d['weight_s'] = d.weight - d.weight.mean()
-d['weight_s2'] = d.weight_s**2
+m4_5_priors2 = '''
+data {
+    int<lower=0> N;
+    vector[N] weight_s;
+}
+generated quantities {
+    real a = normal_rng(150, 30);
+    real<lower=0> b1 = lognormal_rng(0, 1);
+    real b2 = exponential_rng(0.05);
+    vector[N] y_sim = a + b1 * weight_s - b2 * weight_s^2;
+}
+'''
+
+weight_s_seq = np.linspace(-2.2, 2, 30)
+data = {'N': len(weight_s_seq), 'weight_s': weight_s_seq}
+
+prior_pred = utils.Stan('stan_models/m4_5_priors2', m4_5_priors2)
+y_sim = prior_pred.laplace_sample(data=data, draws=1000).stan_variable('y_sim')
+
+
+def plot_dens():
+    bw = utils.bw_nrd0(y_sim)
+    az.plot_kde(y_sim, bw=bw*0.5)
+    plt.xlabel("Sample Height")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+
+def plot_ppc():
+    plt.plot(weight_s_seq, y_sim.T, color='k', alpha=0.2)
+    plt.xlabel("Weight (Standardized)")
+    plt.ylabel("Height")
+
+utils.inline_plot(plot_ppc)
 ```
 
 ```{python}
-with pm.Model() as m4_poly:
-    weight = pm.ConstantData("w", d.weight_s, dims="obs_id")
-    weight_s = pm.ConstantData("w_s", d.weight_s2, dims="obs_id")
-    a = pm.Normal("a", mu=150, sigma=30)
-    b1 = pm.LogNormal("b1", mu=0, sigma=1)
-    b2 = pm.Exponential('b2', 1 / 0.05)
-    sigma = pm.Uniform("sigma", 0, 1)
-    mu = pm.Deterministic('mu', a + b1 * weight - b2 * weight_s, dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d.height.values, dims="obs_id")
-    pp = pm.sample_prior_predictive(samples=10_000)
+n = int(1e4)
+a_dens = np.random.normal(150, 30, size=n)
+b1_dens = np.random.lognormal(0, 1, size=n)
+b2_dens = np.random.exponential(1/0.05, size=n)
+sigma_dens = np.random.uniform(0, 1, size=n)
+
+def plot_dens():
+  dens_list = [a_dens, b1_dens, b2_dens, sigma_dens]
+  labels = [r'$\alpha$', r'$\beta_1$', r'$\beta_2$', r'$\sigma$']
+  
+  _ , axs = plt.subplots(2, 2, figsize=(6,6))
+  
+  for i, (dens, ax) in enumerate(zip(dens_list, axs.flatten())):
+      bw = utils.bw_nrd0(dens)
+      az.plot_kde(dens, bw=bw*0.5, ax=ax)
+      ax.set(xlabel=labels[i], ylabel='Density')
+
+utils.inline_plot(plot_dens)
 ```
 
 ```{python}
-a_dens = np.random.normal(150, 30, size=int(1e4))
-b1_dens = np.random.lognormal(0, 1, size=int(1e4))
-b2_dens = np.random.exponential(1/0.05, size=int(1e4))
-sigma_dens = np.random.uniform(0, 1, size=int(1e4))
-
-dens_list = [a_dens, b1_dens, b2_dens, sigma_dens]
-labels = [r'$\alpha$', r'$\beta_1$', r'$\beta_2$', r'$\sigma$']
-
-_ , axs = plt.subplots(2, 2, figsize=(6,6))
-
-for i, (dens, ax) in enumerate(zip(dens_list, axs.flatten())):
-    bw = utils.bw_nrd0(dens)
-    az.plot_kde(dens, bw=bw*0.5, ax=ax)
-    ax.set(xlabel=labels[i], ylabel='Density')
-```
-
-```{python}
-rand_index = np.random.choice(len(d))
-mu_dens = a_dens + b1_dens * d.weight_s[rand_index] - b2_dens * d.weight_s2[rand_index]
+rand_index = np.random.choice(len(weight_s_seq))
+mu_dens = a_dens + b1_dens * weight_s_seq[rand_index] - b2_dens * weight_s_seq[rand_index]
 prior_h = np.random.normal(loc=mu_dens, scale=sigma_dens)
 
-bw = utils.bw_nrd0(prior_h)
-az.plot_kde(prior_h, bw=bw*0.5);
-```
+def plot_dens():
+  bw = utils.bw_nrd0(prior_h)
+  az.plot_kde(prior_h, bw=bw*0.5)
 
-```{python}
-prior_h = pp.prior_predictive.height[0][:,rand_index].to_numpy()
-bw = utils.bw_nrd0(prior_h)
-az.plot_kde(prior_h, bw=bw*0.5);
-```
-
-```{python}
-n = 1000
-a = np.random.normal(150, 30, size=n)
-b1 = np.random.lognormal(0, 1, size=n)
-b2 = np.random.exponential(1/0.05, size=n)
-
-weight = np.linspace(27,70,100).reshape(-1,1)
-weight_s = (weight - d.weight.mean())/d.weight.std()
-weight_s2 = weight_s**2
-
-height_pred = a + (b1 * weight_s) + (b2 * weight_s2)
-
-plt.plot(weight, height_pred, color='k', alpha=0.2)
-plt.xlabel('Year')
-plt.ylabel('Height');
-```
-
-```{python}
-x = np.linspace(0, 70)
-mh = x - np.mean(d.weight)
-means = pp.prior["a"] + np.outer(mh, pp.prior["b1"]) - np.outer(mh ** 2, pp.prior["b2"])
-az.plot_hdi(x, means.T, hdi_prob=0.89)
-plt.plot(d.weight, d.height, 'o', fillstyle='none')
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)")
-plt.title("Prior predictions");
+utils.inline_plot(plot_dens)
 ```
 
 By using an exponential prior on $\beta_2$ this ensures the parabolic curve must be concave, thus no increasing growth in height with weight is possible and makes perfect sense on physical grounds. However, extreme and absurd values are still found near the extremes of the data. One could tighten the parameters to ensure this didn't happen, but as a first approximation this isn't too bad.
@@ -1147,6 +1125,44 @@ $$
 Which has the following prior predictive distribution.
 
 ```{python}
+m4_5_priors3 = '''
+data {
+    int<lower=0> N;
+    vector[N] weight_s;
+}
+generated quantities {
+    real a = normal_rng(-190, 5);
+    real b1 = normal_rng(13, 0.2);
+    real b2 = uniform_rng(-0.13, -0.1);
+    vector[N] y_sim = a + b1 * weight_s + b2 * weight_s^2;
+}
+'''
+
+weight_seq = np.linspace(27,70,100)
+data = {'N': len(weight_seq), 'weight_s': weight_seq}
+
+prior_pred = utils.Stan('stan_models/m4_5_priors3', m4_5_priors3)
+y_sim = prior_pred.laplace_sample(data=data, draws=1000).stan_variable('y_sim')
+
+
+def plot_dens():
+    bw = utils.bw_nrd0(y_sim)
+    az.plot_kde(y_sim, bw=bw*0.5)
+    plt.xlabel("Sample Height")
+    plt.ylabel("Density")
+
+utils.inline_plot(plot_dens)
+
+def plot_ppc():
+    plt.plot(weight_seq, y_sim.T, color='k', alpha=0.2)
+    plt.xlabel("Weight (kg)")
+    plt.ylabel("Height")
+
+utils.inline_plot(plot_ppc)
+```
+
+
+```{python}
 n = 1000
 a = np.random.normal(-190, 5, size=n)
 b1 = np.random.normal(13, 0.1, size=n)
@@ -1156,9 +1172,12 @@ weight = np.linspace(27,70,100).reshape(-1,1)
 
 height_pred = a + (b1 * weight) + (b2 * weight**2)
 
-plt.plot(weight, height_pred, color='k', alpha=0.2)
-plt.xlabel('Year')
-plt.ylabel('Height');
+def plot_ppc():
+  plt.plot(weight, height_pred, color='k', alpha=0.2)
+  plt.xlabel('Weight (kg)')
+  plt.ylabel('Height')
+
+utils.inline_plot(plot_ppc)
 ```
 
 ### 4H5
