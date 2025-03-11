@@ -43,11 +43,13 @@ from formulaic import Formula
 
 In the model definition below, which line is the likelihood?
 
-$$\begin{align*}
+$$
+\begin{align*}
 y_{i} &\sim \text{Normal}(\mu, \sigma)\\
 \mu &\sim \text{Normal}(0,10)\\
 \sigma &\sim \text{Exponential}(1)\\
-\end{align*}$$
+\end{align*}
+$$
 
 The first line $y_{i} \sim \text{Normal}(\mu, \sigma)$ is the likelihood. The second line is very similar, but is instead the prior for the parameter $μ$. The third line is the prior for the parameter $σ$. Likelihoods and priors can look very similar, because a likelihood is effectively a prior for the residuals.
 
@@ -63,9 +65,15 @@ Using the model definition above, write down the appropriate form of Bayes’ th
 
 Ignoring the specific distributions for the moment:
 
-$$Pr(\mu, \sigma \mid y) = \frac{Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma)}{\int\int Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma) d\mu d\sigma}$$
+$$
+Pr(\mu, \sigma \mid y) = \frac{Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma)}{\int\int Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma) d\mu d\sigma}
+$$
 
-Now inserting the distributional assumptions: $$Pr(\mu, \sigma \mid y) = \frac{\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1) }{\int\int\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1)d\mu d\sigma}$$
+Now inserting the distributional assumptions: 
+
+$$
+Pr(\mu, \sigma \mid y) = \frac{\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1) }{\int\int\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1)d\mu d\sigma}
+$$
 
 $$
 Pr(\mu,\sigma | \underline{x}) = \frac{Pr(\underline{x}|\mu,\sigma)Pr(\mu)Pr(\sigma)}{Pr(\underline{h})} \propto \frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2) \times  exp(-\frac{1}{2}(\frac{\mu}{10})^2) \times exp(-\sigma) \\
@@ -76,13 +84,15 @@ $$
 
 In the model definition below, which line is the linear model?
 
-$$\begin{align*}
+$$
+\begin{align*}
 y_{i} &\sim \text{Normal}(\mu, \sigma)\\
 \mu_{i} &= \alpha + \beta x_i\\
 \alpha &\sim \text{Normal}(0,10)\\
 \beta &\sim \text{Normal}(0,1)\\
 \sigma &\sim \text{Exponential}(2)\\
-\end{align*}$$
+\end{align*}
+$$
 
 The second line $\mu_{i} = \alpha + \beta x_i$ is the linear model.
 
@@ -96,11 +106,13 @@ There are three parameters in the posterior distribution: $\alpha, \beta, \sigma
 
 For the model definition below, simulate observed $y$ values from the prior (not the posterior).
 
-$$\begin{align*}
+$$
+\begin{align*}
 y_{i} &\sim \text{Normal}(\mu, \sigma)\\
 \mu &\sim \text{Normal}(0,10)\\
 \sigma &\sim \text{Exponential}(1)\\
-\end{align*}$$
+\end{align*}
+$$
 
 To sample from the prior distribution of `y`, we use `stats.norm.rvs` to simulate, while averaging over the prior distributions of $μ$ and $σ$. The easiest way to do this is to sample from the priors and then pass those samples to `stats.norm.rvs` to simulate `y`. This code will sample from the priors:
 
@@ -169,25 +181,29 @@ b ~ dunif( 0 , 1 ),
 sigma ~ dexp( 1 )
 ```
 
-$$\begin{align*}
+$$
+\begin{align*}
 y_{i} &\sim \text{Normal}(\mu_i, \sigma)\\
 \mu_{i} &= \alpha + \beta x_i\\
 \alpha &\sim \text{Normal}(0,10)\\
 \beta &\sim \text{Normal}(0,1)\\
 \sigma &\sim \text{Exponential}(2)\\
-\end{align*}$$
+\end{align*}
+$$
 
 ### 4M4
 
 A sample of students is measured for height each year for 3 years. After the third year, you want to fit a linear regression predicting height using year as a predictor. Write down the mathematical model definition for this regression, using any variable names and priors you choose. Be prepared to defend your choice of priors.
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu, \sigma)\\
 \mu_{i} &= \alpha + \beta y_i\\
 \alpha &\sim \text{Normal}(0,100)\\
 \beta &\sim \text{Log-Normal}(0,1)\\
 \sigma &\sim \text{Uniform}(0,50)\\
-\end{align*}$$
+\end{align*}
+$$
 
 Where $h$ is height and $y$ is year. These priors aren’t great, but they’ll do. The prior on the intercept $α$ is effectively uninformative. The problem didn’t say what scale height is measured on, so it’s hard to do much else here. The prior on $β$ is very weakly informative, centered on zero, which corresponds to no impact of year. This doesn’t seem like a great prior, because surely height increases each year or stays the same. So maybe a uniform prior above zero would be better?
 
@@ -222,7 +238,9 @@ $$
   \beta &\sim \text{Normal}(0, 10) \\
   \sigma &\sim \text{Exponential}(1)
 \end{align}
-$$ Because height is centered, $\alpha$ represents the average height in the average year (i.e., year 2). The prior of $\text{Normal}(100, 10)$ was chosen assuming that height is measured in centimeters and that that sample is of children who are still growing.
+$$ 
+
+Because height is centered, $\alpha$ represents the average height in the average year (i.e., year 2). The prior of $\text{Normal}(100, 10)$ was chosen assuming that height is measured in centimeters and that that sample is of children who are still growing.
 
 The slope is extremely vague. The a prior centered on zero, and the standard deviation of the prior of 10 represents a wide range of possible growth (or shrinkage). During growth spurts, height growth averages 6--13 cm/year. The standard deviation of 10 encompasses the range we might expect to see if growth were occurring at a high rate.
 
@@ -1149,7 +1167,9 @@ d2['temp_s'] = d2.temp_c / d2.temp.std()
 
 We’ll try each type of model: linear, polynomial, and spline. For each, we’ll fit the model, and then visualize the predictions with the observed data.
 
-**Linear Model**: $$
+**Linear Model**: 
+
+$$
 \begin{aligned}
     \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
     \mu_i &= \alpha + \beta \cdot \text{t}_{i} - \bar{\text{t}} \\
@@ -1159,7 +1179,9 @@ We’ll try each type of model: linear, polynomial, and spline. For each, we’l
 \end{aligned}
 $$
 
-**Quadratic Model** $$
+**Quadratic Model** 
+
+$$
 \begin{aligned}
     \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
     \mu_i &= \alpha + \beta_1 \cdot \text{t}_{s,i} + \beta_2 \cdot \text{t}_{s,i}^2 \\
@@ -1170,7 +1192,9 @@ $$
 \end{aligned}
 $$
 
-**Cubic Model** $$
+**Cubic Model** 
+
+$$
 \begin{aligned}
     \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
     \mu_i &= \alpha + \beta_1 \cdot \text{t}_{s,i} + \beta_2 \cdot \text{t}_{s,i}^2 + \beta_3 \cdot \text{t}_{s,i}^3 \\
@@ -1182,7 +1206,9 @@ $$
 \end{aligned}
 $$
 
-**Spline Model** $$
+**Spline Model** 
+
+$$
 \begin{aligned}
     \text{doy}_i &\sim \mathcal{N}(\mu_i, \sigma) \\
     \mu_i &= \alpha + \sum_{j=1}^{k} \beta_j B_{j,i} \\
