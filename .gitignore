@@ -6,6 +6,7 @@ __pycache__/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+.quarto_ipynb
 
 # IPython
 profile_default/

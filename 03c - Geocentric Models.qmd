@@ -69,7 +69,7 @@ $$
 Pr(\mu, \sigma \mid y) = \frac{Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma)}{\int\int Pr(y \mid \mu, \sigma) Pr(\mu) Pr(\sigma) d\mu d\sigma}
 $$
 
-Now inserting the distributional assumptions: 
+Now inserting the distributional assumptions:
 
 $$
 Pr(\mu, \sigma \mid y) = \frac{\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1) }{\int\int\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{Normal}(\mu \mid 0,10) \text{Exponential}(\sigma \mid 1)d\mu d\sigma}
@@ -238,7 +238,7 @@ $$
   \beta &\sim \text{Normal}(0, 10) \\
   \sigma &\sim \text{Exponential}(1)
 \end{align}
-$$ 
+$$
 
 Because height is centered, $\alpha$ represents the average height in the average year (i.e., year 2). The prior of $\text{Normal}(100, 10)$ was chosen assuming that height is measured in centimeters and that that sample is of children who are still growing.
 
@@ -857,12 +857,15 @@ Suppose a colleague of yours, who works on allometry, glances at the practice pr
 
 2)  Begin with this plot: `plt.plot(d2.weight, d2.height)`. Then use samples from the quadratic approximate posterior of the model in (a) to superimpose on the plot: (1) the predicted mean height as a function of weight, (2) the 97% interval for the mean, and (3) the 97% interval for predicted heights.
 
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+```
+
 1)  Model the relationship between height (cm) and the natural logarithm of weight (log-kg). Use the entire Howell1 data frame, all 544 rows, adults and non-adults. Can you interpret the resulting estimates?
 
 We can just use log inside the Stan mode:
-```{python}
-d = pd.read_csv("data/Howell1.csv", sep=';')
 
+```{python}
 mlw = '''
 data {
     int<lower=1> N;
@@ -910,6 +913,7 @@ mlw_model = utils.StanQuap('stan_models/mlw', mlw,
 
 mlw_model.precis().round(2)
 ```
+
 Pretty hard to know what to make of these estimates, aside from the fact that the confidence intervals are quite narrow, owing to there being 544 rows. The estimate for `b` ($β$) is hard to understand, because it refers to log-kg, not raw kg. It means that for every increase of 1 log-kg of weight, you expect a increase of 47 cm of height. But what’s a log-kg? You want to know what the model predicts on the natural scale of measurement. So now to plotting...
 
 2)  Begin with this plot: `plt.plot(d2.weight, d2.height)`. Then use samples from the quadratic approximate posterior of the model in (a) to superimpose on the plot: (1) the predicted mean height as a function of weight, (2) the 97% interval for the mean, and (3) the 97% interval for predicted heights.
@@ -1170,7 +1174,7 @@ d2['temp_s'] = d2.temp_c / d2.temp.std()
 
 We’ll try each type of model: linear, polynomial, and spline. For each, we’ll fit the model, and then visualize the predictions with the observed data.
 
-**Linear Model**: 
+**Linear Model**:
 
 $$
 \begin{aligned}
@@ -1182,7 +1186,7 @@ $$
 \end{aligned}
 $$
 
-**Quadratic Model** 
+**Quadratic Model**
 
 $$
 \begin{aligned}
@@ -1195,7 +1199,7 @@ $$
 \end{aligned}
 $$
 
-**Cubic Model** 
+**Cubic Model**
 
 $$
 \begin{aligned}
@@ -1209,7 +1213,7 @@ $$
 \end{aligned}
 $$
 
-**Spline Model** 
+**Spline Model**
 
 $$
 \begin{aligned}
