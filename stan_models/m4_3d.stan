@@ -1,15 +1,15 @@
 
 data {
-    int<lower=0> N;
+    int<lower=1> N;
     vector[N] height;
     vector[N] weight;
     
     int<lower=1> N_tilde;
-    vector[N_tilde] weight_tilde;    
+    vector[N_tilde] weight_tilde;
 }
 parameters {
     real a;
-    real<lower=0> b;
+    real b;
     real<lower=0, upper=50> sigma;
 }
 model {
@@ -20,8 +20,8 @@ model {
     height ~ normal(mu, sigma);
     
     // Priors
-    a ~ normal(178, 20);
-    b ~ lognormal(0, 1);
+    a ~ normal(100, 100);
+    b ~ normal(0, 10);
     sigma ~ uniform(0, 50);
 }
 generated quantities {

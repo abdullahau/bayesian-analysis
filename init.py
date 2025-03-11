@@ -1,4 +1,5 @@
 from cmdstanpy import CmdStanModel
+import bridgestan as bs
 import numpy as np
 import pandas as pd
 import arviz as az
@@ -8,7 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 # ---
 
-__all__ = ['CmdStanModel', 'np', 'pd', 'az', 'utils', 'stats', 'plt', 'sns']
+__all__ = ['CmdStanModel', 'bs', 'np', 'pd', 'az', 'utils', 'stats', 'plt', 'sns']
 
 # Print imports / aliases
 with open(__file__) as f:

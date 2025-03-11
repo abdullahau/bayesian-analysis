@@ -326,12 +326,15 @@ d2 = d[d['age'] >= 18]
 ```
 
 ```{python}
-m4_3 = '''
+m4_3_pred = '''
 data {
-    int<lower=0> N;
+    int<lower=1> N;
     vector[N] height;
     vector[N] weight;
     real xbar;
+    
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_tilde;
 }
 parameters {
     real a;
@@ -350,16 +353,50 @@ model {
     b ~ lognormal(0, 1);
     sigma ~ uniform(0, 50);
 }
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(a + b * (weight_tilde[i] - xbar), sigma);
+    }
+}
 '''
-
+weight_seq = np.arange(25, 71)
 data = {'N': len(d2), 
         'xbar': d2['weight'].mean(),
         'height': d2['height'].tolist(), 
-        'weight': d2['weight'].tolist()}
+        'weight': d2['weight'].tolist(),
+        'N_tilde': len(weight_seq),
+        'weight_tilde': weight_seq.tolist()}
 
-m4_3_model = utils.StanQuap('stan_models/m4_3', m4_3, data, algorithm = 'Newton')
+m4_3_model = utils.StanQuap('stan_models/m4_3_pred', m4_3_pred, 
+                            data, algorithm = 'Newton', 
+                            generated_var=['y_tilde'])
 m4_3_model.precis().round(2)
 m4_3_model.vcov_matrix().round(3)
+```
+
+```{python}
+def lm(post, data):
+    weight = data
+    xbar = d2['weight'].mean() # ensure that xbar is based on the dataset supplied during fit 
+    a, b = post['a'].reshape(-1,1), post['b'].reshape(-1,1)
+    return a + b * (weight - xbar)
+
+mu = m4_3_model.link(lm_func=lm, data=weight_seq)
+mu_mean, mu_plo, mu_phi = utils.precis(mu)
+sim = m4_3_model.sim(data=data)['y_tilde']
+_, sim_plo, sim_phi = utils.precis(sim)
+
+def plot_post_sim():
+    plt.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.plot(weight_seq, mu_mean, 'k', label='Mean')
+    plt.fill_between(weight_seq, mu_plo, mu_phi, alpha=0.2, label='Uncertainty in Mean')
+    plt.fill_between(weight_seq, sim_plo, sim_phi, alpha=0.2, label='Posterior Predictive Samples')
+    plt.legend()
+    plt.xlabel('Weight (Standardized)')
+    plt.ylabel('Height (cm)')    
+
+utils.inline_plot(plot_post_sim)
 ```
 
 ```{python}
@@ -368,6 +405,9 @@ data {
     int<lower=0> N;
     vector[N] height;
     vector[N] weight;
+    
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_tilde;    
 }
 parameters {
     real a;
@@ -386,15 +426,49 @@ model {
     b ~ lognormal(0, 1);
     sigma ~ uniform(0, 50);
 }
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(a + b * weight_tilde[i], sigma);
+    }
+}
 '''
 
+weight_seq = np.arange(25, 71)
 data = {'N': len(d2), 
         'height': d2['height'].tolist(), 
-        'weight': d2['weight'].tolist()}
+        'weight': d2['weight'].tolist(),
+        'N_tilde': len(weight_seq),
+        'weight_tilde': weight_seq.tolist()}
 
-m4_3_model = utils.StanQuap('stan_models/m4_3c', m4_3c, data, algorithm = 'Newton')
-m4_3_model.precis().round(2)
-m4_3_model.vcov_matrix().round(3)
+m4_3c_model = utils.StanQuap('stan_models/m4_3c', m4_3c, 
+                            data, algorithm = 'Newton', 
+                            generated_var=['y_tilde'])
+m4_3c_model.precis().round(2)
+m4_3c_model.vcov_matrix().round(3)
+```
+
+```{python}
+def lm(post, data):
+    weight = data
+    a, b = post['a'].reshape(-1,1), post['b'].reshape(-1,1)
+    return a + b * weight
+
+mu = m4_3c_model.link(lm_func=lm, data=weight_seq)
+mu_mean, mu_plo, mu_phi = utils.precis(mu)
+sim = m4_3c_model.sim(data=data)['y_tilde']
+_, sim_plo, sim_phi = utils.precis(sim)
+
+def plot_post_sim():
+    plt.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.plot(weight_seq, mu_mean, 'k', label='Mean')
+    plt.fill_between(weight_seq, mu_plo, mu_phi, alpha=0.2, label='Uncertainty in Mean')
+    plt.fill_between(weight_seq, sim_plo, sim_phi, alpha=0.2, label='Posterior Predictive Samples')
+    plt.legend()
+    plt.xlabel('Weight (Standardized)')
+    plt.ylabel('Height (cm)')    
+
+utils.inline_plot(plot_post_sim)
 ```
 
 It can be seen that the posterior values of both models look rather similar to each other. However the in the variance-covariance matrix appear to be a couple of orders of magnitude larger when one doesn't subtract the mean values from the data. Why is this? It's because the parameters signify different things in the two different models.
@@ -435,27 +509,102 @@ In the chapter, we used 15 knots with the cherry blossom spline. Increase the nu
 d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
 d2 = d[d[['doy']].notna().all(axis=1)]
 
+m4_7a = '''
+data {
+    int N;
+    int K;
+    array[N] int doy;
+    matrix[N, K] B;
+}
+parameters {
+    real a;
+    vector[K] w;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a + B * w;
+}
+model {
+    doy ~ normal(mu, sigma);
+    a ~ normal(100, 10);
+    w ~ normal(0, 10);
+    sigma ~ exponential(1);
+}
+'''
+
+m4_7a_mod = '''
+data {
+    int N;
+    int K;
+    array[N] int doy;
+    matrix[N, K] B;
+}
+parameters {
+    real a;
+    vector[K] w;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a + B * w;
+}
+model {
+    doy ~ normal(mu, sigma);
+    a ~ normal(100, 10);
+    w ~ normal(0, 30);
+    sigma ~ exponential(1);
+}
+'''
+
+def bspline_regression_plots(data, num_knots, degree, model='m4_7a'):
+    model_var = globals().get(model)
+    knot_list = np.quantile(data.year, np.linspace(0, 1, num_knots))[1:-1].tolist()
+    bspline_formula = Formula(f'bs(year, knots={knot_list}, degree={degree}, include_intercept=True)-1')
+    B_mat = bspline_formula.get_model_matrix(data).to_numpy()
+
+    input_data = {'N': B_mat.shape[0], 
+                  'K': B_mat.shape[1],
+                  'doy': data['doy'].astype(int).tolist(), 
+                  'B': B_mat.tolist()}
+
+    model = utils.StanQuap(f'stan_models/{model}',
+                           model_var, input_data, algorithm = 'Newton',
+                           generated_var=['mu'])
+    post = model.extract_samples(n=1000, drop=[])
+    w = post['w'].mean(axis=0)
+    
+    fig, axs = plt.subplots(3, 1, figsize=(8, 8))
+    axs[0].plot(data.year, B_mat)
+    axs[0].set(xlabel='Year', ylabel='Basis Value')
+    
+    axs[1].plot(data.year, B_mat * w)
+    axs[1].set(xlabel='Year', ylabel='Basis * Weight')
+    
+    _, mu_plo, mu_phi = utils.precis(post['mu'])    
+    axs[2].plot(data.year, data.doy, 'o', color='pink', alpha=0.6, zorder=2)
+    axs[2].fill_between(data.year, mu_plo, mu_phi, alpha=0.6, zorder=3)
+    axs[2].set(xlabel='Year', ylabel='Day in Year')
+    
+    fig.tight_layout()
+```
+
+```{python}
 num_knots = 20
 knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
+utils.inline_plot(bspline_regression_plots, data=d2, num_knots=num_knots, degree=3)
+```
 
-
-bspline_regression_plots(d2, knot_list, degree=3, w_std_prior=20)
+```{python}
+num_knots = 20
+knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
+utils.inline_plot(bspline_regression_plots, data=d2, num_knots=num_knots, degree=3, model='m4_7a_mod')
 ```
 
 ```{python}
 num_knots = 30
 knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
-
-
-bspline_regression_plots(d2, knot_list, degree=3, w_std_prior=10)
-```
-
-```{python}
-num_knots = 30
-knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
-
-
-bspline_regression_plots(d2, knot_list, degree=3, w_std_prior=30)
+utils.inline_plot(bspline_regression_plots, data=d2, num_knots=num_knots, degree=3)
 ```
 
 Increasing the number of knots increases the 'wiggles' and the increasing the standard deviation of the weight increases the width/thickness of $\mu$'s HDI plot.
@@ -472,56 +621,111 @@ The weights listed below were recorded in the !Kung census, but heights were not
 | 4          | 32.59  |                 |              |
 | 5          | 54.63  |                 |              |
 
-Method 1: PyMC's sample posterior predictive function
+The question is ambiguous as to whether it wants $µ$ only or rather the distribution of individual height measurements (using $σ$). I’ll show the harder approach, that uses $σ$ and simulates individual heights.
+
+I’ll use quite flat priors here, but if you used stronger priors, that’s fine. What matters is the procedure be coherent.
+
+**Method 1**: Using `StanQuap` convenience methods
 
 ```{python}
-missing_data = pd.DataFrame({'individual': np.arange(5)+1,
-                             'weight': np.array([46.95, 43.72, 64.78, 32.59, 54.63])})
-
 d = pd.read_csv("data/Howell1.csv", sep=';')
 d2 = d[d['age'] >= 18]
 
-xbar = d2.weight.mean()
+m4_3d = '''
+data {
+    int<lower=1> N;
+    vector[N] height;
+    vector[N] weight;
+    
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_tilde;
+}
+parameters {
+    real a;
+    real b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * weight;
+    
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(100, 100);
+    b ~ normal(0, 10);
+    sigma ~ uniform(0, 50);
+}
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(a + b * weight_tilde[i], sigma);
+    }
+}
+'''
 
-with pm.Model() as m4_3:
-    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
-    a = pm.Normal("a", mu=178, sigma=20)
-    b = pm.LogNormal("b", mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b * (weight - xbar), dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
-    
-    # mean_q = pm.find_MAP()
-    # Hess = pm.find_hessian(mean_q, vars=[a, b, sigma])
-    
-    custom_step_m4_3 = utils.QuadraticApproximation([a, b, sigma], m4_3)
-    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_3, progressbar=False) 
-     
-    pm.set_data({"w": missing_data.weight})
-    pred = pm.sample_posterior_predictive(
-        trace_quap,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=False,
-        progressbar=False
-    )
+missing_heights = np.array([46.95, 43.72, 64.78, 32.59, 54.63])
+data = {'N': len(d2), 
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist(),
+        'N_tilde': len(missing_heights),
+        'weight_tilde': missing_heights.tolist()}
+
+m4_3d_model = utils.StanQuap('stan_models/m4_3d', m4_3d,
+                            data, algorithm = 'Newton',
+                            generated_var=['y_tilde'])
+
+sim = m4_3d_model.sim(data=data, n=10_000)['y_tilde']
+sim_mean = sim.mean(axis=0)
+sim_hdi = az.hdi(sim, hdi_prob=0.89)
+missing_data = pd.DataFrame({'Individual': np.arange(5)+1,
+                             'Weight': missing_heights,
+                             'Expected Height': sim_mean,
+                             '89% Interval': [f"{x[0]} - {x[1]}" for x in sim_hdi]})
+                             
+missing_data.set_index('Individual')
 ```
+
+**Method 2**: Using SciPy
+
+We first produce samples from the quadratic approximate posterior. We could use the model's means and variance-covariance matrix and pass it in `scipy.stats.multivariate_normal` directly, or the convenient `extract_samples` method:
 
 ```{python}
-missing_data['expected_height'] = pred.predictions.mu.mean(axis=1)[0]
-hdi_vals = az.hdi(pred.predictions.height, hdi_prob=0.89).height
-missing_data['hdi_5.5'] = hdi_vals[:,0]
-missing_data['hdi_94.5'] = hdi_vals[:,1]
-
-missing_data.round(2)
+post = m4_3d_model.extract_samples(n=10_000)
 ```
+
+Now we want to plug the weights in the table into this model, and then average over the posterior to compute predictions for each individual’s height. The question is ambiguous as to whether it wants $µ$ only or rather the distribution of individual height measurements (using $σ$). I’ll show the harder approach, that uses $σ$ and simulates individual heights.
+
+For the first individual, the code might look like this:
+
+```{python}
+y = stats.norm.rvs(loc=post['a'] + post['b'] * 46.95, scale=post['sigma'])
+y.mean()
+az.hdi(y, hdi_prob=0.89)
+```
+
+How does the code work? The first line, which includes `stats.norm.rvs`, simulates 100-thousand heights, using the samples from the posterior and an assumed weight of 46.95 kg. The second line then computes the average of these simulated heights. That gives the expected (mean) height. The third line then computes the 90% HPDI of height.
+
+Do the above for each row in the table, and you should get numbers close to the table produced earlier.
+
+```{python}
+mean_array = np.array(list(m4_3d_model.opt_params.values()))
+cov = m4_3d_model.vcov_matrix()
+post = stats.multivariate_normal(mean_array, cov).rvs(10_000)
+
+y = stats.norm.rvs(loc=post[:,0] + post[:,1] * 46.95, scale=post[:,2])
+y.mean()
+az.hdi(y, hdi_prob=0.89)
+```
+
+We could have also computed the expected heights straight from the MAP. That approach is fine, and will give nearly the same answer.
 
 ### 4H2
 
-Select out all the rows in the Howell1 data with ages below 18 years of age. If you do it right, you should end up with a new data frame with 192 rows in it.
+Select out all the rows in the `Howell1` data with ages below 18 years of age. If you do it right, you should end up with a new data frame with 192 rows in it.
 
-1)  Fit a linear regression to these data, using `PyMC`. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets?
+1)  Fit a linear regression to these data, using `StanQuap`. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets?
 2)  Plot the raw data, with height on the vertical axis and weight on the horizontal axis. Super-impose the MAP regression line and 89% interval for the mean. Also superimpose the 89% interval for predicted heights.
 3)  What aspects of the model fit concern you? Describe the kinds of assumptions you would change, if any, to improve the model. You don’t have to write any new code. Just explain what the model appears to be doing a bad job of, and what you hypothesize would be a better model.
 
@@ -531,69 +735,92 @@ d2 = d[d['age'] < 18]
 ```
 
 ```{python}
-plt.plot(d2.weight, d2.height, 'o', fillstyle='none')
-plt.ylabel("Height (cm)")
-plt.xlabel("Weight (kg)");
+def plot_data():
+    plt.plot(d2.weight, d2.height, 'o', fillstyle='none')
+    plt.ylabel("Height (cm)")
+    plt.xlabel("Weight (kg)")
+
+utils.inline_plot(plot_data)
 ```
 
-1)  Fit a linear regression to these data, using `PyMC`. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets?
+1)  Fit a linear regression to these data, using `StanQuap`. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets?
+
+Now find the quadratic approximate posterior. The code is the same as before. The data frame just changes.
 
 ```{python}
-weight_seq = np.linspace(1, 45, 50)
-
-with pm.Model() as m4:
-    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
-    a = pm.Normal("a", mu=100, sigma=100)
-    b = pm.Normal("b", mu=0, sigma=10)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b * weight, dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
+m4_3d = '''
+data {
+    int<lower=1> N;
+    vector[N] height;
+    vector[N] weight;
     
-    custom_step_m4 = utils.QuadraticApproximation([a, b, sigma], m4)
-    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4, progressbar=False)
+    int<lower=1> N_tilde;
+    vector[N_tilde] weight_tilde;
+}
+parameters {
+    real a;
+    real b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * weight;
     
-    pm.set_data({"w": weight_seq})
-    pred = pm.sample_posterior_predictive(
-        trace_quap,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=False,
-        progressbar=False
-    )
-```
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(100, 100);
+    b ~ normal(0, 10);
+    sigma ~ uniform(0, 50);
+}
+generated quantities {
+    vector[N_tilde] y_tilde; 
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(a + b * weight_tilde[i], sigma);
+    }
+}
+'''
 
-```{python}
-az.summary(trace_quap, var_names=['~mu'], kind='stats', hdi_prob=0.89).round(2)
+weight_seq = np.linspace(1,45,50)
+data = {'N': len(d2), 
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist(),
+        'N_tilde': len(weight_seq),
+        'weight_tilde': weight_seq.tolist()}
+
+m4_3d_model = utils.StanQuap('stan_models/m4_3d', m4_3d,
+                            data, algorithm = 'Newton',
+                            generated_var=['y_tilde'])
+
+m4_3d_model.precis().round(2)
 ```
 
 The estimates suggest that the MAP coefficient for weight is 2.7. This implies that for a unit change of 1kg of weight, we predict an average of 2.7cm of increase in height.
 
 2)  Plot the raw data, with height on the vertical axis and weight on the horizontal axis. Super-impose the MAP regression line and 89% interval for the mean. Also superimpose the 89% interval for predicted heights.
 
+Now to plot the raw data and superimpose the model estimates, modify the code from earlier. We will sample from the naive posterior, then compute 90% intervals for the mean and predicted heights. This is what the complete code looks like, if you opt not to use the convenience methods `link` and `sim`:
+
 We will sample from the posterior predictive, then compute 90% intervals for the mean and predicted heights.
 
 ```{python}
-fig, ax = plt.subplots()
+post = m4_3d_model.extract_samples(n=10_000)
+mu = post['a'].reshape(-1,1) + post['b'].reshape(-1,1) * weight_seq
+mu_mean = mu.mean(axis=0)
+mu_ci = az.hdi(mu, hdi_prob=0.89)
+pred = stats.norm.rvs(loc=mu, scale=post['sigma'].reshape(-1,1))
+pred_ci = az.hdi(pred, hdi_prob=0.89)
 
-hdi_1 = az.plot_hdi(weight_seq, pred.predictions.height, 
-                     hdi_prob=0.89, smooth=False, color='C1')  
+def plot_post():
+    plt.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
+    plt.plot(weight_seq, mu_mean, 'k', label='Mean')
+    plt.plot(weight_seq, mu_ci[:,0], 'k--')
+    plt.plot(weight_seq, mu_ci[:,1], 'k--')
+    plt.plot(weight_seq, pred_ci[:,0], 'k--')
+    plt.plot(weight_seq, pred_ci[:,1], 'k--')
 
-hdi_2 = az.plot_hdi(weight_seq, pred.predictions.mu, 
-                     hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(weight_seq, pred.predictions.mu.mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Weight (kg)",
-       ylabel="Height (cm)",
-       xlim=(d2.weight.min() - 2, d2.weight.max() + 2),
-       ylim=(d2.height.min() - 2, d2.height.max() + 2))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+utils.inline_plot(plot_post)
 ```
 
 3)  What aspects of the model fit concern you? Describe the kinds of assumptions you would change, if any, to improve the model. You don’t have to write any new code. Just explain what the model appears to be doing a bad job of, and what you hypothesize would be a better model.

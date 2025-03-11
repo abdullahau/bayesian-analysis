@@ -610,10 +610,11 @@ You can plot these summaries on top of the data:
 
 ```{python}
 def plot_mu():
-    plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none')
-    plt.plot(weight_seq, mu_summary['Mean'], 'k')
-    plt.fill_between(weight_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
+    plt.plot(d2['weight'], d2['height'], 'o', fillstyle='none', label='Observed Data')
+    plt.plot(weight_seq, mu_summary['Mean'], 'k', label='Mean')
+    plt.fill_between(weight_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2, label='Uncertainty in Mean')
     plt.xlim(d2['weight'].min()-2, d2['weight'].max()+2)
+    plt.legend()
     plt.ylabel("Height (cm)")
     plt.xlabel("Weight (kg)")
 
@@ -741,8 +742,9 @@ Let’s plot everything we’ve built up: (1) the average line, (2) the shaded r
 def plot_post_sim():
     plt.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
     plt.plot(weight_seq, mu_summary['Mean'], 'k', label='Mean')
-    plt.fill_between(weight_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
-    plt.fill_between(weight_seq, sim_height_df['5.5%'], sim_height_df['94.5%'], alpha=0.2)
+    plt.fill_between(weight_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2, label='Uncertainty in Mean')
+    plt.fill_between(weight_seq, sim_height_df['5.5%'], sim_height_df['94.5%'], alpha=0.2, label='Posterior Predictive Samples')
+    plt.legend()
     plt.xlabel('Weight (kg)')
     plt.ylabel('Height (cm)')    
 
@@ -918,8 +920,9 @@ Plotting all of this is straightforward:
 def plot_post_sim():
     plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
     plt.plot(weight_s_seq, mu_mean, 'k', label='Mean')
-    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2)
-    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2)
+    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2, label='Uncertainty in Mean')
+    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2, label='Posterior Predictive Samples')
+    plt.legend()
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
@@ -1017,8 +1020,9 @@ _, sim_plo, sim_phi = utils.precis(sim_height)
 def plot_post_sim():
     plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
     plt.plot(weight_s_seq, mu_mean, 'k', label='Mean')
-    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2)
-    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2)
+    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2, label='Uncertainty in Mean')
+    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2, label='Posterior Predictive Samples')
+    plt.legend()
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
@@ -1143,11 +1147,12 @@ The plots in above have standard units on the horizontal axis. These units are s
 def plot_post_sim():
     plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
     plt.plot(weight_s_seq, mu_mean, 'k', label='Mean')
-    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2)
-    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2)
+    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2, label='Uncertainty in Mean')
+    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2, label='Posterior Predictive Samples')
     at = np.arange(-2.2, 2.2)
     labels = np.round(at * d.weight.std() + d.weight.mean())
     plt.xticks(at, labels)    
+    plt.legend()
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
