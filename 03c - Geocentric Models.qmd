@@ -1025,15 +1025,15 @@ Modified priors and their justifications are written along side:
 
 $H_i \sim N(\mu_i,\sigma)$
 
-$\mu_i = \alpha + \beta_1 (x_i - \overline{x}) - \beta_2(x_i - \overline{x})^2$ -> Note that it's $-\beta_2$. Positive prior on $\beta$ ensures the paraboloid curves in the correct direction.
+$\mu_i = \alpha + \beta_1 (x_i - \overline{x}) - \beta_2(x_i - \overline{x})^2$ -\> Note that it's $-\beta_2$. Positive prior on $\beta$ ensures the paraboloid curves in the correct direction.
 
-$\alpha \sim N(150,30^2)$ -> Reduced mean height at mean weight, as we are looking at a much larger age range now, so we expect younger people to drag the mean height down at any given weight relative to the adult only data set
+$\alpha \sim N(150,30^2)$ -\> Reduced mean height at mean weight, as we are looking at a much larger age range now, so we expect younger people to drag the mean height down at any given weight relative to the adult only data set
 
-$\beta_1 \sim \text{Lognormal}(0,1)$ -> Need a linear base line to perturb with a quadratic term
+$\beta_1 \sim \text{Lognormal}(0,1)$ -\> Need a linear base line to perturb with a quadratic term
 
 The seconds term puts a small deviation from linearity
 
-$\beta_2 \sim \text{Exponential}(0.05)$ -> This should be positive to ensure concavity, and small to ensure small only small perturbation from linearity in weights
+$\beta_2 \sim \text{Exponential}(0.05)$ -\> This should be positive to ensure concavity, and small to ensure small only small perturbation from linearity in weights
 
 $\sigma \sim \text{Uniform}(0,50)$
 
@@ -1160,7 +1160,6 @@ def plot_ppc():
 
 utils.inline_plot(plot_ppc)
 ```
-
 
 ```{python}
 n = 1000
