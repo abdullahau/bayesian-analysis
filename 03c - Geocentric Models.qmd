@@ -326,119 +326,75 @@ d2 = d[d['age'] >= 18]
 ```
 
 ```{python}
-xbar = d2.weight.mean()
+m4_3 = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+    vector[N] weight;
+    real xbar;
+}
+parameters {
+    real a;
+    real<lower=0> b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * (weight - xbar);
+    
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(178, 20);
+    b ~ lognormal(0, 1);
+    sigma ~ uniform(0, 50);
+}
+'''
 
-with pm.Model() as m4_3:
-    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
-    a = pm.Normal("a", mu=178, sigma=20)
-    b = pm.LogNormal("b", mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b * (weight - xbar), dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
-    custom_step_m4_3 = utils.QuadraticApproximation([a, b, sigma], m4_3)
-    trace_quap = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_3, progressbar=False)  
+data = {'N': len(d2), 
+        'xbar': d2['weight'].mean(),
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist()}
+
+m4_3_model = utils.StanQuap('stan_models/m4_3', m4_3, data, algorithm = 'Newton')
+m4_3_model.precis().round(2)
+m4_3_model.vcov_matrix().round(3)
 ```
 
 ```{python}
-az.summary(trace_quap, var_names=['~mu'], kind='stats', hdi_prob=0.89)
-```
+m4_3c = '''
+data {
+    int<lower=0> N;
+    vector[N] height;
+    vector[N] weight;
+}
+parameters {
+    real a;
+    real<lower=0> b;
+    real<lower=0, upper=50> sigma;
+}
+model {
+    vector[N] mu;
+    mu = a + b * weight;
+    
+    // Likelihood Function
+    height ~ normal(mu, sigma);
+    
+    // Priors
+    a ~ normal(178, 20);
+    b ~ lognormal(0, 1);
+    sigma ~ uniform(0, 50);
+}
+'''
 
-```{python}
-trace_quap_df = trace_quap.posterior.to_dataframe()
-trace_quap_df.cov().round(3)
-```
+data = {'N': len(d2), 
+        'height': d2['height'].tolist(), 
+        'weight': d2['weight'].tolist()}
 
-```{python}
-weight_seq = np.arange(25, 71)
-
-with m4_3:  
-    pm.set_data({"w": weight_seq})
-    pred = pm.sample_posterior_predictive(
-        trace_quap,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=False,
-        progressbar=False
-    )
-
-fig, ax = plt.subplots()
-
-hdi_1 = az.plot_hdi(weight_seq, pred.predictions["height"], 
-                     hdi_prob=0.89, smooth=False, color='C1')  
-
-hdi_2 = az.plot_hdi(weight_seq, pred.predictions["mu"], 
-                     hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(weight_seq, pred.predictions["mu"].mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Weight (kg)",
-       ylabel="Height (cm)",
-       xlim=(d2.weight.min() - 2, d2.weight.max() + 2),
-       ylim=(d2.height.min() - 2, d2.height.max() + 2))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
-```
-
-```{python}
-with pm.Model() as m4_3_mod:
-    weight = pm.ConstantData("w", d2.weight.values, dims="obs_id")
-    a = pm.Normal("a", mu=178, sigma=20)
-    b = pm.LogNormal("b", mu=0, sigma=1)
-    sigma = pm.Uniform("sigma", 0, 50)
-    mu = pm.Deterministic('mu', a + b * weight, dims="obs_id")
-    height = pm.Normal("height", mu=mu, sigma=sigma, observed=d2.height.values, dims="obs_id")
-    custom_step_m4_3 = utils.QuadraticApproximation([a, b, sigma], m4_3_mod)
-    trace_quap_mod = pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m4_3, progressbar=False)  
-```
-
-```{python}
-az.summary(trace_quap_mod, var_names=['~mu'], kind='stats', hdi_prob=0.89)
-```
-
-```{python}
-trace_quap_mod_df = trace_quap_mod.posterior.to_dataframe()
-trace_quap_mod_df.cov().round(3)
-```
-
-```{python}
-weight_seq = np.arange(25, 71)
-
-with m4_3_mod:  
-    pm.set_data({"w": weight_seq})
-    pred = pm.sample_posterior_predictive(
-        trace_quap_mod,
-        var_names=["height", "mu"],
-        return_inferencedata=True,
-        predictions=True,
-        extend_inferencedata=False,
-        progressbar=False
-    )
-
-fig, ax = plt.subplots()
-
-hdi_1 = az.plot_hdi(weight_seq, pred.predictions["height"], 
-                     hdi_prob=0.89, smooth=False, color='C1')  
-
-hdi_2 = az.plot_hdi(weight_seq, pred.predictions["mu"], 
-                     hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(weight_seq, pred.predictions["mu"].mean(axis=1)[0], 'k', label='Mean')
-obs_data, = ax.plot(d2.weight, d2.height, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Weight (kg)",
-       ylabel="Height (cm)",
-       xlim=(d2.weight.min() - 2, d2.weight.max() + 2),
-       ylim=(d2.height.min() - 2, d2.height.max() + 2))
-
-ax.legend(handles=[hdi_patch1, hdi_patch2, mean_line, obs_data]);
+m4_3_model = utils.StanQuap('stan_models/m4_3c', m4_3c, data, algorithm = 'Newton')
+m4_3_model.precis().round(2)
+m4_3_model.vcov_matrix().round(3)
 ```
 
 It can be seen that the posterior values of both models look rather similar to each other. However the in the variance-covariance matrix appear to be a couple of orders of magnitude larger when one doesn't subtract the mean values from the data. Why is this? It's because the parameters signify different things in the two different models.

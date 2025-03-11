@@ -258,11 +258,18 @@ def invlogit(x: float) -> float:
     return 1 / (1 + np.exp(-x))
 
 
-def precis(samples, prob=0.89, index_name='Parameter'):
+def precis(samples, prob=0.89, index_name='Parameter', np_axis=0):
     if isinstance(samples, dict) or isinstance(samples, pd.Series):
         samples = pd.DataFrame(samples)
+        
     plo = (1-prob)/2
-    phi = 1 - plo   
+    phi = 1 - plo
+    
+    if isinstance(samples, np.ndarray):
+        return (samples.mean(axis=np_axis),
+                np.quantile(samples, q=plo, axis=np_axis),
+                np.quantile(samples, q=phi, axis=np_axis))   
+
     res = pd.DataFrame({
         f'{index_name}':samples.columns.to_numpy(),
         'Mean': samples.mean().to_numpy(),

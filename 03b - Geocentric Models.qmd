@@ -907,15 +907,9 @@ def lm(post, data):
 
 weight_s_seq = np.linspace(-2.2, 2, 30)
 mu = m4_5_model.link(lm_func=lm, data=weight_s_seq)
-mu_df = pd.DataFrame(
-    {str(round(weight, 2)): mu[:, i] for i, weight in enumerate(weight_s_seq)}
-    )
-mu_summary = utils.precis(mu_df, index_name='Weight_s')
+mu_mean, mu_plo, mu_phi = utils.precis(mu)
 sim_height = m4_5_model.sim(data=data)['y_tilde']
-sim_height_df = pd.DataFrame(
-    {str(round(weight, 2)): sim_height[:, i] for i, weight in enumerate(weight_s_seq)}
-    )
-sim_summary = utils.precis(sim_height_df, index_name='Weight_s')
+_, sim_plo, sim_phi = utils.precis(sim_height)
 ```
 
 Plotting all of this is straightforward:
@@ -923,9 +917,9 @@ Plotting all of this is straightforward:
 ```{python}
 def plot_post_sim():
     plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-    plt.plot(weight_s_seq, mu_summary['Mean'], 'k', label='Mean')
-    plt.fill_between(weight_s_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
-    plt.fill_between(weight_s_seq, sim_summary['5.5%'], sim_summary['94.5%'], alpha=0.2)
+    plt.plot(weight_s_seq, mu_mean, 'k', label='Mean')
+    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2)
+    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2)
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
