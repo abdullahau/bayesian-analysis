@@ -627,7 +627,7 @@ Using this approach, you can derive and plot **posterior prediction means and in
 To summarize, here’s the recipe for generating predictions and intervals from the posterior of a fit model.
 
 1)  Use `link` to generate distributions of posterior values for $μ$. The default behavior of `link` is to use the original data, so you have to pass it a list of new horizontal axis values you want to plot posterior predictions across.
-2)  Use summary functions like `numpy.mean` or `arviz.hdi` or `precis` to find averages and lower and upper bounds of $μ$ for each value of the predictor variable.
+2)  Use summary functions like `numpy.mean`, `numpy.quantile`, `arviz.hdi` or `precis` to find averages and lower and upper bounds of $μ$ for each value of the predictor variable.
 3)  Finally, use plotting functions to draw the lines and intervals. Or you might plot the distributions of the predictions, or do further numerical calculations with them.
 
 This recipe works for every model we fit in this repo. As long as you know the structure of the model—how parameters relate to the data—you can use samples from the posterior to describe any aspect of the model’s behavior.
@@ -1010,21 +1010,15 @@ def lm(post, data):
 
 weight_s_seq = np.linspace(-2.2, 2, 30)
 mu = m4_6_model.link(lm_func=lm, data=weight_s_seq)
-mu_df = pd.DataFrame(
-    {str(round(weight, 2)): mu[:, i] for i, weight in enumerate(weight_s_seq)}
-    )
-mu_summary = utils.precis(mu_df, index_name='Weight_s')
+mu_mean, mu_plo, mu_phi = utils.precis(mu)
 sim_height = m4_6_model.sim(data=data)['y_tilde']
-sim_height_df = pd.DataFrame(
-    {str(round(weight, 2)): sim_height[:, i] for i, weight in enumerate(weight_s_seq)}
-    )
-sim_summary = utils.precis(sim_height_df, index_name='Weight_s')
+_, sim_plo, sim_phi = utils.precis(sim_height)
 
 def plot_post_sim():
     plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-    plt.plot(weight_s_seq, mu_summary['Mean'], 'k', label='Mean')
-    plt.fill_between(weight_s_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
-    plt.fill_between(weight_s_seq, sim_summary['5.5%'], sim_summary['94.5%'], alpha=0.2)
+    plt.plot(weight_s_seq, mu_mean, 'k', label='Mean')
+    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2)
+    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2)
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
@@ -1117,20 +1111,14 @@ def plot_poly():
         def lm(post, X):
             return (X @ post['b'].T).T
         mu = model.link(lm_func=lm, data=X, n=1000)
-        mu_df = pd.DataFrame(
-            {str(round(weight, 2)): mu[:, i] for i, weight in enumerate(weight_seq)}
-            )
-        mu_summary = utils.precis(mu_df, index_name='Weight_s')
+        mu_mean, mu_plo, mu_phi = utils.precis(mu)
         sim = model.sim(data=stan_data_dict(i+1))['y_tilde']
-        sim_height_df = pd.DataFrame(
-            {str(round(weight, 2)): sim[:, i] for i, weight in enumerate(weight_seq)}
-            )
-        sim_summary = utils.precis(sim_height_df, index_name='Weight_s')
+        _, sim_plo, sim_phi = utils.precis(sim)
 
         ax.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k', alpha=0.3)
-        ax.plot(weight_s_seq, mu_summary['Mean'], 'k', label='Mean')
-        ax.fill_between(weight_s_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
-        ax.fill_between(weight_s_seq, sim_summary['5.5%'], sim_summary['94.5%'], alpha=0.2)
+        ax.plot(weight_s_seq, mu_mean, 'k', label='Mean')
+        ax.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2)
+        ax.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2)
         ax.set(xlabel='Weight (Standardized)', ylabel='Height (cm)', xlim=(-2.2,2), ylim=(40, 185))
         ax.set_title(title[i])
 
@@ -1154,9 +1142,9 @@ The plots in above have standard units on the horizontal axis. These units are s
 ```{python}
 def plot_post_sim():
     plt.plot(d.weight_s, d.height, 'o', fillstyle='none', label='Observed Data', color='k')
-    plt.plot(weight_s_seq, mu_summary['Mean'], 'k', label='Mean')
-    plt.fill_between(weight_s_seq, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.2)
-    plt.fill_between(weight_s_seq, sim_summary['5.5%'], sim_summary['94.5%'], alpha=0.2)
+    plt.plot(weight_s_seq, mu_mean, 'k', label='Mean')
+    plt.fill_between(weight_s_seq, mu_plo, mu_phi, alpha=0.2)
+    plt.fill_between(weight_s_seq, sim_plo, sim_phi, alpha=0.2)
     at = np.arange(-2.2, 2.2)
     labels = np.round(at * d.weight.std() + d.weight.mean())
     plt.xticks(at, labels)    
@@ -1263,12 +1251,9 @@ def bspline_regression_plots(data, num_knots, degree):
     axs[1].plot(data.year, B_mat * w)
     axs[1].set(xlabel='Year', ylabel='Basis * Weight')
     
-    mu_df = pd.DataFrame(
-        {str(round(weight, 2)): post['mu'][:, i] for i, weight in enumerate(data.year)}
-        )
-    mu_summary = utils.precis(mu_df, index_name='Weight_s')    
+    _, mu_plo, mu_phi = utils.precis(post['mu'])    
     axs[2].plot(data.year, data.doy, 'o', color='pink', alpha=0.6, zorder=2)
-    axs[2].fill_between(data.year, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.6, zorder=3)
+    axs[2].fill_between(data.year, mu_plo, mu_phi, alpha=0.6, zorder=3)
     axs[2].set(xlabel='Year', ylabel='Day in Year')
     
     fig.tight_layout()
@@ -1381,14 +1366,11 @@ utils.inline_plot(plot_weighted_basis)
 And finally the 97% posterior interval for `μ`, at each year:
 
 ```{python}
-mu_df = pd.DataFrame(
-    {str(round(weight, 2)): post['mu'][:, i] for i, weight in enumerate(d2.year)}
-    )
-mu_summary = utils.precis(mu_df, index_name='Weight_s')  
+_, mu_plo, mu_phi = utils.precis(post['mu'])
 def plot_post():
     plt.figure(figsize=(8,3))
     plt.plot(d2.year, d2.doy, 'o', color='pink', alpha=0.6)
-    plt.fill_between(d2.year, mu_summary['5.5%'], mu_summary['94.5%'], alpha=0.6)
+    plt.fill_between(d2.year, mu_plo, mu_phi, alpha=0.6)
     plt.xlabel('Year')
     plt.ylabel('Basis Value')
 
