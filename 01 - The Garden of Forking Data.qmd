@@ -5,7 +5,7 @@ date: "last-modified"
 format:
   html:
     theme: cosmo # united is darker
-    css: style.css
+    css: quarto-style/style.css
     highlight-style: atom-one
     mainfont: Palatino
     fontcolor: black
@@ -14,7 +14,7 @@ format:
     fontsize: 13pt
     linestretch: 1.4
     number-sections: true
-    number-depth: 3
+    number-depth: 4
     toc: true
     toc-location: right
     code-fold: false
@@ -27,18 +27,7 @@ format:
         method: mathjax
         url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
-jupyter:
-  jupytext:
-    formats: ipynb,qmd:quarto
-    text_representation:
-      extension: .qmd
-      format_name: quarto
-      format_version: '1.0'
-      jupytext_version: 1.16.7
-  kernelspec:
-    display_name: main
-    language: python
-    name: main
+jupyter: main
 ---
 
 **Sources**:
@@ -50,7 +39,9 @@ jupyter:
 #### Imports
 
 ```{python}
+# ruff: noqa: F405
 from init import *
+%config InlineBackend.figure_formats = ['svg']
 ```
 
 ## Introduction
@@ -348,7 +339,7 @@ def globe_toss_plot(observations):
 # Globe Tossing Simulation
 # W = 1, L = 0
 observations = np.array([1,0,1,1,1,0,1,0,1])
-utils.inline_plot(globe_toss_plot, observations)
+globe_toss_plot(observations)
 ```
 
 ------------------------------------------------------------------------
@@ -447,7 +438,7 @@ $$
 
 This is an analytical function that gives us the pmf as the limit as number of possibilities $\rightarrow \infty$, where $\binom{n}{k}$ is a normalizing constant to make the distribution sum to 1. The binomial function is a likelihood function that models/describes the number of successes (likelihood of observing) $k$ in $n$ independent, Bernoulli trials, where each trial has a probability $p$ of success. It is a discrete distribution and is used when the data consists of counts (e.g., number of heads in coin tosses).
 
-The p*robability density function* (pdf) for beta is $f(x, a, b)$, where $\alpha = k + 1$ and $\beta = n - k + 1$.
+The *probability density function* (pdf) for beta is $f(x, a, b)$, where $\alpha = k + 1$ and $\beta = n - k + 1$.
 
 Beta probability density function (pdf) has the form:
 
@@ -666,8 +657,7 @@ def example_plot():
           if i == 0:
               ax[ii].set_title(f"{titles[ii]}")  
 
-utils.inline_plot(example_plot)
-
+example_plot()
 ```
 
 The posterior distribution as a product of the prior distribution and likelihood. Top: A flat prior constructs a posterior that is simply proportional to the likelihood. Middle: A step prior, assigning zero probability to all values less than 0.5, results in a truncated posterior. Bottom: A peaked prior that shifts and skews the posterior, relative to the likelihood.
@@ -757,7 +747,7 @@ def example_plot():
         ax[idx].set_title(f"{ps} points")
         ax[idx].legend(loc=0)
 
-utils.inline_plot(example_plot)
+example_plot()
 ```
 
 The correct density for your grid is determined by how accurate you want your approximation to be. More points means more precision. In this simple example, you can go crazy and use 100,000 points, but there won’t be much change in inference after the first 100.
@@ -830,9 +820,9 @@ def plot_quap():
                 color='k', 
                 linestyle='--', 
                 label="Quadratic approximation")
-        ax.set(xlabel='Proportion wate', title=f"n = {Ws[i]+Ls[i]}")
+        ax.set(xlabel='Proportion Water', title=f"n = {Ws[i]+Ls[i]}")
 
-utils.inline_plot(plot_quap)
+plot_quap()
 ```
 
 Accuracy of the quadratic approximation. In each plot, the exact posterior distribution is plotted in solid curve, and the quadratic approximation is plotted as the dotted curve. Left: The globe tossing data with $n=9$ tosses and $w=6$ waters. Middle: Double the amount of data, with the same fraction of water, $n=18$ and $w=12$. Right: Four times as much data, $n=36$ and $w=24$.
@@ -909,7 +899,7 @@ def beta_binom_plot():
     ax2.plot(p, stats.beta.pdf(p, 7+1, 3+1), color='r', linewidth=6, alpha=0.2)
     ax2.tick_params(axis='y', labelcolor='r')
 
-utils.inline_plot(beta_binom_plot)
+beta_binom_plot()
 ```
 
 ------------------------------------------------------------------------
@@ -998,8 +988,9 @@ def plot_post_dist():
     az.plot_kde(p, bw=bw, label="Metropolis approximation", plot_kwargs={'color': 'black', 'linestyle':'--'})
     x = np.linspace(0, 1, 100)
     plt.plot(x, stats.beta.pdf(x, W + 1, L + 1), color='k', label="True posterior")
-    plt.legend();
-utils.inline_plot(plot_post_dist)
+    plt.legend()
+
+plot_post_dist()
 ```
 
 ------------------------------------------------------------------------
@@ -1055,14 +1046,14 @@ beta_posterior_pdf = stats.beta(a, b)
 beta_posterior_samples = beta_posterior_pdf.rvs(size=n_samples)
 
 def plot_beta_pos():
-    # Show that our beta postorior captures shape of beta-distributed samples
+    # Show that our beta posterior captures shape of beta-distributed samples
     plt.hist(beta_posterior_samples, bins=50, density=True, label='samples');
     plt.plot(p_range, stats.beta.pdf(p_range, a, b), linewidth=3, color='r', linestyle='--', label='beta distribution')
     plt.xlabel("proportion water")
     plt.ylabel("density")
     plt.legend()
 
-utils.inline_plot(plot_beta_pos)
+plot_beta_pos()
 ```
 
 ```{python}
@@ -1189,22 +1180,48 @@ def posterior_predictive_plot():
     plt.title(f"number of W samples predicted ($\hat n_W$) from {N_draws_for_prediction} globe flips")
     plt.legend()
 
-utils.inline_plot(posterior_predictive_plot)
+posterior_predictive_plot()
 ```
 
 ------------------------------------------------------------------------
 
 ## Practice Problems
 
-1)  *The probability of rain on Monday*:
-    -   Pr(rain\|Monday)
-    -   Pr(rain,Monday)/Pr(Monday) = Pr(rain\|Monday)
-2)  Pr(Monday\|rain):
-    -   The probability that it is Monday, given that it is raining
-3)  The probability that it is Monday, given that it is raining:
-    -   Pr(Monday\|rain)
-    -   Pr(rain\|Monday)Pr(Monday)/Pr(rain): the product Pr(rain\|Monday) Pr(Monday) is just the joint probability of rain and Monday, Pr(rain,Monday). Then dividing by the probability of rain provides the conditional probability
-4)  Compute and plot the grid approximate posterior distribution for each of the following sets of observations. In each case, assume a uniform prior for $p$.
+### 2E1
+
+Which of the expressions below correspond to the statement: *the probability of rain on Monday*?
+
+$$
+Pr(\text{Rain} \mid \text{Monday})
+$$
+
+$$
+\frac{Pr(\text{Rain},\text{Monday})}{Pr(\text{Monday})} = Pr(\text{Rain} \mid \text{Monday})
+$$
+
+### 2E2
+
+Which of the following statements corresponds to the expression: $Pr(\text{Monday}\mid\text{Rain})$?
+
+The probability that it is Monday, given that it is raining.
+
+### 2E3
+
+Which of the expressions below correspond to the statement: *The probability that it is Monday, given that it is raining*?
+
+$$
+Pr(\text{Monday}\mid\text{Rain})
+$$
+
+$$
+Pr(\text{Rain}\mid\text{Monday})Pr(\text{Monday})/Pr(\text{Rain})
+$$
+
+The product $Pr(\text{Rain}\mid\text{Monday})Pr(\text{Monday})$ is just the joint probability of rain and Monday, $Pr(\text{Rain},\text{Monday})$. Then dividing by the probability of rain provides the conditional probability.
+
+### 2M1
+
+Recall the globe tossing model from the chapter. Compute and plot the grid approximate posterior distribution for each of the following sets of observations. In each case, assume a uniform prior for $p$.
 
 ```{python}
 # W, W, W             - (3,3)
@@ -1222,10 +1239,12 @@ def plot_grid_approx():
         ax[idx].set_ylabel("posterior")
         ax[idx].set_title(f"Water = {w}, Land = {n-w}")
 
-utils.inline_plot(plot_grid_approx)
+plot_grid_approx()
 ```
 
-5.  Now assume a prior for p that is equal to zero when $p <0.5$ and is a positive constant when $p ≥ 0.5$. Again compute and plot the grid approximate posterior distribution for each of the sets of observations in the problem just above.
+### 2M2
+
+Now assume a prior for p that is equal to zero when $p <0.5$ and is a positive constant when $p ≥ 0.5$. Again compute and plot the grid approximate posterior distribution for each of the sets of observations in the problem just above.
 
 ```{python}
 def plot_grid_approx():
@@ -1237,12 +1256,14 @@ def plot_grid_approx():
         ax[idx].set_ylabel("posterior")
         ax[idx].set_title(f"Water = {w}, Land = {n-w}")
 
-utils.inline_plot(plot_grid_approx)
+plot_grid_approx()
 ```
 
-6.  Suppose there are two globes, one for Earth and one for Mars. The Earth globe is 70% covered in water. The Mars globe is 100% land. Further suppose that one of these globes—you don’t know which—was tossed in the air and produced a “land” observation. Assume that each globe was equally likely to be tossed. Show that the posterior probability that the globe was the Earth, conditional on seeing “land” (Pr(Earth\|land)), is 0.23.
+### 2M3
 
-![prob-tree](images/earth-mars-probability-tree.png)
+Suppose there are two globes, one for Earth and one for Mars. The Earth globe is 70% covered in water. The Mars globe is 100% land. Further suppose that one of these globes—you don’t know which—was tossed in the air and produced a “land” observation. Assume that each globe was equally likely to be tossed. Show that the posterior probability that the globe was the Earth, conditional on seeing “land” $(Pr(\text{Earth}\mid\text{land}))$, is 0.23.
+
+![](images/earth-mars-probability-tree.png){fig-align="center" width="270"}
 
 $P(Land, Earth) = P(Earth)P(Land \mid Earth) = 0.5 \times 0.3 = 0.15$
 
@@ -1256,11 +1277,17 @@ We can think of $P(Land)$ as the marginal (average) probability of land, averagi
 
 You can think of this **posterior probability** as an **updated prior**. The prior probability was 0.5. Since there is more land coverage on Mars than on Earth, the posterior probability after observing land is smaller than the prior.
 
-7.  Suppose you have a deck with only three cards. Each card has two sides, and each side is either black or white. One card has two black sides. The second card has one black and one white side. The third card has two white sides. Now suppose all three cards are placed in a bag and shuffled. Someone reaches into the bag and pulls out a card and places it flat on a table. A black side is shown facing up, but you don’t know the color of the side facing down. Show that the probability that the other side is also black is 2/3. Use the counting method (Section 2 of the chapter) to approach this problem. This means counting up the ways that each card could produce the observed data (a black side facing up on the table)
+### 2M4
+
+Suppose you have a deck with only three cards. Each card has two sides, and each side is either black or white. One card has two black sides. The second card has one black and one white side. The third card has two white sides. Now suppose all three cards are placed in a bag and shuffled. Someone reaches into the bag and pulls out a card and places it flat on a table. A black side is shown facing up, but you don’t know the color of the side facing down. Show that the probability that the other side is also black is 2/3. Use the counting method (Section 2 of the chapter) to approach this problem. This means counting up the ways that each card could produce the observed data (a black side facing up on the table)
 
 p = probability of 'B'
 
-Observed: 'B' - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 0
+Observed: 'B' 
+
+- \['B', 'B'\], $p(B) = 1.0$, ways to produce = $2$ 
+- \['B', 'W'\], $p(B) = 0.5$, ways to produce = $1$
+- \['W', 'W'\], $p(B) = 0.0$, ways to produce = $0$
 
 Total Ways to produce black side up = 2 + 1 + 0 = 3
 
@@ -1268,7 +1295,7 @@ Way to produce B/B = 2
 
 2/3 probability that the other side is black
 
-![3-deck-card](images/3-deck-card.png)
+![](images/3-deck-card.png){fig-align="center" width="270"}
 
 $P(B-Card \mid B) = \frac{P(B \mid B-Card)P(B-Card)}{P(B)} = \frac{1 \times 1/3}{(1/3 \times 1/2) + 1/3} = 2/3$
 
@@ -1282,7 +1309,9 @@ Pr(DB\|B) = 1 as if you pick the double black card, you have to see a black face
 
 Pr(DB) = 1/3 as there are 3 possible cards you might choose
 
-8.  Now suppose there are four cards: B/B, B/W, W/W, and another B/B. Again suppose a card is drawn from the bag and a black side appears face up. Again calculate the probability that the other side is black.
+### 2M5
+
+Now suppose there are four cards: B/B, B/W, W/W, and another B/B. Again suppose a card is drawn from the bag and a black side appears face up. Again calculate the probability that the other side is black.
 
 Observed: 'B' - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 0
 
@@ -1294,7 +1323,7 @@ Way to produce B/B = 2 + 2 = 4
 
 With the extra B/B card, there are now 5 ways to see a black card face up: 2 from the first B/B card, 1 from the B/W card, and 2 more from the other B/B card. 4 of these ways are consistent with a B/B card, so the probability is now 4/5 that the other side of the card is also black.
 
-![4-deck-card](images/4-deck-card.png)
+![](images/4-deck-card.png){fig-align="center" width="270"}
 
 $P(B-Card \mid B) = \frac{P(B \mid B-Card)P(B-Card)}{P(B)} = \frac{1 \times 1/2}{(1/4 \times 1/2) + 1/2} = 4/5$
 
@@ -1304,9 +1333,15 @@ $Pr(DB|B) = \frac{Pr(B|DB)Pr(DB)}{Pr(B)} = \frac{(1)(1/2)}{5/8} = 4/5$
 
 as 4/5 of the faces are black and you have a 50-50 chance of picking a double black card in this set-up
 
-9.  Imagine that black ink is heavy, and so cards with black sides are heavier than cards with white sides. As a result, it’s less likely that a card with black sides is pulled from the bag. So again assume there are three cards: B/B, B/W, and W/W. After experimenting a number of times, you conclude that for every way to pull the B/B card from the bag, there are 2 ways to pull the B/W card and 3 ways to pull the W/W card. Again suppose that a card is pulled and a black side appears face up. Show that the probability the other side is black is now 0.5. Use the counting method, as before.
+### 2M6
 
-Observed: 'B' - \['B', 'B'\], p(B) = 1.0, prior count = 2, likelihood = 1, new count = 2*1 - \['B', 'W'\], p(B) = 0.5, prior count = 1, likelihood = 2, new count = 1*2 - \['W', 'W'\], p(B) = 0.0, prior count = 0, likelihood = 3, new count = 0\*3
+Imagine that black ink is heavy, and so cards with black sides are heavier than cards with white sides. As a result, it’s less likely that a card with black sides is pulled from the bag. So again assume there are three cards: B/B, B/W, and W/W. After experimenting a number of times, you conclude that for every way to pull the B/B card from the bag, there are 2 ways to pull the B/W card and 3 ways to pull the W/W card. Again suppose that a card is pulled and a black side appears face up. Show that the probability the other side is black is now 0.5. Use the counting method, as before.
+
+Observed: 'B' 
+
+- \['B', 'B'\], $p(B) = 1.0$, prior count = $2$, likelihood = $1$, new count = $2 \times 1$ 
+- \['B', 'W'\], $p(B) = 0.5$, prior count = $1$, likelihood = $2$, new count = $1 \times 2$ 
+- \['W', 'W'\], $p(B) = 0.0$, prior count = $0$, likelihood = $3$, new count = $0 \times 3$
 
 Total Ways to produce black side up = 2 + 2 + 0 = 4
 
@@ -1339,23 +1374,36 @@ Giving the final result to be
 
 $Pr(DB|B) = \frac{Pr(B|DB)Pr(DB)}{Pr(B)} =  \frac{1 \times 1/6}{1/3} = 1/2$
 
-10. Assume again the original card problem, with a single card showing a black side face up. Before looking at the other side, we draw another card from the bag and lay it face up on the table. The face that is shown on the new card is white. Show that the probability that the first card, the one showing a black side, has black on its other side is now 0.75. Use the counting method, if you can. Hint: Treat this like the sequence of globe tosses, counting all the ways to see each observation, for each possible first card.
+### 2M7
 
-Observed: 'B' - \['B', 'B'\], p(B) = 1.0, ways to produce = 2 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 0
+Assume again the original card problem, with a single card showing a black side face up. Before looking at the other side, we draw another card from the bag and lay it face up on the table. The face that is shown on the new card is white. Show that the probability that the first card, the one showing a black side, has black on its other side is now 0.75. Use the counting method, if you can. Hint: Treat this like the sequence of globe tosses, counting all the ways to see each observation, for each possible first card.
 
-Total Ways to produce black side up = 2 + 1 + 0 = 3
+Observed: 'B' 
 
-Way to produce B/B = 2
+- \['B', 'B'\], $p(B) = 1.0$, ways to produce = $2$ 
+- \['B', 'W'\], $p(B) = 0.5$, ways to produce = $1$ 
+- \['W', 'W'\], $p(B) = 0.0$, ways to produce = $0$
+
+Total Ways to produce black side up = $2 + 1 + 0 = 3$
+
+Way to produce B/B = $2$
 
 2/3 **prior probability** that the other side is black
 
-Observed New: 'W' - \['B', 'B'\], p(B) = 1.0, ways to produce = 0 - \['B', 'W'\], p(B) = 0.5, ways to produce = 1 - \['W', 'W'\], p(B) = 0.0, ways to produce = 2
+Observed New: 'W' 
 
-Total Ways to produce white side up = 0 + 1 + 2 = 3
+- \['B', 'B'\], $p(B) = 1.0$, ways to produce = $0$ 
+- \['B', 'W'\], $p(B) = 0.5$, ways to produce = $1$ 
+- \['W', 'W'\], $p(B) = 0.0$, ways to produce = $2$
+
+Total Ways to produce white side up = $0 + 1 + 2 = 3$
 
 Given that the first draw has at least 1 side black and the second draw has at least 1 side white, the first draw cannot be card W/W and second card cannot be B/B. Either the first draw is B/W or B/B or the second draw is B/W or W/W.
 
-Observing (1) B then (2) W - Scenario 1: **B**/**B** then B/**W** or **W**/**W** = 2 \* 3 = 6 - Scenario 2: **B**/W then **W**/**W** = 1 \* 2 = 2
+Observing (1) B then (2) W 
+
+- Scenario 1: **B**/**B** then B/**W** or **W**/**W** = $2 \times 3 = 6$
+- Scenario 2: **B**/W then **W**/**W** = $1 \times 2 = 2$
 
 Ways to create the sequence = 6 + 2 = 8
 
@@ -1379,7 +1427,8 @@ $Pr(B_1,W_2) = Pr(B_1,W_2|B/B)Pr(B/B) + Pr(B_1,W_2|B/W)Pr(B/W)$
 
 $$
 \begin{align*}
- Pr(B_1,W_2) &= Pr(W_2\|B_1,B/B)Pr(B_1\|B/B)Pr(B/B) + Pr(W_2\|B_1,B/W)Pr(B_1\|B/W)Pr(B/W) \\
+ Pr(B_1,W_2) &= Pr(W_2\|B_1,B/B)Pr(B_1\|B/B)Pr(B/B) \\
+    &+ Pr(W_2\|B_1,B/W)Pr(B_1\|B/W)Pr(B/W) \\
  &= 3/4 \times 1 \times 1/3 + 1/2 \times 1/2 \times 1/3 \\
  &= 1/3
 \end{align*}
@@ -1391,7 +1440,9 @@ $$
 \frac{Pr(B_1,W_2|B/B)Pr(B/B)}{Pr(B_1,W_2)} = \frac{3/4 \times 1/3}{1/3} = 3/4
 $$
 
-11. Suppose there are two species of panda bear. Both are equally common in the wild and live in the same places. They look exactly alike and eat the same food, and there is yet no genetic assay capable of telling them apart. They differ however in their family sizes. Species A gives birth to twins 10% of the time, otherwise birthing a single infant. Species B births twins 20% of the time, otherwise birthing singleton infants. Assume these numbers are known with certainty, from many years of field research. Now suppose you are managing a captive panda breeding program. You have a new female panda of unknown species, and she has just given birth to twins. What is the probability that her next birth will also be twins?
+### 2H1   
+
+Suppose there are two species of panda bear. Both are equally common in the wild and live in the same places. They look exactly alike and eat the same food, and there is yet no genetic assay capable of telling them apart. They differ however in their family sizes. Species A gives birth to twins 10% of the time, otherwise birthing a single infant. Species B births twins 20% of the time, otherwise birthing singleton infants. Assume these numbers are known with certainty, from many years of field research. Now suppose you are managing a captive panda breeding program. You have a new female panda of unknown species, and she has just given birth to twins. What is the probability that her next birth will also be twins?
 
 To solve this problem, realize first that it is asking for a conditional probability:
 
@@ -1409,17 +1460,27 @@ So our job is to define $P(Twin_{1}, Twin_{2})$, the joint probability that both
 
 $P(Twins)$ is easier, so let’s do that one first. The “unconditioned” probability just means that we have to average over the possibilities. In this case, that means the species have to averaged over. The problem implies that both species are equally common, so there’s a half chance that any given panda is of either species. This gives us
 
-$$P(Twins) = 0.5(0.1) + 0.5(0.2) = 0.15$$
+$$
+P(Twins) = 0.5(0.1) + 0.5(0.2) = 0.15
+$$
 
 Now for $P(Twins_{1},Twins_{2})$. The probability that a female from species A has two sets of twins is $0.1 ×0.1 =0.01$. The corresponding probability for species B is $0.2×0.2 =0.04$. Averaging over species identity:
 
-$$P(Twins_{1}, Twins_{2}) = 0.5(0.01) + 0.5(0.04) = 0.025$$
+$$
+P(Twins_{1}, Twins_{2}) = 0.5(0.01) + 0.5(0.04) = 0.025
+$$
 
-Finally, we combine these probabilities to get the answer: $$P(Twins_{2} \mid Twins_{1}) = \frac{0.025}{0.15} = \frac{1}{6} \approx 0.17$$
+Finally, we combine these probabilities to get the answer: 
+
+$$
+P(Twins_{2} \mid Twins_{1}) = \frac{0.025}{0.15} = \frac{1}{6} \approx 0.17
+$$
 
 Note that this is higher than $P(twins)$. This is because the first set of twins provides some information about which species we have, and this information was automatically used in the calculation.
 
-12. Recall all the facts from the problem above. Now compute the probability that the panda we have is from species A, assuming we have observed only the first birth and that it was twins.
+### 2H2
+
+Recall all the facts from the problem above. Now compute the probability that the panda we have is from species A, assuming we have observed only the first birth and that it was twins.
 
 $$
 P(Species_{A} \mid Twins) = \frac{P(Twins \mid Species_{A})P(Species_{A})}{P(Twins)}
@@ -1433,7 +1494,9 @@ $$
 
 So the posterior probability of species A, after observing twins, falls to 1/3, from a prior probability of 1/2. This also implies a posterior probability of 2/3 that our panda is species B, since we are assuming only two possible species.
 
-13. Continuing on from the previous problem, suppose the same panda mother has a second birth and that it is not twins, but a singleton infant. Compute the posterior probability that this panda is species A.
+### 2H3
+
+Continuing on from the previous problem, suppose the same panda mother has a second birth and that it is not twins, but a singleton infant. Compute the posterior probability that this panda is species A.
 
 Given the new information, we are computing
 
@@ -1450,8 +1513,10 @@ Whereas, the prior is the probability computed earlier $P(Species_{A} \mid Twins
 The average/marginal probability of the data =
 
 $$
+\begin{align}
 P(Singleton) = P(Singleton \mid (Species_{A} \mid Twins))P(Species_{A} \mid Twins) + \\
 P(Singleton \mid (Species_{B} \mid Twins))P(Species_{B} \mid Twins)
+\end{align}
 $$
 
 Given that $P(Species_{A} \mid Twins) = 1/3$, $P(Species_{B} \mid Twins) = 1 - 1/3$
@@ -1459,41 +1524,64 @@ Given that $P(Species_{A} \mid Twins) = 1/3$, $P(Species_{B} \mid Twins) = 1 - 1
 Therefore,
 
 $$
-P(Singleton) = P(Singleton \mid A)P(A) + P(Singleton \mid B)P(B) = (0.9)\times\frac{1}{3} + (0.8)\times\frac{2}{3} = \frac{5}{6}
+\begin{align*}
+P(Singleton) &= P(Singleton \mid A)P(A) + P(Singleton \mid B)P(B) \\
+&= (0.9)\times\frac{1}{3} + (0.8)\times\frac{2}{3} \\
+&= \frac{5}{6}
+\end{align*}
 $$
 
-Combining everything, we get: $$P(A\mid Singleton)= \frac{(0.9)(1/3)}{5/6}=\frac{9}{25} = 0.36$$
+Combining everything, we get: 
+
+$$
+P(A\mid Singleton)= \frac{(0.9)(1/3)}{5/6}=\frac{9}{25} = 0.36
+$$
 
 This is a modest increase in posterior probability of species A, an increase from about 0.33 to 0.36.
 
 The other way to proceed is to go back to the original prior, Pr(A)=0.5, before observed any births. Then you can treat both observations (twins, singleton) as data and update the original prior. I’m going to start abbreviating “twins” as T and “singleton” as S. The formula:
 
-$$P(A\mid T, S) = \frac{P(T,S \mid A)P(A)}{P(T,S)}$$
+$$
+P(A\mid T, S) = \frac{P(T,S \mid A)P(A)}{P(T,S)}
+$$
 
 Let’s start with the average likelihood, $P(T, S)$, because it will force us to define the likelihoods anyway:
 
-$$P(T,S) = P(T,S \mid A)P(A) + P(T,S \mid B)P(B)$$
+$$
+P(T,S) = P(T,S \mid A)P(A) + P(T,S \mid B)P(B)
+$$
 
 The first likelihood is just the probability a species A mother has twins and then a singleton:
 
-$$P(T,S \mid A) = (0.1)(0.9) = 0.09$$
+$$
+P(T,S \mid A) = (0.1)(0.9) = 0.09
+$$
 
 And the second likelihood is similar, but for species B:
 
-$$P(T,S \mid B) = (0.2)(0.8) = 0.16$$
+$$
+P(T,S \mid B) = (0.2)(0.8) = 0.16
+$$
 
-The priors are both 0.5, so all together: $$P(T,S) = (0.09)(0.5) + (0.16)(0.5) = 0.125$$
+The priors are both 0.5, so all together: 
+$$
+P(T,S) = (0.09)(0.5) + (0.16)(0.5) = 0.125
+$$
 
 We already have the likelihood needed for the numerator, so we can go to the final answer now:
 
-$$P(A\mid T, S) = \frac{(0.09)(0.5)}{0.125} = 0.36$$
+$$
+P(A\mid T, S) = \frac{(0.09)(0.5)}{0.125} = 0.36
+$$
 
-14. A common boast of Bayesian statisticians is that Bayesian inference makes it easy to use all of the data, even if the data are of different types. So suppose now that a veterinarian comes along who has a new genetic test that she claims can identify the species of our mother panda. But the test, like all tests, is imperfect. This is the information you have about the test:
+### 2H4
 
-    -   The probability it correctly identifies a species A panda is 0.8.
-    -   The probability it correctly identifies a species B panda is 0.65.
+A common boast of Bayesian statisticians is that Bayesian inference makes it easy to use all of the data, even if the data are of different types. So suppose now that a veterinarian comes along who has a new genetic test that she claims can identify the species of our mother panda. But the test, like all tests, is imperfect. This is the information you have about the test:
 
-    The vet administers the test to your panda and tells you that the test is positive for species A. First ignore your previous information from the births and compute the posterior probability that your panda is species A. Then redo your calculation, now using the birth data as well.
+- The probability it correctly identifies a species A panda is 0.8.
+- The probability it correctly identifies a species B panda is 0.65.
+
+The vet administers the test to your panda and tells you that the test is positive for species A. First ignore your previous information from the births and compute the posterior probability that your panda is species A. Then redo your calculation, now using the birth data as well.
 
 |        | Species A | Species B |
 |--------|-----------|-----------|
@@ -1508,15 +1596,21 @@ Posterior Probability That Panda is Species A:
 
 We use the original prior, Pr(A)=0.5. Plugging everything into Bayes’ theorem:
 
-$$P(A \mid Test_A) = \frac{(0.8)(0.5)}{(0.8)(0.5)+(0.35)(0.5)} \approx 0.7$$
+$$
+P(A \mid Test_A) = \frac{(0.8)(0.5)}{(0.8)(0.5)+(0.35)(0.5)} \approx 0.7
+$$
 
 So the test has increased the confidence in species A from 0.5 to 0.7.
 
 Now to use the birth information as well. The easiest way to do this is just to begin with the posterior from the previous problem. That posterior already used the birth data, so if we adopt it as our prior, we automatically use the birth data. And so our prior becomes Pr(A)=0.36. Then the approach is just the same as just above:
 
-$$P(A \mid Test_A) = \frac{P(Test_A \mid A)P(A)}{P(Test_A)}$$
+$$
+P(A \mid Test_A) = \frac{P(Test_A \mid A)P(A)}{P(Test_A)}
+$$
 
-$$P(A \mid Test_A) = \frac{(0.8)(0.36)}{(0.36)(0.8) + (1-0.36)(0.35)} \approx 0.56$$
+$$
+P(A \mid Test_A) = \frac{(0.8)(0.36)}{(0.36)(0.8) + (1-0.36)(0.35)} \approx 0.56
+$$
 
 And since this posterior uses all of the data, the two births and the genetic test, it would be honest to label it as $P(A|Test_A, Twins, Singleton) \approx 0.56$.
 
@@ -1524,88 +1618,118 @@ And since this posterior uses all of the data, the two births and the genetic te
 
 ## Appendix
 
-------------------------------------------------------------------------
-
 ### PDF and PMF
 
-The terms **PMF**, **PDF, CDF**, and **PPF** are fundamental concepts in probability and statistics, each describing different aspects of probability distributions. Here's a detailed explanation of each:
+The terms **PMF**, **PDF, CDF**, and **PPF** are fundamental concepts in probability and statistics, each describing different aspects of probability distributions. Here's an explanation of each:
 
-1.  **PMF (Probability Mass Function)**
+#### PMF (Probability Mass Function)
 
--   **What it is**:
-    -   The PMF is used for **discrete random variables**.
-    -   It gives the probability that a discrete random variable takes on a specific value.
--   **Mathematical Definition**: $$
-    P(X = x)
-    $$ where $X$ is a discrete random variable, and $x$ is a specific value.
--   **Properties**:
-    -   The sum of the PMF over all possible values of $X$ is 1: $$
-        \sum_{x} P(X = x) = 1
-        $$
-    -   $P(X = x) \geq 0$ for all $x$.
--   **Example**:
-    -   For a fair six-sided die, the PMF is: $$
-        P(X = x) = \frac{1}{6} \quad \text{for } x = 1, 2, 3, 4, 5, 6.
-        $$
+- The PMF is used for **discrete random variables**.
+- It gives the probability that a discrete random variable takes on a specific value.
+- 
+$$
+P(X = x)
+$$ 
 
-2.  **CDF (Cumulative Distribution Function)**
+where $X$ is a discrete random variable, and $x$ is a specific value.
 
--   **What it is**:
-    -   The CDF is used for both **discrete and continuous random variables**.
-    -   It gives the probability that a random variable $X$ takes on a value less than or equal to a specific value $x$.
--   **Mathematical Definition**: $$
-    F(x) = P(X \leq x)
-    $$
--   **Properties**:
-    -   The CDF is a non-decreasing function.
-    -   It ranges from 0 to 1: $$
-        \lim_{x \to -\infty} F(x) = 0 \quad \text{and} \quad \lim_{x \to \infty} F(x) = 1.
-        $$
--   **Example**:
-    -   For a fair six-sided die, the CDF at $x = 3$ is: $$
-        F(3) = P(X \leq 3) = \frac{1}{6} + \frac{1}{6} + \frac{1}{6} = \frac{1}{2}.
-        $$
+The sum of the PMF over all possible values of $X$ is 1: 
 
-3.  **PDF (Probability Density Function)**
+$$
+\sum_{x} P(X = x) = 1
+$$
 
--   **What it is**:
-    -   The PDF is used for **continuous random variables**.
-    -   It describes the relative likelihood of a continuous random variable taking on a specific value.
--   **Mathematical Definition**: $$
-    f(x)
-    $$ where $f(x)$ is the PDF of a continuous random variable $X$.
--   **Properties**:
-    -   The PDF is non-negative: $$
-        f(x) \geq 0 \quad \text{for all } x.
-        $$
-    -   The total area under the PDF curve is 1: $$
-        \int_{-\infty}^{\infty} f(x) \, dx = 1.
-        $$
-    -   The probability of $X$ taking on a specific value is 0 (since the area under a single point is 0). Instead, probabilities are calculated over intervals: $$
-        P(a \leq X \leq b) = \int_{a}^{b} f(x) \, dx.
-        $$
--   **Example**:
-    -   For a normal distribution with mean $\mu$ and standard deviation $\sigma$, the PDF is: $$
-        f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}.
-        $$
+$P(X = x) \geq 0$ for all $x$.
 
-4.  **PPF (Percent-Point Function) or Quantile Function**
+**Example**:
 
--   **What it is**:
-    -   The PPF is the **inverse of the CDF**.
-    -   It gives the value $x$ such that the probability of the random variable $X$ being less than or equal to $x$ is a specified probability $p$.
--   **Mathematical Definition**: $$
-    x = F^{-1}(p)
-    $$ where $F^{-1}$ is the PPF, and $p$ is the probability.
--   **Properties**:
-    -   The PPF is used to find percentiles or quantiles of a distribution.
-    -   For example, the 0.5 quantile (median) is the value $x$ such that $P(X \leq x) = 0.5$.
--   **Example**:
-    -   For a standard normal distribution, the PPF at $p = 0.975$ is approximately 1.96, meaning: $$
-        P(X \leq 1.96) = 0.975.
-        $$
+For a fair six-sided die, the PMF is: 
 
-**Key Differences**
+$$
+P(X = x) = \frac{1}{6} \quad \text{for } x = 1, 2, 3, 4, 5, 6.
+$$
+
+#### CDF (Cumulative Distribution Function)
+
+- The CDF is used for both **discrete and continuous random variables**.
+- It gives the probability that a random variable $X$ takes on a value less than or equal to a specific value $x$. 
+
+$$
+F(x) = P(X \leq x)
+$$
+
+The CDF is a non-decreasing function. It ranges from 0 to 1: 
+
+$$
+\lim_{x \to -\infty} F(x) = 0 \quad \text{and} \quad \lim_{x \to \infty} F(x) = 1.
+$$
+
+**Example**:
+
+For a fair six-sided die, the CDF at $x = 3$ is: 
+
+$$
+F(3) = P(X \leq 3) = \frac{1}{6} + \frac{1}{6} + \frac{1}{6} = \frac{1}{2}.
+$$
+
+#### PDF (Probability Density Function)
+
+- The PDF is used for **continuous random variables**.
+- It describes the relative likelihood of a continuous random variable taking on a specific value.
+
+$$
+f(x)
+$$ 
+
+where $f(x)$ is the PDF of a continuous random variable $X$.
+
+The PDF is non-negative: 
+
+$$
+f(x) \geq 0 \quad \text{for all } x.
+$$
+
+The total area under the PDF curve is 1: 
+
+$$
+\int_{-\infty}^{\infty} f(x) \, dx = 1.
+$$
+
+The probability of $X$ taking on a specific value is 0 (since the area under a single point is 0). Instead, probabilities are calculated over intervals: 
+
+$$
+P(a \leq X \leq b) = \int_{a}^{b} f(x) \, dx.
+$$
+
+**Example**:
+
+For a normal distribution with mean $\mu$ and standard deviation $\sigma$, the PDF is: 
+$$
+f(x) = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}.
+$$
+
+#### PPF (Percent-Point Function) or Quantile Function
+
+- The PPF is the **inverse of the CDF**.
+- It gives the value $x$ such that the probability of the random variable $X$ being less than or equal to $x$ is a specified probability $p$.
+
+$$
+x = F^{-1}(p)
+$$
+
+where $F^{-1}$ is the PPF, and $p$ is the probability.
+
+The PPF is used to find percentiles or quantile of a distribution. For example, the 0.5 quantile (median) is the value $x$ such that $P(X \leq x) = 0.5$.
+
+**Example**:
+
+For a standard normal distribution, the PPF at $p = 0.975$ is approximately 1.96, meaning: 
+
+$$
+P(X \leq 1.96) = 0.975.
+$$
+
+#### Key Differences
 
 | **Term** | **Full Name** | **Applies To** | **Description** |
 |----|----|----|----|
@@ -1614,15 +1738,23 @@ The terms **PMF**, **PDF, CDF**, and **PPF** are fundamental concepts in probabi
 | PDF | Probability Density Function | Continuous random variables | Relative likelihood of a continuous random variable taking on a specific value. |
 | PPF | Percent-Point Function | Discrete and continuous random variables | Value $x$ such that $P(X \leq x) = p$ (inverse of CDF). |
 
-**Relationship Between CDF and PDF/PMF**
+#### Relationship Between CDF and PDF/PMF
 
--   For **discrete random variables**: $$
-      F(x) = \sum_{k \leq x} P(X = k)
-      $$ where $P(X = k)$ is the PMF.
+For **discrete random variables**: 
 
--   For **continuous random variables**: $$
-      F(x) = \int_{-\infty}^{x} f(t) \, dt
-      $$ where $f(t)$ is the PDF.
+$$
+F(x) = \sum_{k \leq x} P(X = k)
+$$ 
+
+where $P(X = k)$ is the PMF.
+
+For **continuous random variables**: 
+
+$$
+F(x) = \int_{-\infty}^{x} f(t) \, dt
+$$ 
+
+where $f(t)$ is the PDF.
 
 **When to Use Each**
 
@@ -1642,20 +1774,32 @@ The terms **PMF**, **PDF, CDF**, and **PPF** are fundamental concepts in probabi
 
 **Sum Rule**:
 
-$$P(X)=\sum_Y P(X,Y)$$
+$$
+P(X)=\sum_Y P(X,Y)
+$$
 
-$$P(Y)=\sum_X P(X,Y)$$
+$$
+P(Y)=\sum_X P(X,Y)
+$$
 
 **Product Rule**:
 
-$$P(X,Y) = P(Y \mid X)P(X)$$
+$$
+P(X,Y) = P(Y \mid X)P(X)
+$$
 
-$$P(Y,X) = P(X \mid Y)P(Y)$$
+$$
+P(Y,X) = P(X \mid Y)P(Y)
+$$
 
 **Bayes' Rule**:
 
-$$P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}$$
+$$
+P(Y \mid X) = \frac{P(X \mid Y)P(Y)}{P(X)}
+$$
 
-$$P(X \mid Y) = \frac{P(Y \mid X)P(X)}{P(Y)}$$
+$$
+P(X \mid Y) = \frac{P(Y \mid X)P(X)}{P(Y)}
+$$
 
 ------------------------------------------------------------------------

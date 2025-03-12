@@ -5,7 +5,7 @@ date: "last-modified"
 format:
   html:
     theme: cosmo # united is darker
-    css: style.css
+    css: quarto-style/style.css
     highlight-style: atom-one
     mainfont: Palatino
     fontcolor: black
@@ -27,18 +27,7 @@ format:
         method: mathjax
         url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
-jupyter:
-  jupytext:
-    formats: ipynb,qmd:quarto
-    text_representation:
-      extension: .qmd
-      format_name: quarto
-      format_version: '1.0'
-      jupytext_version: 1.16.7
-  kernelspec:
-    display_name: main
-    language: python
-    name: main
+jupyter: main
 ---
 
 #### Imports
@@ -204,7 +193,7 @@ def plot_trace():
     ax[1].set_xlabel('Proportion Water ($p$)')
     ax[1].set_ylabel('Density')
 
-utils.inline_plot(plot_trace)
+plot_trace()
 ```
 
 **Sampling parameter values from the posterior distribution**. Left: 10,000 samples from the posterior implied by the globe tossing data and model. Right: The density of samples (vertical) at each parameter value (horizontal).
@@ -402,7 +391,7 @@ def plot_post_intervals():
         ax.set_xlabel('Proportion Water ($p$)')
         ax.set_ylabel('Density')
 
-utils.inline_plot(plot_post_intervals)
+plot_post_intervals()
 ```
 
 Two kinds of posterior interval. Top row: *Intervals of defined boundaries*. Top-left: The black area is the posterior probability below a parameter value of 0.5. Top-right: The posterior probability between 0.5 and 0.75. Bottom row: *Intervals of defined mass*. Bottom-left: Lower 80% posterior probability exists below a parameter value of about 0.76. Bottom-right: Middle 80% posterior probability lies between the 10% and 90% quantiles.
@@ -429,7 +418,7 @@ def plot_post_intervals():
         ax.set_ylabel('Density')
         ax.set_title(title[ii])
 
-utils.inline_plot(plot_post_intervals)
+plot_post_intervals()
 ```
 
 The difference between percentile and highest posterior density compatibility intervals. The posterior density here corresponds to a flat prior and observing three water samples in three total tosses of the globe. Left: 50% percentile interval. This interval assigns equal mass (25%) to both the left and right tail. As a result, it omits the most probable parameter value, $p=1$. Right: 50% highest posterior density interval, HPDI. This interval finds the narrowest region with 50% of the posterior probability. Such a region always includes the most probable parameter value.
@@ -648,7 +637,7 @@ def plt_loss_function():
     ax.set_xlabel('Decision')
     ax.set_ylabel('Expected Proportional Loss')
 
-utils.inline_plot(plt_loss_function)
+plt_loss_function()
 ```
 
 Point estimates and loss functions. - Left: Posterior distribution after observing 3 water in 3 tosses of the globe. Vertical lines show the locations of the mode, median, and mean. Each point implies a different loss function. - Right: Expected loss under the rule that loss is proportional to absolute distance of decision (horizontal axis) from the true value. The point marks the value of $p$ that minimizes the expected loss, the posterior median.
@@ -751,7 +740,7 @@ def plot_sim_samples():
     plt.ylabel('Frequency')
     plt.title('Distribution of simulated sample observations\nfrom 9 tosses of the globe')
 
-utils.inline_plot(plot_sim_samples)
+plot_sim_samples()
 ```
 
 Distribution of simulated sample observations from 9 tosses of the globe. These samples assume the proportion of water is 0.7.
@@ -904,7 +893,7 @@ def simple_hist():
     plt.title('Posterior Predictive Distribution')
     plt.xlim(0, 9.5)
 
-utils.inline_plot(simple_hist)
+simple_hist()
 ```
 
 All we need to propagate parameter uncertainty into these predictions we need to pass `samples` as `p` from the posterior:
@@ -932,7 +921,7 @@ def simple_hist():
     plt.title('Posterior Predictive Distribution')
     plt.xlim(0, 9.5)
 
-utils.inline_plot(simple_hist)
+simple_hist()
 ```
 
 The symbol samples above is the same list of random samples from the posterior distribution that we’ve used in previous sections. For each sampled value, a random binomial observation is generated. Since the sampled values appear in proportion to their posterior probabilities, the **resulting simulated observations are averaged over the posterior**. You can manipulate these simulated observations just like you manipulate samples from the posterior—you can compute intervals and point statistics using the same procedures.
@@ -947,7 +936,7 @@ First, consider the **length of the longest run** of either water or land. This 
 def sim_globe(p: float, n: int) -> list[int]:
     """Simulate N globe tosses with a specific/known proportion
     p: float
-        The propotion of water
+        The proportion of water
     N: int
         Number of globe tosses
     
@@ -999,7 +988,7 @@ def plot_alt_view_posterior():
         ax.set_ylabel('Frequency')
         ax.set_ylim(-50,3100)
 
-utils.inline_plot(plot_alt_view_posterior)
+plot_alt_view_posterior()
 ```
 
 Alternative views of the same posterior predictive distribution from the plot earlier. Instead of considering the data as the model saw it, as a sum of water samples, now we view the data as both the length of the maximum run of water or land (left) and the number of switches between water and land samples (right). Observed values highlighted in blue. While the simulated predictions are consistent with the run length (3 water in a row), they are much less consistent with the frequent switches (6 switches in 9 tosses).
@@ -1045,7 +1034,9 @@ np.random.seed(100)
 samples = np.random.choice(a=p_grid, size=int(1e4), replace=True, p=posterior)
 ```
 
-1)  How much posterior probability lies below $p=0.2$?
+### 3E1
+
+How much posterior probability lies below $p=0.2$?
 
 To find out how much posterior probability lies below p =0.2, just compute the proportion of samples that are below 0.2. First, count up how many samples are below 0.2:
 
@@ -1059,19 +1050,25 @@ Only 5 samples have a value less than 0.2. Now to compute the proportion, just d
 np.sum(samples < 0.2)/1e4
 ```
 
-2.  How much posterior probability lies above $p=0.8$?
+### 3E2
+
+How much posterior probability lies above $p=0.8$?
 
 ```{python}
 np.sum(samples > 0.8)/1e4
 ```
 
-3.  How much posterior probability lies between $p =0.2$ and $p =0.8$?
+### 3E3
+
+How much posterior probability lies between $p =0.2$ and $p =0.8$?
 
 ```{python}
 np.sum((samples > 0.2) & (samples < 0.8))/1e4
 ```
 
-4.  20% of the posterior probability lies below which value of $p$?
+### 3E4
+
+20% of the posterior probability lies below which value of $p$?
 
 This problem asks for an interval of defined mass, so we need to find the boundary.
 
@@ -1085,7 +1082,9 @@ So $p =0.52$ (rounding for sanity) is the value that 20% of the posterior probab
 np.sum(samples < 0.52) / 1e4
 ```
 
-5.  20% of the posterior probability lies above which value of p?
+### 3E5
+
+20% of the posterior probability lies above which value of p?
 
 A slight modification to the quantile code from earlier will do it. The trick here is to realize that finding the value of p above which 20% of the posterior probability lies means asking for the 80% quantile. Why? Because only 20% of the probability mass remains above 80%.
 
@@ -1101,7 +1100,9 @@ np.sum(samples > 0.76) / 1e4
 
 Not exactly 0.2, but that’s just because of the discrete nature of the grid we used, as well as the finite number of samples.
 
-6.  Which values of $p$ contain the narrowest interval equal to 66% of the posterior probability?
+### 3E6
+
+Which values of $p$ contain the narrowest interval equal to 66% of the posterior probability?
 
 This problem is asking for a highest posterior density interval (HDPI)
 
@@ -1109,7 +1110,9 @@ This problem is asking for a highest posterior density interval (HDPI)
 az.hdi(samples, hdi_prob=0.66)
 ```
 
-7.  Which values of $p$ contain 66% of the posterior probability, assuming equal posterior probability both below and above the interval?
+### 3E7
+
+Which values of $p$ contain 66% of the posterior probability, assuming equal posterior probability both below and above the interval?
 
 This problem is asking instead for a conventional percentile interval.
 
@@ -1128,7 +1131,9 @@ width2 = interval2[1] - interval2[0]
 width2
 ```
 
-8.  Suppose the globe tossing data had turned out to be 8 water in 15 tosses. Construct the posterior distribution, using grid approximation. Use the same flat prior as before.
+### 3M1
+
+Suppose the globe tossing data had turned out to be 8 water in 15 tosses. Construct the posterior distribution, using grid approximation. Use the same flat prior as before.
 
 ```{python}
 k = 8
@@ -1142,7 +1147,7 @@ def plot_pos():
     plt.xlabel('Proportion Water (p)')
     plt.ylabel('Density')
     
-utils.inline_plot(plot_pos)
+plot_pos()
 ```
 
 This produces a much more symmetrical distribution of the data for us to work with.
@@ -1165,15 +1170,16 @@ def plot_pos():
       post = post / np.sum(post)
       plt.plot(p, post, label=str(points) + " grid points")
   
-  plt.xlabel("Paramter value - p")
-  plt.ylabel("Prosterior probability")
+  plt.xlabel("Parameter value - p")
+  plt.ylabel("Posterior probability")
   plt.legend()
 
-utils.inline_plot(plot_pos)
+plot_pos()
 ```
 
+### 3M2
 
-9.  Draw 10,000 samples from the grid approximation from above. Then use the samples to calculate the 90% HPDI for $p$.
+Draw 10,000 samples from the grid approximation from above. Then use the samples to calculate the 90% HPDI for $p$.
 
 ```{python}
 np.random.seed(100)
@@ -1182,7 +1188,9 @@ samples = np.random.choice(p_grid, size=10_000, p=posterior, replace=True)
 az.hdi(samples, hdi_prob=0.9)
 ```
 
-10. Construct a posterior predictive check for this model and data. This means simulate the distribution of samples, averaging over the posterior uncertainty in $p$. What is the probability of observing 8 water in 15 tosses?
+### 3M3
+
+Construct a posterior predictive check for this model and data. This means simulate the distribution of samples, averaging over the posterior uncertainty in $p$. What is the probability of observing 8 water in 15 tosses?
 
 ```{python}
 w = stats.binom.rvs(n=n, p=samples)
@@ -1207,7 +1215,7 @@ def plot_simplehist():
     plt.title('Posterior Predictive Distribution')
     plt.xlim(0, 15.5)
 
-utils.inline_plot(plot_simplehist)
+plot_simplehist()
 ```
 
 This doesn’t mean it is a good model. But it does mean that model fitting worked.
@@ -1233,11 +1241,12 @@ def plot_pos_pred():
   plt.title("Posterior predictive distribution")
   plt.legend(loc=(1.1, 0.5))
 
-utils.inline_plot(plot_pos_pred)
+plot_pos_pred()
 ```
 
+### 3M4
 
-11. Using the posterior distribution constructed from the new (8/15) data, now calculate the probability of observing 6 water in 9 tosses.
+Using the posterior distribution constructed from the new (8/15) data, now calculate the probability of observing 6 water in 9 tosses.
 
 ```{python}
 w = stats.binom.rvs(n=9, p=samples)
@@ -1250,7 +1259,9 @@ table.add_row(np.append(['Proportion'], total_counts/1e4))
 table
 ```
 
-12. Start over at question 8, but now use a prior that is zero below $p=0.5$ and a constant above $p=0.5$. This corresponds to prior information that a majority of the Earth’s surface is water. Repeat each problem above and compare the inferences. What difference does the better prior make? If it helps, compare inferences (using both priors) to the true value $p=0.7$.
+### 3M5
+
+Start over at question **3M1**, but now use a prior that is zero below $p=0.5$ and a constant above $p=0.5$. This corresponds to prior information that a majority of the Earth’s surface is water. Repeat each problem above and compare the inferences. What difference does the better prior make? If it helps, compare inferences (using both priors) to the true value $p=0.7$.
 
 ```{python}
 def truncated_prior(grid_points, trunc_point=0.5):
@@ -1277,7 +1288,7 @@ def plot_trunc_pos():
     plt.xlabel('Proportion Water (p)')
     plt.ylabel('Density')
 
-utils.inline_plot(plot_trunc_pos)
+plot_trunc_pos()
 ```
 
 The 90% HPDI will be a lot narrower now:
@@ -1313,14 +1324,16 @@ def plot_trunc_pos():
     plt.ylabel('Frequency')
     plt.title('Posterior Predictive Distribution')
 
-utils.inline_plot(plot_trunc_pos)
+plot_trunc_pos()
 ```
 
 The informative prior tells the model not to completely trust the data, so it shouldn’t be surprising that the simulated posterior sampling distributions are not centered on the data. This is not an indication of anything wrong with the model. It’s merely a consequence of the model.
 
 When you reach multilevel models in the late chapters, you will have to expect mismatch between predictions and data in this way, because multilevel models often have informative priors. Informative priors are what make them good models.
 
-13. Suppose you want to estimate the Earth’s proportion of water very precisely. Specifically, you want the 99% percentile interval of the posterior distribution of $p$ to be only 0.05 wide. This means the distance between the upper and lower bound of the interval should be 0.05. How many times will you have to toss the globe to do this?
+### 3M6
+
+Suppose you want to estimate the Earth’s proportion of water very precisely. Specifically, you want the 99% percentile interval of the posterior distribution of $p$ to be only 0.05 wide. This means the distance between the upper and lower bound of the interval should be 0.05. How many times will you have to toss the globe to do this?
 
 For this we can perform a simulation study. Let's assume we have the uniform prior on our model, and that the data has a binomial likelihood, as in the earlier questions. We can simulate data according to true underlying values of $p$. We can keep tossing the globe until our 99% percentile intervals have a width smaller than 0.05, at which point we'll stop tossing, and take note of how many trials it took for the intervals to converge. As this number of trials is going to be stochastic for each run, we repeat the runs 100 times and take the mean of the number trials to get an estimate of the number of trials required. We then repeat this for different hypothetical values of the underlying parameter $p$, to see how the number of trials required varies with the parameter.
 
@@ -1349,10 +1362,12 @@ def plot_trail_req():
     plt.ylabel("Number of Trials Required")
     plt.xlabel("Parameter Ground Truth")
 
-utils.inline_plot(plot_trail_req)
+plot_trail_req()
 ```
 
-The Hard problems here all use the data below. These data indicate the gender (male=1, female=0) of officially reported first and second born children in 100 two-child families.
+### Hard
+
+Hard problems here all use the data below. These data indicate the gender (male=1, female=0) of officially reported first and second born children in 100 two-child families.
 
 ```{python}
 birth1 = np.array([1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0,
@@ -1375,7 +1390,9 @@ print('Total Boys Born =', boys_born)
 print('Total Girls Born =', girls_born)
 ```
 
-14. Using grid approximation, compute the posterior distribution for the probability of a birth being a boy. Assume a uniform prior probability. Which parameter value maximizes the posterior probability?
+### 3H1
+
+Using grid approximation, compute the posterior distribution for the probability of a birth being a boy. Assume a uniform prior probability. Which parameter value maximizes the posterior probability?
 
 First, define the parameter values to consider. I’ll use 1000 values of $p$ here, but a value as low as 100 will do fine.
 
@@ -1401,7 +1418,7 @@ def plot_pos():
     plt.ylabel('Density')
     plt.legend()
 
-utils.inline_plot(plot_pos)
+plot_pos()
 ```
 
 ```{python}
@@ -1409,7 +1426,9 @@ utils.inline_plot(plot_pos)
 p_grid[np.argmax(posterior)]
 ```
 
-15. Using the `sample` function, draw `10,000` random parameter values from the posterior distribution you calculated above. Use these samples to estimate the 50%, 89%, and 97% highest posterior density intervals.
+### 3H2
+
+Using the `sample` function, draw `10,000` random parameter values from the posterior distribution you calculated above. Use these samples to estimate the 50%, 89%, and 97% highest posterior density intervals.
 
 ```{python}
 np.random.seed(100)
@@ -1422,7 +1441,9 @@ print(az.hdi(samples, hdi_prob=0.97))
 
 Each of these intervals is the narrowest range of parameter values that contains the specified probability mass.
 
-16. Use `stats.binom.rvs` to simulate 10,000 replicates of 200 births. You should end up with 10,000 numbers, each one a count of boys out of 200 births. Compare the distribution of predicted numbers of boys to the actual count in the data (111 boys out of 200 births). Does it look like the model fits the data well? That is, does the distribution of predictions include the actual observation as a central, likely outcome?
+### 3H3
+
+Use `stats.binom.rvs` to simulate 10,000 replicates of 200 births. You should end up with 10,000 numbers, each one a count of boys out of 200 births. Compare the distribution of predicted numbers of boys to the actual count in the data (111 boys out of 200 births). Does it look like the model fits the data well? That is, does the distribution of predictions include the actual observation as a central, likely outcome?
 
 ```{python}
 np.random.seed(50)
@@ -1434,12 +1455,14 @@ def plot_dens():
     plt.xticks(np.arange(80, 160, 20))
     plt.xlim(70,150)
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The black density is the simulated counts of male births, out of 200 maximum. The red vertical line is the observed count in the data. Looks like the model does a good job of predicting the data. In a sense, this isn’t surprising, because the model was fit to this exact aspect of the data, the total count of boys.
 
-17. Now compare 10,000 counts of boys from 100 simulated first borns only to the number of boys in the first births, `birth1`. How does the model look in this light?
+### 3H4
+
+Now compare 10,000 counts of boys from 100 simulated first borns only to the number of boys in the first births, `birth1`. How does the model look in this light?
 
 The model can be threatened a little more by asking if it can predict other, subtler aspects of the data. How does it do predicting just first borns? The code looks very similar, but now there are only 100 births to predict. The posterior is the same as before.
 
@@ -1453,12 +1476,14 @@ def plot_dens():
     plt.xticks(np.arange(30, 90, 10))
     plt.xlim(25,80)
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 Not bad, but not right on center now. The frequency of boys among first borns is a little less than the model tends to predict. The model doesn’t have a problem accounting for this variation though, as the red line is well within density of simulated data.
 
-18. The model assumes that sex of first and second births are independent. To check this assumption, focus now on second births that followed female first borns. Compare 10,000 simulated counts of boys to only those second births that followed girls. To do this correctly, you need to count the number of first borns who were girls and simulate that many births, 10,000 times. Compare the counts of boys in your simulations to the actual observed count of boys following girls. How does the model look in this light? Any guesses what is going on in these data?
+### 3H5
+
+The model assumes that sex of first and second births are independent. To check this assumption, focus now on second births that followed female first borns. Compare 10,000 simulated counts of boys to only those second births that followed girls. To do this correctly, you need to count the number of first borns who were girls and simulate that many births, 10,000 times. Compare the counts of boys in your simulations to the actual observed count of boys following girls. How does the model look in this light? Any guesses what is going on in these data?
 
 How does it do predicting second births that follow girl births? The only tricky part of this is counting up boys born after girls. We use Numpy's indexing/subsetting to compute `birth2` boys given `birth1` girls.
 
@@ -1475,7 +1500,7 @@ def plot_dens():
     plt.xticks(np.arange(15, 45, 5))
     plt.xlim(12,42)
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The first line of code extracts those elements of `birth2` where `birth1` is equal to 0. So `k` ends up holding all the second births that followed girls. The rest of the code is just as before, but now with a count of births to simulate equal to `n`.
@@ -1526,5 +1551,5 @@ def plot_pos():
     plt.xlabel("Parameter Value")
     plt.legend()
     
-utils.inline_plot(plot_pos)
+plot_pos()
 ```
