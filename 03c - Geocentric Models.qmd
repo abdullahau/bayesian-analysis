@@ -1,16 +1,16 @@
 ---
 title: 03c - Geocentric Models
-author: "Abdullah Mahmood"
-date: "last-modified"
+author: Abdullah Mahmood
+date: last-modified
 format:
   html:
-    theme: cosmo # united is darker
-    css: style.css
+    theme: cosmo
+    css: quarto-style/style.css
     highlight-style: atom-one
     mainfont: Palatino
     fontcolor: black
     monobackgroundcolor: white
-    monofont: "Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace"
+    monofont: Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace
     fontsize: 13pt
     linestretch: 1.4
     number-sections: true
@@ -24,20 +24,35 @@ format:
     embed-resources: true
     anchor-sections: true
     html-math-method:
-        method: mathjax
-        url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+      method: mathjax
+      url: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 editor: source
-jupyter: main
+jupyter:
+  jupytext:
+    formats: ipynb,qmd
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
 ---
 
-### Imports
-
 ```{python}
-from init import *
+# ruff: noqa: F405, F403
+from init import * 
 from formulaic import Formula
+%config InlineBackend.figure_formats = ['svg']
 ```
 
 ## Practice Problems
+
+Source:
+
+[Linear Models & Causal Inference - Jake Thompson](https://sr2-solutions.wjakethompson.com/linear-models-causal-inference)
 
 ### 4E1
 
@@ -76,8 +91,10 @@ Pr(\mu, \sigma \mid y) = \frac{\sum_i \text{Normal}(y_i \mid \mu, \sigma) \text{
 $$
 
 $$
-Pr(\mu,\sigma | \underline{x}) = \frac{Pr(\underline{x}|\mu,\sigma)Pr(\mu)Pr(\sigma)}{Pr(\underline{h})} \propto \frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2) \times  exp(-\frac{1}{2}(\frac{\mu}{10})^2) \times exp(-\sigma) \\
-\implies Pr(\mu,\sigma | \underline{x}) = \frac{\frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2)exp(-\frac{1}{2}(\frac{\mu}{10})^2)exp(-\sigma)}{\int \int \frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2)exp(-\frac{1}{2}(\frac{\mu}{10})^2)exp(-\sigma) d\mu d\sigma}
+\begin{align}
+Pr(\mu,\sigma \mid \underline{x}) &= \frac{Pr(\underline{x}|\mu,\sigma)Pr(\mu)Pr(\sigma)}{Pr(\underline{h})} \propto \frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2) \times  exp(-\frac{1}{2}(\frac{\mu}{10})^2) \times exp(-\sigma) \\
+\implies Pr(\mu,\sigma \mid \underline{x}) &= \frac{\frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2)exp(-\frac{1}{2}(\frac{\mu}{10})^2)exp(-\sigma)}{\int \int \frac{1}{\sigma}\prod_i exp(-\frac{1}{2}(\frac{x_i - \mu}{\sigma})^2)exp(-\frac{1}{2}(\frac{\mu}{10})^2)exp(-\sigma) d\mu d\sigma}
+\end{align}
 $$
 
 ### 4E4
@@ -133,7 +150,7 @@ def plot_dens():
     plt.xlabel(r"Sample $y$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 Note that the prior distribution of `y` is centered on zero. If that strikes you as odd, remember that a continuous variable like `y` can always be re-centered to any value you like, without changing any of the information in the data.
@@ -163,7 +180,7 @@ def plot_dens():
     plt.xlabel(r"Sample $y$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 ### 4M3
@@ -224,7 +241,7 @@ def plot_ppc():
     plt.xlabel('Year')
     plt.ylabel('Height')
 
-utils.inline_plot(plot_ppc)
+plot_ppc()
 ```
 
 $$
@@ -259,7 +276,7 @@ def plot_ppc():
     plt.xlabel('Year')
     plt.ylabel('Height')
 
-utils.inline_plot(plot_ppc)
+plot_ppc()
 ```
 
 ### 4M5
@@ -288,7 +305,7 @@ def plot_dens():
     plt.xlabel(r"$\beta$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 ```{python}
@@ -316,7 +333,7 @@ def plot_ppc():
     plt.xlabel('Year')
     plt.ylabel('Height')
 
-utils.inline_plot(plot_ppc)
+plot_ppc()
 ```
 
 ### 4M6
@@ -411,7 +428,7 @@ def plot_post_sim():
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
-utils.inline_plot(plot_post_sim)
+plot_post_sim()
 ```
 
 ```{python}
@@ -483,7 +500,7 @@ def plot_post_sim():
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
-utils.inline_plot(plot_post_sim)
+plot_post_sim()
 ```
 
 It can be seen that the posterior values of both models look rather similar to each other. However the in the variance-covariance matrix appear to be a couple of orders of magnitude larger when one doesn't subtract the mean values from the data. Why is this? It's because the parameters signify different things in the two different models.
@@ -607,19 +624,19 @@ def bspline_regression_plots(data, num_knots, degree, model='m4_7a'):
 ```{python}
 num_knots = 20
 knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
-utils.inline_plot(bspline_regression_plots, data=d2, num_knots=num_knots, degree=3)
+bspline_regression_plots(data=d2, num_knots=num_knots, degree=3)
 ```
 
 ```{python}
 num_knots = 20
 knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
-utils.inline_plot(bspline_regression_plots, data=d2, num_knots=num_knots, degree=3, model='m4_7a_mod')
+bspline_regression_plots(data=d2, num_knots=num_knots, degree=3, model='m4_7a_mod')
 ```
 
 ```{python}
 num_knots = 30
 knot_list = np.quantile(d2.year, np.linspace(0, 1, num_knots))
-utils.inline_plot(bspline_regression_plots, data=d2, num_knots=num_knots, degree=3)
+bspline_regression_plots(data=d2, num_knots=num_knots, degree=3)
 ```
 
 Increasing the number of knots increases the 'wiggles' and the increasing the standard deviation of the weight increases the width/thickness of $\mu$'s HDI plot.
@@ -755,7 +772,7 @@ def plot_data():
     plt.ylabel("Height (cm)")
     plt.xlabel("Weight (kg)")
 
-utils.inline_plot(plot_data)
+plot_data()
 ```
 
 1)  Fit a linear regression to these data, using `StanQuap`. Present and interpret the estimates. For every 10 units of increase in weight, how much taller does the model predict a child gets?
@@ -837,7 +854,7 @@ def plot_post():
     plt.xlabel('Weight')
     plt.ylabel('Height')
 
-utils.inline_plot(plot_post)
+plot_post()
 ```
 
 3)  What aspects of the model fit concern you? Describe the kinds of assumptions you would change, if any, to improve the model. You don’t have to write any new code. Just explain what the model appears to be doing a bad job of, and what you hypothesize would be a better model.
@@ -940,7 +957,7 @@ def plot_post():
     plt.xlabel('Weight')
     plt.ylabel('Height')    
 
-utils.inline_plot(plot_post)
+plot_post()
 ```
 
 The model may have been linear, but plotted on the raw scale of measurement, it is clearly non-linear. Not only is the trend for the mean curved, but the variance around the mean is not constant, on this scale. Instead, the variance around the mean increases with weight. On the scale you fit the model on, the variance was assumed to be constant. But once you transform the measurement scale, it usually won’t be.
@@ -971,22 +988,15 @@ data = {'N': len(weight_s_seq), 'weight_s': weight_s_seq}
 prior_pred = utils.Stan('stan_models/m4_5_priors', m4_5_priors)
 y_sim = prior_pred.laplace_sample(data=data, draws=1000).stan_variable('y_sim')
 
-
-def plot_dens():
+def plot_dens_ppc():
+    _, axes = plt.subplots(1,2, figsize=(9,4))
     bw = utils.bw_nrd0(y_sim)
-    az.plot_kde(y_sim, bw=bw*0.5)
-    plt.xlabel("Sample Height")
-    plt.ylabel("Density")
+    az.plot_kde(y_sim, bw=bw*0.5, ax=axes[0])
+    axes[0].set(xlabel='Sample Height', ylabel='Density')
+    axes[1].plot(weight_s_seq, y_sim.T, color='k', alpha=0.2)
+    axes[1].set(xlabel='Weight (Standardized)', ylabel='Height')
 
-utils.inline_plot(plot_dens)
-
-def plot_ppc():
-    plt.plot(weight_s_seq, y_sim.T, color='k', alpha=0.2)
-    plt.xlabel("Weight (Standardized)")
-    plt.ylabel("Height")
-
-utils.inline_plot(plot_ppc)
-
+plot_dens_ppc()
 ```
 
 ```{python}
@@ -1006,7 +1016,7 @@ def plot_dens():
       az.plot_kde(dens, bw=bw*0.5, ax=ax)
       ax.set(xlabel=labels[i], ylabel='Density')
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 ```{python}
@@ -1018,7 +1028,7 @@ def plot_dens():
   bw = utils.bw_nrd0(prior_h)
   az.plot_kde(prior_h, bw=bw*0.5)
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 Modified priors and their justifications are written along side:
@@ -1057,21 +1067,15 @@ data = {'N': len(weight_s_seq), 'weight_s': weight_s_seq}
 prior_pred = utils.Stan('stan_models/m4_5_priors2', m4_5_priors2)
 y_sim = prior_pred.laplace_sample(data=data, draws=1000).stan_variable('y_sim')
 
-
-def plot_dens():
+def plot_dens_ppc():
+    _, axes = plt.subplots(1,2, figsize=(9,4))
     bw = utils.bw_nrd0(y_sim)
-    az.plot_kde(y_sim, bw=bw*0.5)
-    plt.xlabel("Sample Height")
-    plt.ylabel("Density")
+    az.plot_kde(y_sim, bw=bw*0.5, ax=axes[0])
+    axes[0].set(xlabel='Sample Height', ylabel='Density')
+    axes[1].plot(weight_s_seq, y_sim.T, color='k', alpha=0.2)
+    axes[1].set(xlabel='Weight (Standardized)', ylabel='Height')
 
-utils.inline_plot(plot_dens)
-
-def plot_ppc():
-    plt.plot(weight_s_seq, y_sim.T, color='k', alpha=0.2)
-    plt.xlabel("Weight (Standardized)")
-    plt.ylabel("Height")
-
-utils.inline_plot(plot_ppc)
+plot_dens_ppc()
 ```
 
 ```{python}
@@ -1092,7 +1096,7 @@ def plot_dens():
       az.plot_kde(dens, bw=bw*0.5, ax=ax)
       ax.set(xlabel=labels[i], ylabel='Density')
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 ```{python}
@@ -1104,7 +1108,7 @@ def plot_dens():
   bw = utils.bw_nrd0(prior_h)
   az.plot_kde(prior_h, bw=bw*0.5)
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 By using an exponential prior on $\beta_2$ this ensures the parabolic curve must be concave, thus no increasing growth in height with weight is possible and makes perfect sense on physical grounds. However, extreme and absurd values are still found near the extremes of the data. One could tighten the parameters to ensure this didn't happen, but as a first approximation this isn't too bad.
@@ -1144,21 +1148,15 @@ data = {'N': len(weight_seq), 'weight_s': weight_seq}
 prior_pred = utils.Stan('stan_models/m4_5_priors3', m4_5_priors3)
 y_sim = prior_pred.laplace_sample(data=data, draws=1000).stan_variable('y_sim')
 
-
-def plot_dens():
+def plot_dens_ppc():
+    _, axes = plt.subplots(1,2, figsize=(9,4))
     bw = utils.bw_nrd0(y_sim)
-    az.plot_kde(y_sim, bw=bw*0.5)
-    plt.xlabel("Sample Height")
-    plt.ylabel("Density")
+    az.plot_kde(y_sim, bw=bw*0.5, ax=axes[0])
+    axes[0].set(xlabel='Sample Height', ylabel='Density')
+    axes[1].plot(weight_seq, y_sim.T, color='k', alpha=0.2)
+    axes[1].set(xlabel='Weight (kg)', ylabel='Height')
 
-utils.inline_plot(plot_dens)
-
-def plot_ppc():
-    plt.plot(weight_seq, y_sim.T, color='k', alpha=0.2)
-    plt.xlabel("Weight (kg)")
-    plt.ylabel("Height")
-
-utils.inline_plot(plot_ppc)
+plot_dens_ppc()
 ```
 
 ```{python}
@@ -1176,7 +1174,7 @@ def plot_ppc():
   plt.xlabel('Weight (kg)')
   plt.ylabel('Height')
 
-utils.inline_plot(plot_ppc)
+plot_ppc()
 ```
 
 ### 4H5
@@ -1186,8 +1184,7 @@ Return to `cherry_blossoms` and model the association between blossom date (`doy
 ```{python}
 d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
 d2 = d.dropna(subset=["doy", "temp"]).reset_index(drop=True)
-d2['temp_c'] = d2.temp - d2.temp.mean()
-d2['temp_s'] = d2.temp_c / d2.temp.std()
+d2['temp_s'] = utils.standardize(d2.temp, ddof=1)
 ```
 
 We’ll try each type of model: linear, polynomial, and spline. For each, we’ll fit the model, and then visualize the predictions with the observed data.
@@ -1244,138 +1241,112 @@ $$
 $$
 
 ```{python}
-plt.figure(figsize=(8,3))
-plt.plot(d2.temp, d2.doy, 'o', fillstyle='none')
-plt.xlabel('March Temperature')
-plt.ylabel('Day in Year');
+def plot_data():
+    plt.figure(figsize=(8,3))
+    plt.plot(d2.temp_s, d2.doy, 'o', fillstyle='none')
+    plt.xlabel('March Temperature')
+    plt.ylabel('Day in Year')
+
+plot_data()
 ```
 
+By leveraging a matrix formulation (design matrix), we are setting up our `StanQuap` model to handle all four models described above.
+
 ```{python}
-temp_seq = np.linspace(d2.temp.min(), d2.temp.max(), 100)
-temp_seq_c = temp_seq - d2.temp.mean()
-temp_seq_s = temp_seq_c / d2.temp.std()
-
-# Linear Model
-with pm.Model() as linear:
-    temp_c = pm.ConstantData("temp_c", d2.temp_c.values, dims="obs_id")
-    a = pm.Normal("a", mu=100, sigma=10)
-    b = pm.Normal("b", mu=0, sigma=10)
-    sigma = pm.Exponential("sigma", 1)
-    mu = pm.Deterministic('mu', a + b * temp_c, dims="obs_id")
-    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d2.doy.values, dims="obs_id")    
-    steps_linear = utils.QuadraticApproximation([a, b, sigma], linear)
-    trace_linear = pm.sample(draws=4_000, chains=4, tune=0, cores=4, step=steps_linear, progressbar=False)  
-    pm.set_data({'temp_c': temp_seq_c})
-    pm.sample_posterior_predictive(
-        trace_linear,
-        var_names=["D", "mu"],
-        predictions=True,
-        extend_inferencedata=True,
-        progressbar=False
-    )
-
-# Quadratic Model
-with pm.Model() as quad:
-    temp_s = pm.ConstantData("temp_s", d2.temp_s, dims="obs_id")
-    a = pm.Normal("a", mu=100, sigma=10)
-    b1 = pm.Normal("b1", mu=0, sigma=10)
-    b2 = pm.Normal("b2", mu=0, sigma=1)
-    sigma = pm.Exponential("sigma", 1)
-    mu = pm.Deterministic('mu', a + (b1 * temp_s) + (b2 * temp_s**2), dims="obs_id")
-    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d2.doy.values, dims="obs_id")    
-    steps_quad = utils.QuadraticApproximation([a, b1, b2, sigma], quad)
-    trace_quad = pm.sample(draws=4_000, chains=4, tune=0, cores=4, step=steps_quad, progressbar=False)  
-    pm.set_data({'temp_s': temp_seq_s})
-    pm.sample_posterior_predictive(
-        trace_quad,
-        var_names=["D", "mu"],
-        predictions=True,
-        extend_inferencedata=True,
-        progressbar=False
-    )    
-
-# Cubic Model
-with pm.Model() as cubic:
-    temp_s = pm.ConstantData("temp_s", d2.temp_s, dims="obs_id")
-    a = pm.Normal("a", mu=100, sigma=10)
-    b1 = pm.Normal("b1", mu=0, sigma=10)
-    b2 = pm.Normal("b2", mu=0, sigma=1)
-    b3 = pm.Normal("b3", mu=0, sigma=1)
-    sigma = pm.Exponential("sigma", 1)
-    mu = pm.Deterministic('mu', a + (b1 * temp_s) + (b2 * temp_s**2) + (b3 * temp_s**3), dims="obs_id")
-    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d2.doy.values, dims="obs_id")    
-    steps_cubic = utils.QuadraticApproximation([a, b1, b2, b3, sigma], cubic)
-    trace_cubic = pm.sample(draws=4_000, chains=4, tune=0, cores=4, step=steps_cubic, progressbar=False)
-    pm.set_data({'temp_s': temp_seq_s})
-    pm.sample_posterior_predictive(
-        trace_cubic,
-        var_names=["D", "mu"],
-        predictions=True,
-        extend_inferencedata=True,
-        progressbar=False
-    )       
+m4_8 = '''
+data {
+    int<lower=1> N;             // Number of Observations
+    int<lower=1> K;             // Number of Coefficients (including intercept)
+    vector[N] doy;              // DoY Outcome
+    matrix[N, K] X;             // Regressors (March Temperature)
     
-    
-# Spline Model
-import bambi as bmb
-
-knot_list = np.quantile(d2.temp, np.linspace(0, 1, 30))
-iknots = knot_list[1:-1]
-
-priors = {
-    "Intercept": bmb.Prior("Normal", mu=100, sigma=10),
-    "common": bmb.Prior("Normal", mu=0, sigma=10), 
-    "sigma": bmb.Prior("Exponential", lam=1)
+    int<lower=1> N_tilde;
+    matrix[N_tilde, K] X_tilde;
 }
-
-model = bmb.Model("doy ~ bs(temp, knots=iknots, intercept=True)", d2, priors=priors)
-trace_spline = model.fit(idata_kwargs={"log_likelihood": True}, mp_ctx='forkserver', progressbar=False)
-new_data = pd.DataFrame({"temp": np.linspace(d2.temp.min(), d2.temp.max(), num=100)})
-model.predict(trace_spline, data=new_data, kind='response', inplace=True)
-```
-
-```{python}
-fig, axes = plt.subplots(2, 2, figsize=(9,4), sharex=True, sharey=True)
-
-trace = [trace_linear, trace_quad, trace_cubic, trace_spline]
-title = ['Linear', 'Quadratic', 'Cubic', 'Spline']
-
-for idx, ax in enumerate(axes.flatten()[:-1]):
-    hdi_1 = az.plot_hdi(temp_seq, trace[idx].predictions["D"], 
-                        hdi_prob=0.89, smooth=False, color='C1', ax=ax)  
-
-    hdi_2 = az.plot_hdi(temp_seq, trace[idx].predictions["mu"], 
-                        hdi_prob=0.89, smooth=False, color='green',ax=ax) 
-
-    mean_line, = ax.plot(temp_seq, trace[idx].predictions.mu.mean(dim=["chain", "draw"]), 'k', label='Mean', linewidth=2)
-    obs_data, = ax.plot(d2.temp, d2.doy, 'o', fillstyle='none', label='Observed Data', color='k', markersize=3)
-
-    hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-    hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-    ax.set(title=title[idx])
+parameters {
+    vector[K] b;
+    real<lower=0, upper=50> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = X * b;
     
-    if idx % 2 == 0:
-        ax.set(ylabel="Day of Year")
-    if idx == 2:
-        ax.set(xlabel="March Temperature")
+    vector[N_tilde] mu_tilde;
+    mu_tilde = X_tilde * b;
+}
+model {
+    doy ~ normal(mu, sigma);
+    
+    b[1] ~ normal(100, 10);
+    b[2] ~ normal(0, 10);
+    // Up to Cubic regression
+    if (K > 2 && K < 5) {
+        for (i in 3:K) {
+            b[i] ~ normal(0, 1);
+        }
+    }
+    // B-Spline
+    if (K > 5) {
+        for (i in 3:K) {
+            b[i] ~ normal(0, 10);
+        }
+    }
+    sigma ~ exponential(1);
+}
+generated quantities {
+    vector[N_tilde] y_tilde;
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(mu_tilde[i], sigma);
+    }
+}
+'''
 
-hdi_1 = az.plot_hdi(temp_seq, trace_spline.posterior_predictive["doy"], 
-                    hdi_prob=0.89, smooth=False, color='C1', ax=axes[1][1])  
+temp_seq = np.linspace(-2.2, 3.3, 100)
 
-hdi_2 = az.plot_hdi(temp_seq, trace_spline.posterior["mu"], 
-                    hdi_prob=0.89, smooth=False, color='green',ax=axes[1][1]) 
+def dmat(data, degree):
+    poly_terms = " + ".join([f"I(temp_s**{i})" for i in range(1, degree + 1)])   
+    formula = Formula(f"1 + {poly_terms}")
+    return formula.get_model_matrix(data).to_numpy()
 
-mean_line, = axes[1][1].plot(temp_seq, trace_spline.posterior.mu.mean(dim=["chain", "draw"]), 'k', label='Mean', linewidth=2)
-obs_data, = axes[1][1].plot(d2.temp, d2.doy, 'o', fillstyle='none', label='Observed Data', color='k', markersize=3)
+def bspline_dmat(data, num_knots, degree=3):
+    knot_list = np.quantile(data.temp_s, np.linspace(0, 1, num_knots))[1:-1].tolist()
+    # Maintain first/intercept column
+    bspline_formula = Formula(f'bs(temp_s, knots={knot_list}, degree={degree}, include_intercept=True)')
+    return bspline_formula.get_model_matrix(data).to_numpy()
 
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
+def stan_data_dict(degree=2, num_knots=None):
+    X = dmat(d2, degree) if num_knots is None else bspline_dmat(d2, num_knots)
+    temp_seq_df = pd.DataFrame({'temp_s': temp_seq})
+    X_tilde = dmat(temp_seq_df, degree) if num_knots is None else bspline_dmat(temp_seq_df, num_knots)
+    return {'N': X.shape[0],
+            'K': X.shape[1],
+            'doy': d2['doy'].tolist(),
+            'X': X.tolist(),
+            'N_tilde': len(temp_seq_df),
+            'X_tilde': X_tilde.tolist()}
 
-axes[1][1].set(title="Spline", xlabel='March Temperature')
+title = ['Linear', 'Quadratic', 'Cubic', 'Spline']
+def plot_model():
+    model = utils.Stan('stan_models/m4_8', m4_8)
+    
+    _, axes = plt.subplots(2, 2, figsize=(9,4), sharex=True, sharey=True)
+    for idx, ax in enumerate(axes.flatten()):
+        data = stan_data_dict(degree=idx+1) if title[idx] != 'Spline' else stan_data_dict(num_knots=30)
+        post = model.laplace_sample(data=data, draws=10_000).stan_variables()
+        mu_mean, mu_plo, mu_phi = utils.precis(post['mu_tilde'])
+        _, sim_plo, sim_phi = utils.precis(post['y_tilde'])
+        
+        ax.plot(d2.temp_s, d2.doy, 'o', fillstyle='none', color='k', alpha=0.3)
+        ax.plot(temp_seq, mu_mean, 'k')
+        ax.fill_between(temp_seq, mu_plo, mu_phi, color='green', alpha=0.2)
+        ax.fill_between(temp_seq, sim_plo, sim_phi, color='blue', alpha=0.2)
+        ax.set(xlabel='March Temperature (Standardized)', ylabel='Day in Year')
+        ax.set_title(title[idx])   
 
-fig.tight_layout();
+plot_model()
 ```
+
+Overall the predictions from each model are remarkably similar. Therefore, I would go with a linear model, as that is the simplest of the models.
 
 ### 4H6
 
@@ -1397,55 +1368,73 @@ We'll also need to recreate the basis functions that that model uses and finally
 
 ```{python}
 d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
-d2 = d.dropna(subset=["doy", "temp"]).reset_index(drop=True)
-
-def bspline_prior_predictive(data, knot_list, degree, w_mu=0, w_sigma=10):
-    
-    B_mat = np.asarray(dmatrix(
-        f"bs(year, knots=knots, degree={degree}, include_intercept=True)-1",
-        {"year": data.year.values, "knots": knot_list[1:-1]},
-    ))    
-    
-    with pm.Model() as model:
-        B = pm.ConstantData("B", B_mat)
-        a = pm.Normal("a", mu=100, sigma=10)
-        w = pm.Normal("w", mu=w_mu, sigma=w_sigma, shape=B.shape[1])
-        sigma = pm.Exponential("sigma", 1)
-        mu = pm.Deterministic('mu', a + pm.math.dot(B, w.T))
-        D = pm.Normal("D", mu=mu, sigma=sigma, observed=data.doy.values)    
-        idata = pm.sample_prior_predictive(var_names=['D', 'mu'])
-    
-    prior_pred = az.extract(idata, 'prior_predictive')
-    prior = az.extract(idata, 'prior')
-
-    fig, axes = plt.subplots(2, 1, figsize=(8,5))
-    
-    for i, ax in enumerate(axes.flatten()):
-        az.plot_hdi(d2.year, prior_pred['D'].T, ax=ax, hdi_prob=0.89)
-        for j in knot_list:
-            ax.axvline(j, linestyle='--')
-        title = "DoY Prior Predictive"
-        if i % 2 == 0:
-            title = r"$\mu$ Prior Predictive"
-        ax.set(xlabel='Year', ylabel='Day of Year', title=title)
-    
-    axes[0].plot(d2.year, prior['mu'][:,:50], 'k')
-        
-    axes[1].plot(d2.year, prior_pred['D'][:, 10:50], 'k')
-    
-    fig.suptitle(f'Prior Predictive Distribution - Weight mu = {w_mu}, sigma = {w_sigma}')
+d2 = d.dropna(subset=["doy", "year"]).reset_index(drop=True)
 ```
 
 ```{python}
-knot_list = np.quantile(d2.year, np.linspace(0, 1, 15))
-bspline_prior_predictive(d2, knot_list, degree=3)
+def bspline_prior_predictive(model_name, num_knots, degree, title):
+    
+    year_N = np.arange(812, 2016)
+    
+    knot_list = np.quantile(year_N, np.linspace(0, 1, num_knots))[1:-1].tolist()
+    bspline_formula = Formula(f'bs(year, knots={knot_list}, degree={degree}, include_intercept=True)')
+    B_mat = bspline_formula.get_model_matrix(pd.DataFrame({'year': year_N})).to_numpy()  
+
+    model = utils.Stan(f'stan_models/{model_name}', globals().get(model_name))
+    data = {'N': B_mat.shape[0],
+            'K': B_mat.shape[1],
+            'X': B_mat}
+    post = model.laplace_sample(data=data, draws=100).stan_variables()
+
+    plt.figure(figsize=(8,3))
+    plt.plot(year_N, post['mu_sim'].T, 'k')
+    plt.xlabel('Year')
+    plt.ylabel('Day of Year')
+    plt.title(title)
+```
+
+```{python}
+m4_7_priors = '''
+data {
+    int<lower=1> N;
+    int<lower=1> K;
+    matrix[N, K] X;
+}
+generated quantities {
+    vector[K] b;
+    b[1] = normal_rng(100, 10);
+    for (i in 2:K) {
+        b[i] = normal_rng(0, 10);
+    }
+    vector[N] mu_sim = X * b;
+}
+'''
+
+bspline_prior_predictive('m4_7_priors', 15, 3, 
+                         title='Prior Predictive Distribution - Weight mu = 0, sigma = 10')
 ```
 
 Now let's tighten the prior on `w` to $\text{Normal}(0,2)$, as we used for exercise **4M8.** Now the lines are much less wiggly, which is consistent with what we found in the previous exercise, which used the observed data.
 
 ```{python}
-knot_list = np.quantile(d2.year, np.linspace(0, 1, 15))
-bspline_prior_predictive(d2, knot_list, degree=3, w_sigma=2)
+m4_7_priors1 = '''
+data {
+    int<lower=1> N;
+    int<lower=1> K;
+    matrix[N, K] X;
+}
+generated quantities {
+    vector[K] b;
+    b[1] = normal_rng(100, 10);
+    for (i in 2:K) {
+        b[i] = normal_rng(0, 2);
+    }
+    vector[N] mu_sim = X * b;
+}
+'''
+
+bspline_prior_predictive('m4_7_priors1', 15, 3,
+                         title='Prior Predictive Distribution - Weight mu = 0, sigma = 2')
 ```
 
 ### 4H8
@@ -1456,52 +1445,51 @@ The cherry blossom spline in the chapter used an intercept α, but technically i
 d = pd.read_csv("data/cherry_blossoms.csv", sep=';')
 d2 = d.dropna(subset=["doy"]).reset_index(drop=True)
 
-def bspline_prior_predictive(data, knot_list, degree, w_mu=0, w_sigma=10):
+m4_7a_mod1 = '''
+data {
+    int N;
+    int K;
+    array[N] int doy;
+    matrix[N, K] B;
+}
+parameters {
+    vector[K] w;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = B * w;
+}
+model {
+    doy ~ normal(mu, sigma);
+    w ~ normal(0, 10);
+    sigma ~ exponential(1);
+}
+'''
+
+def bspline_regression_plots(data, num_knots, degree, model='m4_7a_mod1'):
+    knot_list = np.quantile(data.year, np.linspace(0, 1, num_knots))[1:-1].tolist()
+    bspline_formula = Formula(f'bs(year, knots={knot_list}, degree={degree}, include_intercept=True)-1')
+    B_mat = bspline_formula.get_model_matrix(data).to_numpy()
+
+    input_data = {'N': B_mat.shape[0], 
+                  'K': B_mat.shape[1],
+                  'doy': data['doy'].astype(int).tolist(), 
+                  'B': B_mat.tolist()}
+
+    model = utils.Stan(f'stan_models/{model}', globals().get(model))
     
-    B_mat = np.asarray(dmatrix(
-        f"bs(year, knots=knots, degree={degree}, include_intercept=True)-1",
-        {"year": data.year.values, "knots": knot_list[1:-1]},
-    ))    
+    post = model.laplace_sample(data=input_data, draws=1_000).stan_variables()
+    _, mu_plo, mu_phi = utils.precis(post['mu']) 
     
-    with pm.Model() as model:
-        B = pm.ConstantData("B", B_mat)
-        w = pm.Normal("w", mu=w_mu, sigma=w_sigma, shape=B.shape[1])
-        sigma = pm.Exponential("sigma", 1)
-        mu = pm.Deterministic('mu', pm.math.dot(B, w.T))
-        D = pm.Normal("D", mu=mu, sigma=sigma, observed=data.doy.values)    
-        idata = pm.sample_prior_predictive(var_names=['D', 'mu'])
-        custom_steps = utils.QuadraticApproximation([w, sigma], model)
-        idata.extend(pm.sample(draws=1_000, chains=1, tune=0, step=custom_steps, progressbar=False)) 
-        pm.sample_posterior_predictive(
-            idata,
-            var_names=["D", "mu"],
-            predictions=True,
-            extend_inferencedata=True,
-            progressbar=False
-        )                
-    
-    return idata
-```
+    plt.figure(figsize=(8,3))
+    plt.plot(data.year, data.doy, 'o', color='pink', alpha=0.6, zorder=2)
+    plt.fill_between(data.year, mu_plo, mu_phi, alpha=0.6, zorder=3)
+    plt.xlabel('Year')
+    plt.ylabel('Day in Year')
 
-```{python}
-knot_list = np.quantile(d2.year, np.linspace(0, 1, 15))
-idata = bspline_prior_predictive(d2, knot_list, degree=3)
-
-_, ax = plt.subplots(figsize=(8,3))
-
-hdi_1 = az.plot_hdi(d2.year, idata.predictions["D"], 
-                    hdi_prob=0.89, smooth=False, color='C1', ax=ax)  
-
-hdi_2 = az.plot_hdi(d2.year, idata.predictions["mu"], 
-                    hdi_prob=0.89, smooth=False, color='green',ax=ax) 
-
-mean_line, = ax.plot(d2.year, idata.predictions.mu.mean(dim=["chain", "draw"]), 'k', label='Mean', linewidth=2)
-obs_data, = ax.plot(d2.year, d2.doy, 'o', fillstyle='none', label='Observed Data', color='k', markersize=3)
-
-hdi_patch1 = plt.Line2D([0], [1], color='C1', lw=3, label="Posterior Predictive Sample")
-hdi_patch2 = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(ylabel='Day of Year', xlabel='Year');
+bspline_regression_plots(d2, 15, 3)
 ```
 
 This looks a lot like our original model, except the left hand side of the spline is pulled down. This is likely due to the prior on `w`. The prior is centered on 0, but that assumes an intercept is present (i.e., the curves of the spline average a deviation of 0 from the mean). However, without the intercept, the prior drags the line down to actual zero when the first basis function in non-zero.
+

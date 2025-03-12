@@ -5,7 +5,7 @@ date: "last-modified"
 format:
   html:
     theme: cosmo # united is darker
-    css: style.css
+    css: quarto-style/style.css
     highlight-style: atom-one
     mainfont: Palatino
     fontcolor: black
@@ -27,7 +27,18 @@ format:
         method: mathjax
         url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
-jupyter: main
+jupyter:
+  jupytext:
+    formats: ipynb,qmd
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
 ---
 
 ### Imports
@@ -79,7 +90,7 @@ def random_walks():
     for step in show_steps:
         plt.axvline(step, linestyle="--", c="k", alpha=0.5)
 
-utils.inline_plot(random_walks)
+random_walks()
 ```
 
 ```{python}
@@ -94,7 +105,7 @@ def random_walks():
         ax.set_xlim(-6, 6)
         ax.set_xticks([-6, -3, 0, 3, 6])
 
-utils.inline_plot(random_walks)
+random_walks()
 ```
 
 Random walks on the soccer field converge to a normal distribution. The more steps are taken, the closer the match between the real empirical distribution of positions and the ideal normal distribution.
@@ -105,7 +116,7 @@ def plot_dens():
     plt.xlabel("Position")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The results above show these random walks and how their distribution evolves as the number of steps increases. The top panel plots 100 different, independent random walks, with one highlighted in black. The vertical dashes indicate the locations corresponding to the distribution plots underneath, measured after 4, 8, and 16 steps. Although the distribution of positions starts off seemingly idiosyncratic, after 16 steps, it has already taken on a familiar outline. The familiar “bell” curve of the Gaussian distribution is emerging from the randomness. Go ahead and experiment with even larger numbers of steps to verify for yourself that the distribution of positions is stabilizing on the Gaussian. You can square the step sizes and transform them in a number of arbitrary ways, without changing the result: Normality emerges. Where does it come from?
@@ -131,18 +142,22 @@ def plot_dens():
     plt.xlabel("Growth")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The distribution is approximately normal again. I said normal distributions arise from summing random fluctuations, which is true. But the effect at each locus was multiplied by the effects at all the others, not added. So what’s going on here?
 
 We again get convergence towards a normal distribution, because the effect at each locus is quite small. Multiplying small numbers is approximately the same as addition. For example, if there are two loci with alleles increasing growth by 10% each, the product is:
 
-$$1.1 \times 1.1 = 1.21$$
+$$
+1.1 \times 1.1 = 1.21
+$$
 
 We could also approximate this product by just adding the increases, and be off by only 0.01:
 
-$$1.1 \times 1.1 = (1 + 0.1)(1 + 0.1) = 1 + 0.2 + 0.01 \approx 1.2$$
+$$
+1.1 \times 1.1 = (1 + 0.1)(1 + 0.1) = 1 + 0.2 + 0.01 \approx 1.2
+$$
 
 The smaller the effect of each locus, the better this additive approximation will be. In this way, small effects that multiply together are approximately additive, and so they also tend to stabilize on Gaussian distributions. Verify this by comparing:
 
@@ -157,7 +172,7 @@ def plot_dens():
     for ax in axs:
         ax.set(xlabel='Growth', ylabel='Density')
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The interacting growth deviations, as long as they are sufficiently small, converge to a Gaussian distribution. In this way, the range of causal forces that tend towards Gaussian distributions extends well beyond purely additive interactions.
@@ -176,7 +191,7 @@ def plot_dens():
     plt.xlabel("Growth")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 Yet another Gaussian distribution. We get the Gaussian distribution back, because adding logs is equivalent to multiplying the original numbers. So even **multiplicative interactions of large deviations can produce Gaussian distributions**, once we measure the outcomes on the log scale. Since **measurement scales are arbitrary**, there’s nothing suspicious about this transformation. After all, it’s natural to measure sound and earthquakes and even information on a log scale.
@@ -211,7 +226,9 @@ The Gaussian distribution is common in nature and has some nice properties. But 
 
 You don’t have to memorize the Gaussian probability distribution. You’re computer already knows it. But some knowledge of its form can help demystify it. The probability density (see below) of some value $y$, given a Gaussian (normal) distribution with mean $μ$ and standard deviation $σ$, is:
 
-$$p(y \mid \mu, \sigma) = \frac{1}{\sqrt{2\pi\sigma^2}}exp\left(-\frac{(y-\mu)^2}{2\sigma^2}\right)$$
+$$
+p(y \mid \mu, \sigma) = \frac{1}{\sqrt{2\pi\sigma^2}}exp\left(-\frac{(y-\mu)^2}{2\sigma^2}\right)
+$$
 
 This looks monstrous. The important bit is just the $(y−\mu)^2$ bit. This is the part that gives the normal distribution its **fundamental quadratic shape**. Once you exponentiate the quadratic shape, you get the classic bell curve. The rest of it just scales and standardizes the distribution.
 
@@ -219,7 +236,9 @@ The Gaussian is a **continuous distribution**, unlike the discrete distributions
 
 The Gaussian distribution is routinely seen without $σ$ but with another parameter, $τ$. The parameter $τ$ in this context is usually called **precision** and defined as $τ=1/σ^2$. When $σ$ is large, $τ$ is small. This change of parameters gives us the equivalent formula (just substitute $σ=1/\sqrt{τ}$):
 
-$$p(y \mid \mu, \tau) = \sqrt{\frac{\tau}{2\pi}}exp\left(-\frac{1}{2}\tau(y-\mu)^2\right)$$
+$$
+p(y \mid \mu, \tau) = \sqrt{\frac{\tau}{2\pi}}exp\left(-\frac{1}{2}\tau(y-\mu)^2\right)
+$$
 
 This form is common in Bayesian data analysis, and Bayesian model fitting software, such as BUGS or JAGS, sometimes requires using $τ$ rather than $σ$.
 
@@ -239,13 +258,15 @@ This outline applies to models in every field, from astronomy to art history. Th
 
 After all these decisions are made—and most of them will come to seem automatic to you before long—we summarize the model with something mathy like:
 
-$$\begin{align*}
+$$
+\begin{align*}
 y_{i} &\sim \text{Normal}(\mu_i, \sigma) \\
 \mu_i &= \beta x_i \\
 \beta &\sim \text{Normal}(0,10) \\
 \sigma &\sim \text{Exponential}(1) \\
 x_i &\sim \text{Normal}(0,1) \\
-\end{align*}$$
+\end{align*}
+$$
 
 We won’t do any mathematical manipulation of them. Instead, they provide an unambiguous way to define and communicate our models.
 
@@ -257,10 +278,12 @@ Describes models as mappings of one set of variables through a probability distr
 
 It’s good to work with examples. Recall the proportion of water problem from previous chapters. The model in that case was always:
 
-$$\begin{align*}
+$$
+\begin{align*}
 W &\sim \text{Binomial}(N, p) \\
 p &\sim \text{Uniform}(0,1) \\
-\end{align*}$$
+\end{align*}
+$$
 
 where $W$ was the observed count of water, $N$ was the total number of tosses, and $p$ was the proportion of water on the globe. Read the above statement as:
 
@@ -278,7 +301,9 @@ In these models, the **first line defines the likelihood function used in Bayes�
 
 To relate the mathematical format above to Bayes’ theorem, you could use the model definition to define the posterior distribution:
 
-$$Pr(p \mid w, n) = \frac{\text{Binomial}(w \mid n, p)\text{Uniform}(p \mid 0, 1)}{\int\text{Binomial}(w \mid n, p)\text{Uniform}(p \mid 0,1)}$$
+$$
+Pr(p \mid w, n) = \frac{\text{Binomial}(w \mid n, p)\text{Uniform}(p \mid 0, 1)}{\int\text{Binomial}(w \mid n, p)\text{Uniform}(p \mid 0,1)}
+$$
 
 That monstrous denominator is just the average likelihood again. It standardizes the posterior to sum to 1. The action is in the numerator, where the posterior probability of any particular value of $p$ is seen again to be proportional to the product of the likelihood and prior. In python code form, this is the same grid approximation calculation you’ve been using all along. In a form recognizable as the above expression:
 
@@ -293,7 +318,7 @@ def plot_pos():
     plt.xlabel(r"$p$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_pos)
+plot_pos()
 ```
 
 ------------------------------------------------------------------------
@@ -348,7 +373,7 @@ def plot_dens():
     plt.xlabel("Height")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 Our goal is to model these values using a Gaussian distribution. Plotting the density of the height, we see that it look rather Gaussian in shape, as is typical of height data. This may be because height is a sum of many small growth factors. As we saw earlier, a distribution of sums tends to converge to a Gaussian distribution. Whatever the reason, adult heights from a single population are nearly always approximately normal.
@@ -357,7 +382,9 @@ So it’s reasonable for the moment to adopt the stance that the model should us
 
 So which Gaussian distribution? There are an infinite number of them, with an infinite number of different means and standard deviations. We’re ready to write down the general model and compute the plausibility of each combination of $μ$ and $σ$. To define the heights as normally distributed with a mean $μ$ and standard deviation $σ$, we write:
 
-$$h_{i} \sim \text{Normal}(\mu, \sigma)$$
+$$
+h_{i} \sim \text{Normal}(\mu, \sigma)
+$$
 
 In many books you'll see the same model written as $h_{i} \sim \mathcal{N}(\mu, \sigma)$, which means the same thing. The symbol $h$ refers to the list of heights, and the subscript $i$ means each individual element of this list. It is conventional to use $i$ because it stands for index. The index $i$ takes on row numbers, and so in this example can take any value from 1 to 352 (the number of heights in `d2['height']`). As such, the model above is saying that all the model knows about each height measurement is defined by the same normal distribution, with mean $μ$ and standard deviation $σ$. Before long, those little $i$’s are going to show up on the right-hand side of the model definition, and you’ll be able to see why we must bother with them. So don’t ignore the $i$, even if it seems like useless ornamentation right now.
 
@@ -367,7 +394,9 @@ In many books you'll see the same model written as $h_{i} \sim \mathcal{N}(\mu, 
 
 The short model above assumes that the values $h_i$ are *independent and identically distributed*, abbreviated i.i.d., iid, or IID. You might even see the same model written:
 
-$$h_{i} \stackrel{iid}{\sim} \text{Normal}(\mu, \sigma)$$
+$$
+h_{i} \stackrel{iid}{\sim} \text{Normal}(\mu, \sigma)
+$$
 
 “iid” indicates that each value $h_i$ has the same probability function, independent of the other $h$ values and using the same parameters. A moment’s reflection tells us that this is often untrue. For example, heights within families are correlated because of alleles shared through recent shared ancestry.
 
@@ -377,11 +406,13 @@ The i.i.d. assumption doesn’t have to seem awkward, as long as you remember th
 
 To complete the model, we’re going to need some priors. The parameters to be estimated are both $μ$ and $σ$, so we need a prior $Pr(μ,σ)$, the **joint prior probability for all parameters**. In most cases, priors are specified independently for each parameter, which amounts to assuming $Pr(μ,σ)=Pr(μ)Pr(σ)$. Then we can write:
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu, \sigma)\tag{Likelihood}\\
 \mu &\sim \text{Normal}(178,20)\tag{μ prior} \\
 \sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
-\end{align*}$$
+\end{align*}
+$$
 
 The prior for $μ$ is a broad Gaussian prior, centered on 178 cm, with 95% of probability between 178 ± 40 cm.
 
@@ -397,7 +428,7 @@ def plot_dens():
     plt.ylabel("Density")
     plt.title(r'$\mu \sim$ normal(178, 20)')
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 Execute that code yourself, to see that the model is assuming that the average height (not each individual height) is almost certainly between 140 cm and 220 cm. So this prior carries a little information, but not a lot. The $σ$ prior is a truly flat prior, a uniform one, that functions just to constrain $σ$ to have positive probability between zero and 50 cm. View it with:
@@ -410,7 +441,7 @@ def plot_dens():
     plt.ylabel("Density")
     plt.title(r'$\sigma \sim$ uniforn(0, 50)')
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 A standard deviation like $σ$ must be positive, so bounding it at zero makes sense. How should we pick the upper bound? In this case, a standard deviation of 50 cm would imply that 95% of individual heights lie within 100 cm of the average height. That’s a very large range.
@@ -434,7 +465,7 @@ def plot_dens():
     plt.ylabel("Density")
     plt.title(r'h $\sim$ normal(mu, sigma)')
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The plot displays a vaguely bell-shaped density with thick tails. It is the **expected distribution of heights, averaged over the prior**. Notice that the **prior probability distribution** of height is not itself Gaussian. This is okay. The distribution you see is not an **empirical expectation**, but rather the **distribution of relative plausibilities** of different heights, before seeing the data.
@@ -458,7 +489,7 @@ def plot_dens():
     plt.ylabel("Density")
     plt.title(r'h $\sim$ normal(mu, sigma)')
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 Now the model, before seeing the data, expects 4% of people, those left of the dashed line, to have negative height. It also expects some giants. One of the tallest people in recorded history, Robert Pershing Wadlow (1918–1940) stood 272 cm tall. In our prior predictive simulation, 19% of people (right of solid line) are taller than this.
@@ -483,7 +514,7 @@ def plot_prior_dens():
     axs[1][1].axvline(272, linewidth=0.5, linestyle='-', color='k')
     axs[1][1].set(xlabel=r"Height", ylabel='Density', title='$h \sim \\text{Normal}(\mu,\sigma)$\n$\mu \sim \\text{Normal}(178,100)$')
 
-utils.inline_plot(plot_prior_dens)
+plot_prior_dens()
 ```
 
 Prior predictive simulation for the height model. Top row: Prior distributions for μand σ. Bottom left: The prior predictive simulation for height, using the priors in the top row. Values at 3 standard deviations shown on horizontal axis. Bottom right: Prior predictive simulation using $μ \sim \text{Normal}(178,100)$.
@@ -511,7 +542,9 @@ This is equivalent to the $\epsilon_i \sim \text{Normal}(0, \sigma)$ form, with 
 
 It can help to see how the model definition from earlier allows us to build up the posterior distribution. The height model, with its priors for $μ$ and $σ$, defines this posterior distribution:
 
-$$Pr(\mu, \sigma \mid h) = \frac{\prod_{i} \text{Normal}(h_i\mid \mu, \sigma)\text{Normal}(\mu \mid 178, 20) \text{Uniform}(\sigma\mid0,50)}{\int \int \prod_i \text{Normal}(h_i\mid \mu, \sigma)\text{Normal}(\mu \mid 178, 20) \text{Uniform}(\sigma\mid0,50)d\mu d\sigma}$$
+$$
+Pr(\mu, \sigma \mid h) = \frac{\prod_{i} \text{Normal}(h_i\mid \mu, \sigma)\text{Normal}(\mu \mid 178, 20) \text{Uniform}(\sigma\mid0,50)}{\int \int \prod_i \text{Normal}(h_i\mid \mu, \sigma)\text{Normal}(\mu \mid 178, 20) \text{Uniform}(\sigma\mid0,50)d\mu d\sigma}
+$$
 
 This looks monstrous, but it’s the same creature as before. There are two new things that make it seem complicated. The first is that there is more than one observation in $h$, so to get the **joint likelihood across all the data**, we have to compute the probability for each $h_i$ and then **multiply all these likelihoods together**. The product on the right-hand side takes care of that. The second complication is the two priors, one for $μ$ and one for $σ$. But these just stack up. In the grid approximation code in the section to follow, you’ll see the implications of this definition in the Python code. Everything will be calculated on the log scale, so multiplication will become addition. But otherwise it’s just a matter of executing Bayes’ theorem.
 
@@ -605,7 +638,7 @@ def plt_contour():
     cs = plt.contour(mu_list, sigma_list, post_prob, levels=10, colors='k', linewidths=0.25)
     plt.clabel(CS=cs, fontsize=5)
 
-utils.inline_plot(plt_contour)
+plt_contour()
 ```
 
 Or you can plot a simple heat map with:
@@ -614,7 +647,7 @@ Or you can plot a simple heat map with:
 def plt_cmesh():
     cs = plt.pcolormesh(mu_list, sigma_list, post_prob, rasterized=True)
 
-utils.inline_plot(plt_cmesh)
+plt_cmesh()
 ```
 
 ### Sampling from the Posterior
@@ -640,7 +673,7 @@ def plt_scatter():
     plt.xlabel(r"Sample $\mu$")
     plt.ylabel(r"Sample $\sigma$")
 
-utils.inline_plot(plt_scatter)
+plt_scatter()
 ```
 
 ```{python}
@@ -649,7 +682,7 @@ def plt_joint():
     plt.xlabel(r"Sample $\mu$")
     plt.ylabel(r"Sample $\sigma$")
 
-utils.inline_plot(plt_joint)
+plt_joint()
 ```
 
 Samples from the posterior distribution for the heights data. The density of points is highest in the center, reflecting the most plausible combinations of $μ$ and $σ$. There are many more ways for these parameter values to produce the data, conditional on the model.
@@ -663,7 +696,7 @@ def plot_dens():
     plt.xlabel(r"Sample $\mu$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 ```{python}
@@ -673,7 +706,7 @@ def plot_dens():
     plt.xlabel(r"Sample $\mu$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The jargon “marginal” here means “averaging over the other parameters.” These densities are very close to being normal distributions. And this is quite typical. As sample size increases, posterior densities approach the normal distribution. If you look closely, though, you’ll notice that the density for $σ$ has a longer right-hand tail. I’ll exaggerate this tendency a bit later, to show you that this condition is very common for standard deviation parameters.
@@ -735,7 +768,7 @@ def plt_scatter():
     plt.xlabel(r"Sample $\mu$")
     plt.ylabel(r"Sample $\sigma$")
 
-utils.inline_plot(plt_scatter)
+plt_scatter()
 ```
 
 After executing the code above, you’ll see another scatter plot of the samples from the posterior density, but this time you’ll notice a distinctly longer tail at the top of the cloud of points. You should also inspect the marginal posterior density for $σ$, averaging over $μ$, produced with:
@@ -758,7 +791,7 @@ def plot_dens():
     plt.xlabel(r"Sample $\mu$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 This code will also show a normal approximation with the same mean and variance. Now you can see that the posterior for $σ$ is not Gaussian, but rather has a long tail towards higher values.
@@ -780,11 +813,13 @@ d2 = d[d['age'] >= 18]
 
 Now we’re ready to define the model, using Stan’s formula syntax. The model definition in this case is just as before.
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu, \sigma)\tag{Likelihood}\\
 \mu &\sim \text{Normal}(178,20)\tag{μ prior} \\
 \sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
-\end{align*}$$
+\end{align*}
+$$
 
 Let's write the Stan model code which will be saved as a `.stan` file and compiled by CmdStanPy:
 
@@ -907,7 +942,7 @@ def plt_scatter():
     plt.xlabel(r"Sample $\mu$")
     plt.ylabel(r"Sample $\sigma$")
 
-utils.inline_plot(plt_scatter)
+plt_scatter()
 ```
 
 These samples also preserve the covariance between $µ$ and $σ$. This hardly matters right now, because $µ$ and $σ$ don’t covary at all in this model. But once you add a predictor variable to your model, covariance will matter a lot.

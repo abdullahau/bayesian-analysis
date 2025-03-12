@@ -27,7 +27,18 @@ format:
         method: mathjax
         url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
-jupyter: main
+jupyter:
+  jupytext:
+    formats: ipynb,qmd
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
 ---
 
 **Sources**:
@@ -225,7 +236,13 @@ In the next major section, you’ll meet the more formal notation for these obje
 -   A single toss of the globe has a probability $p$ of producing a water ($W$) observation. It has a probability $1−p$ of producing a land ($L$) observation.
 -   Each toss of the globe is independent of the others.
 
-Results suggest the following analytical solution $$W,L = (Rp)^W \times ((1 - p)R)^L$$ where $R$ is the number of possible sides in a globes, in this case 4
+Results suggest the following analytical solution 
+
+$$
+W,L = (Rp)^W \times ((1 - p)R)^L
+$$ 
+
+where $R$ is the number of possible sides in a globes, in this case 4
 
 ```{python}
 def plausibility_count(p, W, L, resolution=4):
@@ -563,7 +580,11 @@ Once you have named all the variables and chosen definitions for each, a Bayesia
 
 The mathematical definition of the posterior distribution arises from Bayes’ theorem. This is the theorem that gives Bayesian data analysis its name. But the theorem itself is a trivial implication of probability theory. Here’s a quick derivation of it, in the context of the globe tossing example. Really this will just be a re-expression of the garden of forking data derivation from earlier in the chapter. What makes it look different is that it will use the rules of probability theory to coax out the updating rule. But it is still just counting.
 
-The **joint probability** of the data $W$ and $L$ and any particular value of $p$ is: $$Pr(W, L, p) = Pr(W, L \mid p)Pr(p)$$
+The **joint probability** of the data $W$ and $L$ and any particular value of $p$ is: 
+
+$$
+Pr(W, L, p) = Pr(W, L \mid p)Pr(p)
+$$
 
 This just says that the probability of $W$, $L$ and $p$ is the product of $Pr(W,L \mid p)$ and the prior probability $Pr(p)$. This is like saying that the probability of rain and cold on the same day is equal to the probability of rain, when it’s cold, times the probability that it’s cold. This much is just definition. But it’s just as true that:
 

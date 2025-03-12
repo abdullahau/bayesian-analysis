@@ -269,9 +269,9 @@ def center(vals: np.ndarray) -> np.ndarray:
     return vals - np.nanmean(vals)
 
 
-def standardize(vals: np.ndarray) -> np.ndarray:
+def standardize(vals: np.ndarray, ddof=1) -> np.ndarray:
     centered_vals = center(vals)
-    return centered_vals / np.nanstd(centered_vals)
+    return centered_vals / np.nanstd(vals, ddof=ddof)
 
 
 def convert_to_categorical(vals):

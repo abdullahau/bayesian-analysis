@@ -5,7 +5,7 @@ date: "last-modified"
 format:
   html:
     theme: cosmo # united is darker
-    css: style.css
+    css: quarto-style/style.css
     highlight-style: atom-one
     mainfont: Palatino
     fontcolor: black
@@ -27,7 +27,18 @@ format:
         method: mathjax
         url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
-jupyter: main
+jupyter:
+  jupytext:
+    formats: ipynb,qmd
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
 ---
 
 ### Imports
@@ -56,7 +67,7 @@ def plot_scatter():
     plt.ylabel("Height (cm)")
     plt.xlabel("Weight (kg)")
 
-utils.inline_plot(plot_scatter)
+plot_scatter()
 ```
 
 There’s obviously a relationship: Knowing a person’s weight helps you predict height.
@@ -130,7 +141,9 @@ Jointly these two parameters ask the model to find a line that relates $x$ to $h
 
 Note that there’s nothing special about the linear model, really. You can choose a different relationship between $α$ and $β$ and $μ$. For example, the following is a perfectly legitimate definition for $μ_i$:
 
-$$\mu_i = \alpha \space \text{exp}(-\beta x_i)$$
+$$
+\mu_i = \alpha \space \text{exp}(-\beta x_i)
+$$
 
 This does not define a linear regression, but it does define a regression model. The linear relationship we are using instead is conventional, but nothing requires that you use it. It is very common in some fields, like ecology and demography, to use functional forms for $μ$ that come from theory, rather than the geocentrism of linear models. Models built out of substantive theory can dramatically outperform linear models of the same phenomena. We’ll revisit this point later.
 
@@ -188,7 +201,7 @@ def plot_prior_pred():
 
     fig.tight_layout()
 
-utils.inline_plot(plot_prior_pred)
+plot_prior_pred()
 ```
 
 Prior predictive simulation for the height and weight model. Left: Simulation using the $β \sim \text{Normal}(0,10)$ prior. Right: A more sensible $log(β)\sim \text{Normal}(0,1)$ prior.
@@ -214,7 +227,7 @@ def plot_dens():
     plt.ylabel("Density")
     plt.xlim(-0.5,5)
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 If the logarithm of $β$ is normal, then $β$ itself is strictly positive. The reason is that exp(x) is greater than zero for any real number $x$. This is the reason that Log-Normal priors are commonplace. They are an easy way to enforce positive relationships. So what does this earn us? Do the prior predictive simulation again, now with the Log-Normal prior:
@@ -407,7 +420,7 @@ def plot_pair():
     posterior = m4_3_model.extract_samples(n=1000)
     az.plot_pair(posterior, var_names=['a','b','sigma'], figsize=[6, 6], marginals=True, scatter_kwargs={'alpha': 0.2})
 
-utils.inline_plot(plot_pair)
+plot_pair()
 ```
 
 #### **Plotting Posterior Inference Against the Data**
@@ -429,7 +442,7 @@ def plot_post_infer():
     plt.ylabel("Height (cm)")
     plt.xlabel("Weight (kg)")
 
-utils.inline_plot(plot_post_infer)
+plot_post_infer()
 ```
 
 Height in centimeters (vertical) plotted against weight in kilograms (horizontal), with the line at the posterior mean plotted in blue.
@@ -483,7 +496,7 @@ def plot_post_infer():
     plt.xlabel("Weight (kg)")
     plt.tight_layout()
 
-utils.inline_plot(plot_post_infer)
+plot_post_infer()
 ```
 
 By plotting multiple regression lines, sampled from the posterior, it is easy to see both the highly confident aspects of the relationship and the less confident aspects. The cloud of regression lines displays greater uncertainty at extreme values for weight.
@@ -517,7 +530,7 @@ def plot_reg_rel():
     
     fig.tight_layout()
 
-utils.inline_plot(plot_reg_rel)
+plot_reg_rel()
 ```
 
 #### Plotting Regression Intervals and Contours
@@ -546,7 +559,7 @@ def plot_dens():
     plt.xlabel(r"$\mu \mid Weight = 50$")
     plt.ylabel("Density")
 
-utils.inline_plot(plot_dens)
+plot_dens()
 ```
 
 The quadratic approximate posterior distribution of the mean height, $μ$, when weight is 50 kg. This distribution represents the relative plausibility of different values of the mean.
@@ -600,7 +613,7 @@ def plot_mu():
     plt.xlabel("Weight")
     plt.ylabel("Height")
 
-utils.inline_plot(plot_mu)
+plot_mu()
 ```
 
 The first 100 values in the distribution of $μ$ at each weight value.
@@ -632,7 +645,7 @@ def plot_mu():
     plt.ylabel("Height (cm)")
     plt.xlabel("Weight (kg)")
 
-utils.inline_plot(plot_mu)
+plot_mu()
 ```
 
 The !Kung height data again, now with 89% compatibility interval of the mean indicated by the shaded region. Compare this region to the distributions of points in the above plot.
@@ -764,7 +777,7 @@ def plot_post_sim():
     plt.xlabel('Weight (kg)')
     plt.ylabel('Height (cm)')    
 
-utils.inline_plot(plot_post_sim)
+plot_post_sim()
 ```
 
 89% prediction interval for height, as a function of weight. The solid line is the average line for the mean height at each weight. The two shaded regions show different 89% plausible regions. The narrow shaded interval around the line is the distribution of $μ$. The wider shaded region represents the region within which the model expects to find 89% of actual heights in the population, at each weight.
@@ -831,7 +844,7 @@ def plot_scatter():
     plt.xlabel('Weight (kg)')
     plt.ylabel('Height (cm)')
 
-utils.inline_plot(plot_scatter)
+plot_scatter()
 ```
 
 The most common polynomial regression is a parabolic model of the mean. Let $x$ be standardized body weight. Then the parabolic equation for the mean height is:
@@ -948,7 +961,7 @@ def plot_post_sim():
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
-utils.inline_plot(plot_post_sim)
+plot_post_sim()
 ```
 
 Let build a higher-order polynomial regression, a cubic regression on weight. The model is:
@@ -1048,7 +1061,7 @@ def plot_post_sim():
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
-utils.inline_plot(plot_post_sim)
+plot_post_sim()
 ```
 
 But it’s not clear that any of these models make a lot of sense. They are good geocentric descriptions of the sample, yes. But there are two problems. First, a better fit to the sample might not actually be a better model. Second, the model contains no biological information. We aren’t learning any causal relationship between height and weight.
@@ -1148,7 +1161,7 @@ def plot_poly():
         ax.set(xlabel='Weight (Standardized)', ylabel='Height (cm)', xlim=(-2.2,2), ylim=(40, 185))
         ax.set_title(title[i])
 
-utils.inline_plot(plot_poly)
+plot_poly()
 ```
 
 The left panel of the figure shows the familiar linear regression from earlier in the chapter, but now with the standardized predictor and full data with both adults and non-adults. The linear model makes some spectacularly poor predictions, at both very low and middle weights. Compare this to the middle panel, our new quadratic regression. The curve does a better job of finding a central path through the data. The right panel shows a higher-order polynomial regression, a cubic regression on weight.
@@ -1178,7 +1191,7 @@ def plot_post_sim():
     plt.xlabel('Weight (Standardized)')
     plt.ylabel('Height (cm)')    
 
-utils.inline_plot(plot_post_sim)
+plot_post_sim()
 ```
 
 The `xticks` at the end there overrides the horizontal axis. Then you explicitly construct the axis, by reversing the `(d.weight.values - d.weight.mean())/d.weight.std()` transformation back to original scale.
@@ -1205,14 +1218,16 @@ def plot_scatter():
     plt.xlabel('Year')
     plt.ylabel('Day in Year')
 
-utils.inline_plot(plot_scatter)
+plot_scatter()
 ```
 
 Let’s try extracting a trend with a B-spline. The short explanation of B-splines is that they divide the full range of some predictor variable, like `year`, into parts. Then they assign a parameter to each part. These parameters are gradually turned on and off in a way that makes their sum into a fancy, wiggly curve. The long explanation contains lots more details. But all of those details just exist to achieve this goal of building up a big, curvy function from individually less curvy local functions.
 
 Here’s a longer explanation, with visual examples. Our goal is to approximate the blossom trend with a wiggly function. With B-splines, just like with polynomial regression, we do this by generating new predictor variables and using those in the linear model, $μ_i$. Unlike polynomial regression, B-splines do not directly transform the predictor by squaring or cubing it. Instead they invent a series of entirely new, synthetic predictor variables. Each of these synthetic variables exists only to gradually turn a specific parameter on and off within a specific range of the real predictor variable. Each of the synthetic variables is called a **basis function**. The linear model ends up looking very familiar:
 
-$$\mu_i = \alpha + w_1 B_{i,1} + w_2 B_{i,2} + w_3 B_{i,3} + \ldots$$
+$$
+\mu_i = \alpha + w_1 B_{i,1} + w_2 B_{i,2} + w_3 B_{i,3} + \ldots
+$$
 
 where $B_{i,n}$ is the *n*-th basis function’s value on row $i$, and the $w$ parameters are corresponding weights for each. The parameters act like slopes, adjusting the influence of each basis function on the mean $μ_i$. So really this is just another linear regression, but with some fancy, synthetic predictor variables. These synthetic variables do some really elegant descriptive (geocentric) work for us.
 
@@ -1285,7 +1300,7 @@ def bspline_regression_plots(data, num_knots, degree):
     
     fig.tight_layout()
 
-utils.inline_plot(bspline_regression_plots, data=d2, num_knots=5, degree=1)
+bspline_regression_plots(data=d2, num_knots=5, degree=1)
 ```
 
 **Using B-splines to make local, linear approximations**. Top: Each basis function is a variable that turns on specific ranges of the predictor variable. At any given value on the horizontal axis, e.g. 1200, only two have non-zero values. Middle: Parameters called weights multiply the basis functions. The spline at any given point is the sum of these weighted basis functions. Bottom: The resulting B-spline shown against the data. Each weight parameter determines the slope in a specific range of the predictor variable.
@@ -1320,7 +1335,7 @@ def plot_basis():
     plt.xlabel('Year')
     plt.ylabel('Basis Value')
 
-utils.inline_plot(plot_basis)
+plot_basis()
 ```
 
 Now to get the **parameter weights** for each basis function, we need to actually define the model and make it run. The model is just a linear regression. The synthetic basis functions do all the work. We’ll use each column of the matrix B as a variable. We’ll also have an intercept to capture the average blossom day. This will make it easier to define priors on the basis weights, because then we can just conceive of each as a deviation from the intercept. In mathematical form, we start with the probability of the data, the linear model, and the priors:
@@ -1389,7 +1404,7 @@ def plot_weighted_basis():
     plt.xlabel('Year')
     plt.ylabel('Basis Value')
 
-utils.inline_plot(plot_weighted_basis)
+plot_weighted_basis()
 ```
 
 And finally the 97% posterior interval for `μ`, at each year:
@@ -1403,11 +1418,11 @@ def plot_post():
     plt.xlabel('Year')
     plt.ylabel('Basis Value')
 
-utils.inline_plot(plot_post)
+plot_post()
 ```
 
 ```{python}
-utils.inline_plot(bspline_regression_plots, data=d2, num_knots=15, degree=3)
+bspline_regression_plots(data=d2, num_knots=15, degree=3)
 ```
 
 A cubic spline with 15 knots. The top plot is, just like in the previous figure, the basis functions. However now more of these overlap. The middle plot is again each basis weighted by its corresponding parameter. And the sum of these weighted basis functions, at each point, produces the spline shown at the bottom, displayed as a 97% posterior interval of $\mu$.

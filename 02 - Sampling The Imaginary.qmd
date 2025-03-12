@@ -27,7 +27,18 @@ format:
         method: mathjax
         url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
-jupyter: main
+jupyter:
+  jupytext:
+    formats: ipynb,qmd
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
 ---
 
 #### Imports
@@ -45,7 +56,9 @@ Suppose there is a blood test that correctly detects vampirism 95% of the time. 
 | Test Vampire     | 0.95    | 0.01   |
 | Test Not Vampire | 0.05    | 0.99   |
 
-$$P(\text{Vampire} \mid \text{Positive}) = \frac{P(\text{Positive} \mid \text{Vampire})P(\text{Vampire})}{P(\text{Positive})}$$
+$$
+P(\text{Vampire} \mid \text{Positive}) = \frac{P(\text{Positive} \mid \text{Vampire})P(\text{Vampire})}{P(\text{Positive})}
+$$
 
 where $P(\text{Positive})$ is the average probability of a positive test result, that is,
 
@@ -86,7 +99,11 @@ Suppose that instead of reporting probabilities, as before, we are told the foll
 
 3.  Of the 99,900 mortals, 999 of them will test positive for vampirism.
 
-If we test all 100,000 people, what proportion of those who test positive for vampirism actually are vampires? Now we can just count up the number of people who test positive: $95 +999 =1094$. Out of these 1094 positive tests, 95 of them are real vampires, so that implies: $$P(\text{Vampire} \mid \text{Positive}) = \frac{95}{1094} \approx 0.087$$
+If we test all 100,000 people, what proportion of those who test positive for vampirism actually are vampires? Now we can just count up the number of people who test positive: $95 +999 =1094$. Out of these 1094 positive tests, 95 of them are real vampires, so that implies: 
+
+$$
+P(\text{Vampire} \mid \text{Positive}) = \frac{95}{1094} \approx 0.087
+$$
 
 It’s exactly the same answer as before, but without a seemingly arbitrary rule. The second presentation of the problem, using counts rather than probabilities, is often called the *frequency format* or *natural frequencies*.
 
@@ -108,7 +125,11 @@ The vampirism example has the same logical structure as many different **signal 
 
 Scientific inference is sometimes framed in similar terms: (1) An hypothesis is either true or false; (2) we get a statistical cue of the hypothesis’ falsity; (3) we (should) use Bayes’ theorem to logically deduce the impact of the cue on the status of the hypothesis. It’s the third step that is hardly ever done. But let’s consider a toy example. Suppose the probability of a positive finding, when an hypothesis is true, is $P(\text{sig}|\text{true})=0.95$. That’s the power of the test. Suppose that the probability of a positive finding, when an hypothesis is false, is $P(\text{sig}|\text{false})=0.05$. That’s the false-positive rate, like the 5% of conventional significance testing. Finally, we have to state the base rate at which hypotheses are true. Suppose for example that 1 in every 100 hypotheses turns out to be true. Then $P(\text{true})=0.01$. No one knows this value, but the history of science suggests it’s small.
 
-Now compute the posterior: $$P(\text{true} \mid \text{pos}) = \frac{P(\text{pos} \mid \text{true})P(\text{true})}{P(\text{pos})} = \frac{P(\text{pos} \mid \text{true})P(\text{true})}{P(\text{pos} \mid \text{true})P(\text{true}) + P(\text{pos} \mid \text{false})P(\text{false})}$$
+Now compute the posterior: 
+
+$$
+P(\text{true} \mid \text{pos}) = \frac{P(\text{pos} \mid \text{true})P(\text{true})}{P(\text{pos})} = \frac{P(\text{pos} \mid \text{true})P(\text{true})}{P(\text{pos} \mid \text{true})P(\text{true}) + P(\text{pos} \mid \text{false})P(\text{false})}
+$$
 
 Plug in the appropriate values, and the answer is approximately $P(\text{true}|\text{pos})=0.16$. So a positive finding corresponds to a 16% chance that the hypothesis is true. This is the same low base-rate phenomenon that applies in medical (and vampire) testing. You can shrink the false-positive rate to 1% and get this posterior probability up to 0.5, only as good as a coin flip. The most important thing to do is to improve the base rate, $P(\text{true})$, and that requires thinking, not testing.
 
@@ -668,7 +689,9 @@ Now note that these assumptions not only allow us to infer the plausibility of e
 
 We will call such simulated data **dummy data**, to indicate that it is a stand-in for actual data. With the globe tossing model, the dummy data arises from a binomial likelihood:
 
-$$P(W \mid N,p) = \frac{N!}{W!(N-W)!}p^{W}(1-p)^{N-W}$$
+$$
+P(W \mid N,p) = \frac{N!}{W!(N-W)!}p^{W}(1-p)^{N-W}
+$$
 
 where $W$ is an observed count of “water” and $N$ is the number of tosses. Suppose $N =2$, two tosses of the globe. Then there are only three possible observations: 0 water, 1 water, 2 water. You can quickly compute the probability of each, for any given value of $p$. Let’s use $p=0.7$, which is just about the true proportion of water on the Earth:
 
