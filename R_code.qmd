@@ -1,10 +1,20 @@
 ---
-title: "R Code Test"
-author: "Abdullah Mahmood"
+title: R Code Test
+author: Abdullah Mahmood
 date: today
 format: html
 editor: source
-jupyter: main
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
 ---
 
 ```{python}
@@ -244,5 +254,5 @@ plt.show()
 ```
 
 ```{python}
-
+print("test")
 ```
