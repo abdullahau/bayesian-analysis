@@ -6,6 +6,7 @@ format: html
 editor: source
 jupyter:
   jupytext:
+    formats: ipynb,qmd
     text_representation:
       extension: .qmd
       format_name: quarto
@@ -18,6 +19,7 @@ jupyter:
 ---
 
 ```{python}
+# ruff: noqa: F405
 from cmdstanpy import CmdStanModel
 import bridgestan as bs
 import numpy as np
@@ -27,6 +29,7 @@ from scipy.special import expit
 import scipy.stats as stats
 import pandas as pd
 import matplotlib.pyplot as plt
+import utils
 
 import logging
 import warnings
@@ -35,6 +38,8 @@ warnings.filterwarnings( "ignore", module = "plotnine/..*" )
 
 import cmdstanpy as csp
 csp.utils.get_logger().setLevel(logging.ERROR)
+
+%config InlineBackend.figure_formats = ['svg']
 
 def inline_plot(plot_func, *args, **kwargs):
     plt.clf()  
@@ -233,26 +238,4 @@ class StanQuap(object):
           f'{plo:.1%}': lo,
           f'{phi:.1%}': hi})
         return res.set_index('Parameter')
-```
-
-```{python}
-x = np.linspace(0,100)
-y = lambda x: x**(1/2)
-
-plt.clf()
-plt.plot(x, y(x))
-plt.show()
-```
-
-```{python}
-x = np.linspace(0,100)
-y = lambda x: x**(1/3)
-
-plt.clf()
-plt.plot(x, y(x))
-plt.show()
-```
-
-```{python}
-print("test")
 ```

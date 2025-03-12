@@ -27,7 +27,18 @@ format:
         method: mathjax
         url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 editor: source
-jupyter: main
+jupyter:
+  jupytext:
+    formats: ipynb,qmd:quarto
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
 ---
 
 ### Imports
@@ -81,21 +92,25 @@ What this means, recall, is that the machine considers every possible combinatio
 
 Here’s how it works, in the simplest case of only one predictor variable. We’ll wait until the next chapter to confront more than one predictor. Recall the basic Gaussian model:
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu, \sigma)\tag{Likelihood}\\
 \mu &\sim \text{Normal}(178,20)\tag{μ prior} \\
 \sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
-\end{align*}$$
+\end{align*}
+$$
 
 Now how do we get weight into a Gaussian model of height? Let $x$ be the name for the column of weight measurements, `d2['weight']`. Let the average of the $x$ values be $\bar{x}$, “ex bar”. Now we have a predictor variable $x$, which is a list of measures of the same length as $h$. To get weight into the model, we define the mean $μ$ as a function of the values in $x$. This is what it looks like, with explanation to follow:
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu_i, \sigma)\tag{Likelihood}\\
 \mu_i &= \alpha + \beta(x_i - \bar{x})\tag{Linear Model}\\
 \alpha &\sim \text{Normal}(178,20)\tag{α prior} \\
 \beta &\sim \text{Normal}(0,10)\tag{β prior} \\
 \sigma &\sim \text{Uniform}(0,50)\tag{σ prior} \\
-\end{align*}$$
+\end{align*}
+$$
 
 #### Probability of the data
 
@@ -109,7 +124,9 @@ The value $x_i$ is just the weight value on row $i$. It refers to the same indiv
 
 You’ll be making up all manner of parameters as your skills improve. One way to understand these made-up parameters is to think of them as targets of learning. Each parameter is something that must be described in the posterior distribution. So when you want to know something about the data, you ask your model by inventing a parameter for it. This will make more and more sense as you progress. Here’s how it works in this context. The second line of the model definition is just:
 
-$$\mu_i = \alpha + \beta(x_i - \bar{x})$$
+$$
+\mu_i = \alpha + \beta(x_i - \bar{x})
+$$
 
 What this tells the regression golem is that you are asking two questions about the mean of the outcome.
 
@@ -134,10 +151,12 @@ This does not define a linear regression, but it does define a regression model.
 
 Readers who had a traditional training in physical sciences will know how to carry units through equations of this kind. For their benefit, here’s the model again (omitting priors for brevity), now with units of each symbol added.
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i}\text{cm} &\sim \text{Normal}(\mu_i\text{cm}, \sigma\text{cm})\\
 \mu_i\text{cm} &= \alpha\text{cm} + \beta\frac{\text{cm}}{\text{kg}}(x_i \text{kg} - \bar{x}\text{kg})\\
-\end{align*}$$
+\end{align*}
+$$
 
 So you can see that $β$ must have units of cm/kg in order for the mean $μ_i$ to have units of cm. One of the facts that labeling with units clears up is that a parameter like $β$ is a kind of rate—centimeters per kilogram. There’s also a tradition called *dimensionless analysis* that advocates constructing variables so that they are unit-less ratios. In this context, for example, we might divide height by a reference height, removing its units. Measurement scales are arbitrary human constructions, and sometimes the unit-less analysis is more natural and general.
 
@@ -191,7 +210,9 @@ We know that average height increases with average weight, at least up to a poin
 
 Defining $β$ as Log-Normal(0,1) means to claim that the logarithm of $β$ has a Normal(0,1) distribution. Plainly:
 
-$$\beta \sim \text{Log-Normal}(0,1)$$
+$$
+beta \sim \text{Log-Normal}(0,1)
+$$
 
 SciPy provides the `stats.lognorm.rvs` and `stats.lognorm.pdf` densities for working with log-normal distributions. We can simulate this relationship to see what this means for $\beta$:
 
@@ -241,13 +262,15 @@ A serious problem in contemporary applied statistics is “*p*-hacking,” the p
 
 The code needed to approximate the posterior is a straightforward modification of the kind of code you’ve already seen. All we have to do is incorporate our new model for the mean into the model specification inside the Stan code and be sure to add a prior for the new parameter, $β$. Let’s repeat the model definition:
 
-$$\begin{align*}
+$$
+\begin{align*}
 h_{i} &\sim \text{Normal}(\mu_i, \sigma)\\
 \mu_i &= \alpha + \beta(x_i - \bar{x})\\
 \alpha &\sim \text{Normal}(178,20)\\
 \beta &\sim \text{Log-Normal}(0,1)\\
 \sigma &\sim \text{Uniform}(0,50)\\
-\end{align*}$$
+\end{align*}
+$$
 
 ```{python}
 m4_3 = '''
@@ -521,7 +544,9 @@ mu_at_50 = post["a"] + post["b"] * (50 - d2.weight.mean())
 
 The code above takes its form from the equation for $μ_i$:
 
-$$\mu_i = \alpha + \beta(x_i - \bar{x})$$
+$$
+\mu_i = \alpha + \beta(x_i - \bar{x}
+$$
 
 The value of $x_i$ in this case is 50. Go ahead and take a look inside the result, `mu_at_50`. It’s a vector of predicted means, one for each random sample from the posterior. Since joint `a` and `b` went into computing each, the variation across those means incorporates the uncertainty in and correlation between both parameters. It might be helpful at this point to actually plot the density for this vector of means:
 
@@ -665,7 +690,9 @@ Knowing this manual method is useful both for (1) understanding and (2) sheer po
 
 Now let’s walk through generating an 89% prediction interval for actual heights, not just the average height, $μ$. This means we’ll incorporate the standard deviation $σ$ and its uncertainty as well. Remember, the first line of the statistical model here is:
 
-$$h_i \sim \text{Normal}(\mu_i, \sigma)$$
+$$
+h_i \sim \text{Normal}(\mu_i, \sigma)
+$$
 
 What you’ve done so far is just use samples from the posterior to visualize the uncertainty in $μ_i$, the linear model of the mean. But actual predictions of heights depend also upon the distribution in the first line. The Gaussian distribution on the first line tells us that the model expects observed heights to be distributed around $μ$, not right on top of it. And the spread around $μ$ is governed by $σ$. All of this suggests we need to incorporate $σ$ in the predictions somehow.
 
@@ -820,7 +847,9 @@ utils.inline_plot(plot_scatter)
 
 The most common polynomial regression is a parabolic model of the mean. Let $x$ be standardized body weight. Then the parabolic equation for the mean height is:
 
-$$\mu_i = \alpha + \beta_1 x_i + \beta_2 x^2_i$$
+$$
+\mu_i = \alpha + \beta_1 x_i + \beta_2 x^2_i
+$$
 
 The above is a parabolic (second order) polynomial. The $α+β_1 x_i$ part is the same linear function of x in a linear regression, just with a little “1” subscript added to the parameter name, so we can tell it apart from the new parameter. The additional term uses the square of $x_i$ to construct a parabola, rather than a perfectly straight line. The new parameter $β_2$ measures the curvature of the relationship.
 
@@ -1307,13 +1336,15 @@ utils.inline_plot(plot_basis)
 
 Now to get the **parameter weights** for each basis function, we need to actually define the model and make it run. The model is just a linear regression. The synthetic basis functions do all the work. We’ll use each column of the matrix B as a variable. We’ll also have an intercept to capture the average blossom day. This will make it easier to define priors on the basis weights, because then we can just conceive of each as a deviation from the intercept. In mathematical form, we start with the probability of the data, the linear model, and the priors:
 
-$$\begin{align*}
+$$
+\begin{align*}
 D_{i} &\sim \text{Normal}(\mu_i, \sigma)\tag{Likelihood}\\
 \mu_i &= \alpha + \sum_{k=1}^{K}w_{k}B_{k,i}\tag{Linear Model}\\
 \alpha &\sim \text{Normal}(100,10)\tag{α prior} \\
 w_j &\sim \text{Normal}(0,10)\tag{w prior} \\
 \sigma &\sim \text{Exponential}(1)\tag{σ prior} \\
-\end{align*}$$
+\end{align*}
+$$
 
 That linear model might look weird. But all it is doing is multiplying each basis value by a corresponding parameter $w_k$ and then adding up all $K$ of those products. This is just a compact way of writing a linear model. The rest should be familiar. Although I will ask you to simulate from those priors in the practice problems at the end of the chapter. You might guess already that the $w$ priors influence how wiggly the spline can be.
 
