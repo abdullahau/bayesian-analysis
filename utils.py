@@ -156,21 +156,23 @@ class StanQuap(object):
             post = self.extract_samples(n=n, dict_out=True, drop=drop)
         return lm_func(post, predictor)
 
-    def sim(self, data: dict = None, n=1000, dict_out: bool = True, drop: list = None):
+    def sim(self, data: dict = None, n=1000, dict_out: bool = True, select: list = None):
         """
         Simulate posterior observations - Posterior Predictive Sampling
         https://mc-stan.org/docs/stan-users-guide/posterior-prediction.html
         https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html
         """
-        if drop is None:
-            drop = self.generated_var
+        if select is None:
+            select = self.generated_var
         if data is None:
             data = self.train_data
         laplace_obj = self.laplace_sample(data=data, draws=n)
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
             return {
-                param: stan_var_dict[param] for param in stan_var_dict if param in drop
+                param: stan_var_dict[param]
+                for param in stan_var_dict
+                if param in select
             }
         return laplace_obj.draws()
 
