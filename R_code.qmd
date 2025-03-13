@@ -143,11 +143,11 @@ class StanQuap(object):
             return {param: stan_var_dict[param] for param in stan_var_dict.keys() if param not in self.generated_var}
         return laplace_obj.draws()
 
-    def link(self, lm_func, data, n=1000, post=None):
+    def link(self, lm_func, predictor, n=1000, post=None):
         # Extract Posterior Samples
         if post is None:
             post = self.extract_samples(n=n, dict_out=True)
-        return lm_func(post, data)
+        return lm_func(post, predictor)
     
     def sim(self, data: dict = None, n = 1000, dict_out: bool = True):
         """

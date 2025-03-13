@@ -150,11 +150,11 @@ class StanQuap(object):
             }
         return laplace_obj.draws()
 
-    def link(self, lm_func, data, n=1000, post=None, drop: list = None):
+    def link(self, lm_func, predictor, n=1000, post=None, drop: list = None):
         # Extract Posterior Samples
         if post is None:
             post = self.extract_samples(n=n, dict_out=True, drop=drop)
-        return lm_func(post, data)
+        return lm_func(post, predictor)
 
     def sim(self, data: dict = None, n=1000, dict_out: bool = True, drop: list = None):
         """
@@ -258,11 +258,11 @@ class StanQuap(object):
         return np.concatenate(arrays)
 
 
-def link(fit, lm_func, data, n=1000, post=None):
+def link(fit, lm_func, predictor, n=1000, post=None):
     # Extract Posterior Samples
     if post is None:
         post = fit.extract_samples(n=n, dict_out=True)
-    return lm_func(post, data)
+    return lm_func(post, predictor)
 
 
 # ----------------------- Stat Functions -----------------------

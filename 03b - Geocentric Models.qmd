@@ -585,7 +585,7 @@ def lm(post, data):
     a, b = post['a'].reshape(-1,1), post['b'].reshape(-1,1)
     return a + b * (weight - xbar)
 
-mu = m4_3_model.link(lm_func=lm, data=d2['weight'].to_numpy())
+mu = m4_3_model.link(lm_func=lm, predictor=d2['weight'].to_numpy())
 print(mu)
 ```
 
@@ -601,7 +601,7 @@ weight_seq = np.arange(25, 71)
 # use link to compute mu
 # for each sample from posterior
 # and for each weight in weight.seq
-mu = m4_3_model.link(lm_func=lm, data=weight_seq)
+mu = m4_3_model.link(lm_func=lm, predictor=weight_seq)
 mu
 ```
 
@@ -943,7 +943,7 @@ def lm(post, data):
     return (a + b1 * weight_s + b2 * weight_s**2).T
 
 weight_s_seq = np.linspace(-2.2, 2, 30)
-mu = m4_5_model.link(lm_func=lm, data=weight_s_seq)
+mu = m4_5_model.link(lm_func=lm, predictor=weight_s_seq)
 mu_mean, mu_plo, mu_phi = utils.precis(mu)
 sim_height = m4_5_model.sim(data=data)['y_tilde']
 _, sim_plo, sim_phi = utils.precis(sim_height)
@@ -1047,7 +1047,7 @@ def lm(post, data):
     return (a + b1 * weight_s + b2 * weight_s**2 + b3 * weight_s**3).T
 
 weight_s_seq = np.linspace(-2.2, 2, 30)
-mu = m4_6_model.link(lm_func=lm, data=weight_s_seq)
+mu = m4_6_model.link(lm_func=lm, predictor=weight_s_seq)
 mu_mean, mu_plo, mu_phi = utils.precis(mu)
 sim_height = m4_6_model.sim(data=data)['y_tilde']
 _, sim_plo, sim_phi = utils.precis(sim_height)
@@ -1149,7 +1149,7 @@ def plot_poly():
         X = dmat(pd.DataFrame({'weight_s': weight_seq}), i+1)
         def lm(post, X):
             return (X @ post['b'].T).T
-        mu = model.link(lm_func=lm, data=X, n=1000)
+        mu = model.link(lm_func=lm, predictor=X, n=1000)
         mu_mean, mu_plo, mu_phi = utils.precis(mu)
         sim = model.sim(data=stan_data_dict(i+1))['y_tilde']
         _, sim_plo, sim_phi = utils.precis(sim)

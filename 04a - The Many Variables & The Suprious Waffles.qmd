@@ -632,50 +632,98 @@ M_{i} &\sim \text{Normal}(\mu, \sigma)\\
 \end{align*}
 $$
 
-As before, $M$ is marriage rate and A is median age at marriage. Note that since we standardized both variables, we already expect the mean αto be around zero, as before. So I’m reusing the same priors as earlier. This code will approximate the posterior:
+As before, $M$ is marriage rate and $A$ is median age at marriage. Note that since we standardized both variables, we already expect the mean $α$ to be around zero, as before. So I’m reusing the same priors as earlier. This code will approximate the posterior:
 
 ```{python}
-with pm.Model() as m5_4:
-    A = pm.ConstantData("A", d.A, dims="obs_id")
-    
-    a = pm.Normal("a", mu=0, sigma=0.2)
-    bAM = pm.Normal("bAM", mu=0, sigma=0.5)
-    sigma = pm.Exponential("sigma", 1)
-    mu = pm.Deterministic('mu', a + bAM * A, dims="obs_id")
-    
-    M = pm.Normal("M", mu=mu, sigma=sigma, observed=d.M, dims="obs_id")
+# A -> M
+m5_4 = '''
+data {
+    int<lower=0> N;
+    vector[N] M;
+    vector[N] A;
+}
+parameters {
+    real a;
+    real bAM;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a + bAM * A;
+}
+model {
+    M ~ normal(mu, sigma);
+    a ~ normal(0, 0.2);
+    bAM ~ normal(0, 0.5);
+    sigma ~ exponential(1);
+}
+'''
 
-    idata_m5_4 = pm.sample_prior_predictive()    
-    
-    custom_step_m5_4 = utils.QuadraticApproximation([a, bAM, sigma], m5_4)
-    idata_m5_4.extend(pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m5_4, progressbar=False))
-    
-    pm.sample_posterior_predictive(
-        idata_m5_4,
-        var_names=["M", "mu"],
-        extend_inferencedata=True,
-        progressbar=False
-    )  
+# M -> A
+m5_4a = '''
+data {
+    int<lower=0> N;
+    vector[N] M;
+    vector[N] A;
+}
+parameters {
+    real a;
+    real bMA;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a + bMA * M;
+}
+model {
+    A ~ normal(mu, sigma);
+    a ~ normal(0, 0.2);
+    bMA ~ normal(0, 0.5);
+    sigma ~ exponential(1);
+}
+'''
+
+data = {'N': len(d),
+        'A': d.A.tolist(),
+        'M': d.M.tolist()}
+
+m5_4_model = utils.StanQuap('stan_models/m5_4', m5_4, data=data, 
+                            generated_var=['y_rep', 'mu'])
+
+m5_4a_model = utils.StanQuap('stan_models/m5_4a', m5_4a, data=data, 
+                            generated_var=['y_rep', 'mu'])
 ```
 
 And then we compute the residuals by subtracting the observed marriage rate in each State from the predicted rate, based upon the model above:
 
 ```{python}
-mu_mean_m5_4 = idata_m5_4.posterior.mu.mean(dim=['chain', 'draw']).to_numpy()
-mu_residual_m5_4 = d.M - mu_mean_m5_4
-```
+def plot_residual():
+    from matplotlib import collections
+    mu_M = m5_4_model.laplace_sample(draws=1000).stan_variable('mu')
+    mu_A = m5_4a_model.laplace_sample(draws=1000).stan_variable('mu')
+    
+    mu_M_mean = np.mean(mu_M, axis=0)
+    mu_M_resid = d.M - mu_M_mean
+    
+    mu_A_mean = np.mean(mu_A, axis=0)
+    mu_A_resid = d.A - mu_A_mean
+    
+    _, axes = plt.subplots(1, 2, figsize=(9, 4))
+    
+    axes[0].plot(d.A, d.M, 'o', fillstyle='none')
+    axes[0].plot(d.A, mu_M_mean, 'k')
+    segments = [[(d.A[i], d.M[i]), (d.A[i], mu_M_mean[i])] for i in range(len(d.M))]
+    axes[0].add_collection(collections.LineCollection(segments))
+    axes[0].set(xlabel='Age at Marriage (std)', ylabel='Marriage Rate (std)')
+    
+    axes[1].plot(d.M, d.A, 'o', fillstyle='none')
+    axes[1].plot(d.M, mu_A_mean, 'k')
+    segments = [[(d.M[i], d.A[i]), (d.M[i], mu_A_mean[i])] for i in range(len(d.A))]
+    axes[1].add_collection(collections.LineCollection(segments))
+    axes[1].set(xlabel='Marriage Rate (std)', ylabel='Age at Marriage (std)')
 
-```{python}
-from matplotlib import collections
-
-_, ax = plt.subplots()
-ax.plot(d.A, d.M, 'o', fillstyle='none')
-ax.plot(d.A, mu_mean_m5_4, 'k')
-
-segments = [[(d.A[i], d.M[i]), (d.A[i], mu_mean_m5_4[i])] for i in range(len(d.M))]
-lc = collections.LineCollection(segments)
-ax.add_collection(lc)
-ax.set(xlabel='Age at Marriage', ylabel='Marriage Rate');
+plt.clf()
+plot_residual()
 ```
 
 When a residual is positive, that means that the observed rate was in excess of what the model expects, given the median age at marriage in that State. When a residual is negative, that means the observed rate was below what the model expects. In simpler terms, States with positive residuals have high marriage rates for their median age of marriage, while States with negative residuals have low rates for their median age of marriage. It’ll help to plot the relationship between these two variables, and show the residuals as well. In the plot above, we show `m5_4` along with line segments for each residual. Notice that the residuals are variation in marriage rate that is left over, after taking out the purely linear relationship between the two variables.

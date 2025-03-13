@@ -414,7 +414,7 @@ def lm(post, data):
     a, b = post['a'].reshape(-1,1), post['b'].reshape(-1,1)
     return a + b * (weight - xbar)
 
-mu = m4_3_model.link(lm_func=lm, data=weight_seq)
+mu = m4_3_model.link(lm_func=lm, predictor=weight_seq)
 mu_mean, mu_plo, mu_phi = utils.precis(mu)
 sim = m4_3_model.sim(data=data)['y_tilde']
 _, sim_plo, sim_phi = utils.precis(sim)
@@ -486,7 +486,7 @@ def lm(post, data):
     a, b = post['a'].reshape(-1,1), post['b'].reshape(-1,1)
     return a + b * weight
 
-mu = m4_3c_model.link(lm_func=lm, data=weight_seq)
+mu = m4_3c_model.link(lm_func=lm, predictor=weight_seq)
 mu_mean, mu_plo, mu_phi = utils.precis(mu)
 sim = m4_3c_model.sim(data=data)['y_tilde']
 _, sim_plo, sim_phi = utils.precis(sim)
