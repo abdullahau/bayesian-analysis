@@ -6,6 +6,7 @@ import pymc as pm
 import arviz as az
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 import os
 import gc

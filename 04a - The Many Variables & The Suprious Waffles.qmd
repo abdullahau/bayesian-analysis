@@ -45,7 +45,7 @@ jupyter:
 
 ```{python}
 # ruff: noqa: F405
-from init_notebook import *
+from init import *
 from causalgraphicalmodels import CausalGraphicalModel
 import daft as daft
 
@@ -121,7 +121,6 @@ So when $β_A =1$, a change of 1.2 years in median age at marriage is associated
 To compute the approximate posterior, there are no new code tricks or techniques here. But I’ll add comments to help explain the mass of code to follow.
 
 ```{python}
-# Insert Stan Code Here
 m5_1 = '''
 data {
     int<lower=0> N;
@@ -141,6 +140,7 @@ transformed parameters {
     vector[N] mu;
     mu = a + bA * A;
     
+    // Posterior Predictive Sampling
     vector[N_tilde] mu_tilde;
     mu_tilde = a + bA * A_seq;
 }
@@ -165,96 +165,131 @@ generated quantities {
 '''
 A_seq = np.linspace(-3, 3.2, 100)
 data = {'N': len(d),
-       'A': d.A,
-       'D': d.D,
+       'A': d.A.tolist(),
+       'D': d.D.tolist(),
        'N_tilde': len(A_seq),
-       'A_seq': A_seq}
+       'A_seq': A_seq.tolist()}
 
-m5_1_model = utils.Stan('stan_models/m5_1', m5_1)
+m5_1_model = utils.StanQuap('stan_models/m5_1', m5_1, data=data, 
+                            generated_var=['y_tilde', 'a_sim', 'bA_sim', 'mu_sim', 'mu_tilde', 'mu'])
 ```
 
-To simulate from the priors, I have have set up set up the `generated quantities` block to store `a_sim` and `bA_sim` from the priors. I’ll plot the lines over the range of 2 standard deviations for both the outcome and predictor. That’ll cover most of the possible range of both variables.
+To simulate from the priors, I have have set up set up the `generated quantities` block to generate `a_sim` and `bA_sim` from the defined priors and compute the $\mu_{sim}$. I’ll plot the lines over the range of 2 standard deviations for both the outcome and predictor. That’ll cover most of the possible range of both variables.
 
 ```{python}
-post = m5_1_model.laplace_sample(data=data).stan_variables()
-
 def plot_priors():
-    plt.plot(A_seq, post['mu_sim'][:100,:].T, 'k', alpha=0.2)
+    mu_sim = m5_1_model.laplace_sample(draws=100).stan_variable('mu_sim')
+    plt.plot(A_seq, mu_sim.T, 'k', alpha=0.2)
     plt.xlim(-2,2)
     plt.xlabel('Median Age Marriage (std)')
     plt.ylabel('Divorce Rate (std)')
 
+plt.clf()
 plot_priors()
 ```
 
-Plausible regression lines implied by the priors in `m5_1`. These are weakly informative priors in that they allow some implusibly strong relationships but generally bound the lines to possible ranges of the variables.
+Plausible regression lines implied by the priors in `m5_1`. These are weakly informative priors in that they allow some implausibly strong relationships but generally bound the lines to possible ranges of the variables.
 
 You may wish to try some vaguer, flatter priors and see how quickly the prior regression lines become ridiculous.
 
-Now for the posterior predictions. The procedure is exactly like earlier: compute `sample_posterior_predictive` and then summarize the $\mu$ with its mean of and HDI.
+Now for the posterior predictions. The procedure is exactly like earlier: either use `link` method to compute and summarize the `mu` from the extracted parameter samples or build `mu_tilde` and `y_tilde` (or in some conventions `mu_hat` and `y_hat`) directly into the Stan Model and extract values without further computation. Then we summarize $\mu$ with its mean and credible interval.
 
 ```{python}
-A_seq = np.linspace(-3, 3.2, 30)
+def plot_post():
+    def lm(post, predictor):
+        return post['a'].reshape(-1,1) + post['bA'].reshape(-1,1) * predictor
+    mu = m5_1_model.link(lm, A_seq, n=1000)
+    mu_mean, mu_plo, mu_phi = utils.precis(mu)
+    plt.plot(d.A, d.D, 'o', fillstyle='none', color='k', label='Observed Data')
+    plt.plot(A_seq, mu_mean, 'k', label='Mean')
+    plt.fill_between(A_seq, mu_plo, mu_phi, alpha=0.2, label='Uncertainty in Mean')
+    plt.xlabel('Median Age Marriage (std)')
+    plt.ylabel('Divorce Rate (std)')
+    plt.legend()
 
-fig, ax = plt.subplots()
-
-hdi = az.plot_hdi(A_seq, idata_m5_1.posterior_predictive["mu"],
-                  hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(A_seq, idata_m5_1.posterior_predictive["mu"].mean(dim=['chain', "draw"]), 'k', label='Mean')
-obs_data, = ax.plot(d.A, d.D, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Median Age Marriage",
-       ylabel="Divorce Rate")
-
-ax.legend(handles=[hdi_patch, mean_line, obs_data]);
+plt.clf()
+plot_post()
 ```
 
+If we inspect the `precis` output, we’ll see that posterior for $β_A$ is reliably negative, as seen in the plot above.
+
 ```{python}
-az.summary(idata_m5_1, var_names=['~mu'], kind='stats', hdi_prob=0.89)
+m5_1_model.precis()
 ```
 
-```{python}
-with pm.Model() as m5_2:
-    M = pm.ConstantData("M", d.M, dims="obs_id")
-    a = pm.Normal("a", mu=0, sigma=0.2)
-    bM = pm.Normal("bM", mu=0, sigma=0.5)
-    sigma = pm.Exponential("sigma", 1)
-    mu = pm.Deterministic('mu', a + bM * M, dims="obs_id")
-    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d.D, dims="obs_id")
+We can fit a similar regression for the divorce rate and marriage rate relationship:
 
-    idata_m5_2 = pm.sample_prior_predictive()    
+```{python}
+m5_2 = '''
+data {
+    int<lower=0> N;
+    vector[N] M;
+    vector[N] D;
+
+    int<lower=0> N_tilde;
+    vector[N_tilde] M_seq;
+}
+parameters {
+    real a;
+    real bM;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    // Linear Model
+    vector[N] mu;
+    mu = a + bM * M;
     
-    custom_step_m5_2 = utils.QuadraticApproximation([a, bM, sigma], m5_2)
-    idata_m5_2.extend(pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m5_2, progressbar=False))
+    // Posterior Predictive Sampling
+    vector[N_tilde] mu_tilde;
+    mu_tilde = a + bM * M_seq;
+}
+model {
+    D ~ normal(mu, sigma);
+    a ~ normal(0, 0.2);
+    bM ~ normal(0, 0.5);
+    sigma ~ exponential(1);
+}
+generated quantities {
+    // Prior Predictive Simulation
+    real a_sim = normal_rng(0, 0.2);
+    real bM_sim = normal_rng(0, 0.5);
+    vector[N_tilde] mu_sim = a_sim + bM_sim * M_seq;
     
-    pm.sample_posterior_predictive(
-        idata_m5_2,
-        var_names=["D", "mu"],
-        extend_inferencedata=True,
-        progressbar=False
-    )  
+    // Posterior Predictive Sampling - y_tilde or yhat
+    vector[N_tilde] y_tilde;
+    for (i in 1:N_tilde) {
+        y_tilde[i] = normal_rng(mu_tilde[i], sigma);
+    }
+}
+'''
+M_seq = np.linspace(-2, 3, 100)
+data = {'N': len(d),
+        'M': d.M.tolist(),
+        'D': d.D.tolist(),
+        'N_tilde': len(M_seq),
+        'M_seq': M_seq.tolist()}
+
+m5_2_model = utils.StanQuap('stan_models/m5_2', m5_2, data=data, 
+                            generated_var=['y_tilde', 'a_sim', 'bM_sim', 'mu_sim', 'mu_tilde', 'mu'])
+
+m5_2_model.precis()
 ```
 
 ```{python}
-fig, ax = plt.subplots()
+def plot_post():
+    def lm(post, predictor):
+        return post['a'].reshape(-1,1) + post['bM'].reshape(-1,1) * predictor
+    mu = m5_2_model.link(lm, M_seq, n=1000)
+    mu_mean, mu_plo, mu_phi = utils.precis(mu)
+    plt.plot(d.M, d.D, 'o', fillstyle='none', color='k', label='Observed Data')
+    plt.plot(M_seq, mu_mean, 'k', label='Mean')
+    plt.fill_between(M_seq, mu_plo, mu_phi, alpha=0.2, label='Uncertainty in Mean')
+    plt.xlabel('Marriage Rate (std)')
+    plt.ylabel('Divorce Rate (std)')
+    plt.legend()
 
-hdi = az.plot_hdi(d.M, idata_m5_2.posterior_predictive["mu"],
-                  hdi_prob=0.89, smooth=False, color='green') 
-
-mean_line, = ax.plot(d.M, idata_m5_2.posterior_predictive["mu"].mean(dim=['chain', "draw"]), 'k', label='Mean')
-obs_data, = ax.plot(d.M, d.D, 'o', fillstyle='none', label='Observed Data', color='k')
-
-hdi_patch = plt.Line2D([0], [1], color='green', lw=3, label="Uncertainty in Mean")
-
-ax.set(xlabel="Marriage rate",
-       ylabel="Divorce Rate")
-
-ax.get_xticks()
-
-ax.legend(handles=[hdi_patch, mean_line, obs_data]);
+plt.clf()
+plot_post()
 ```
 
 As you can see in the figure, this relationship isn’t as strong as the previous one.
@@ -265,7 +300,7 @@ But merely comparing parameter means between different bivariate regressions is 
 
 To make sense of this, we’re going to have to think causally. And then, only after we’ve done some thinking, a bigger regression model that includes both age at marriage and marriage rate will help us.
 
-##### Think Before you Regress
+### Think Before you Regress
 
 There are three observed variables in play: divorce rate (`D`), marriage rate (`M`), and the median age at marriage (`A`) in each State. The pattern we see in the previous two models and illustrated in the plots above is symptomatic of a situation in which only one of the predictor variables, `A` in this case, has a causal impact on the outcome, `D`, even though both predictor variables are strongly associated with the outcome.
 
@@ -287,13 +322,19 @@ pgm1.render()
 plt.gca().invert_yaxis()
 ```
 
-It may not look like much, but this type of diagram does a lot of work. It represents a heuristic causal model. Like other models, it is an analytical assumption. The symbols $A$, $M$, and $D$ are our **observed variables**. The arrows show directions of influence. What this DAG says is: 1) A directly influences D 2) M directly influences D 3) A directly influences M
+It may not look like much, but this type of diagram does a lot of work. It represents a heuristic causal model. Like other models, it is an analytical assumption. The symbols $A$, $M$, and $D$ are our **observed variables**. The arrows show directions of influence. What this DAG says is:
 
-These statements can then have further implications. In this case, age of marriage influences divorce in two ways. First it has a direct effect, A → D. Perhaps a direct effect would arise because younger people change faster than older people and are therefore more likely to grow incompatible with a partner. Second, it has an indirect effect by influencing the marriage rate, which then influences divorce, A → M → D. If people get married earlier, then the marriage rate may rise, because there are more young people. Consider for example if an evil dictator forced everyone to marry at age 65. Since a smaller fraction of the population lives to 65 than to 25, forcing delayed marriage will also reduce the marriage rate. If marriage rate itself has any direct effect on divorce, maybe by making marriage more or less normative, then some of that direct effect could be the indirect effect of age at marriage.
+1.  $A$ directly influences $D$
 
-To infer the strength of these different arrows, we need more than one statistical model. Model `m5_1`, the regression of D on A, tells us only that the total influence of age at marriage is strongly negative with divorce rate. The “total” here means we have to account for every path from A to D. There are two such paths in this graph: A → D, a direct path, and A → M → D, an indirect path. In general, it is possible that a variable like A has no direct effect at all on an outcome like D. It could still be associated with D entirely through the indirect path. That type of relationship is known as **mediation**, and we’ll have another example later.
+2.  $M$ directly influences $D$
 
-As you’ll see however, the indirect path does almost no work in this case. How can we show that? We know from `m5_2` that marriage rate is positively associated with divorce rate. But that isn’t enough to tell us that the path M → D is positive. It could be that the association between M and D arises entirely from A’s influence on both M and D. Like this:
+3.  $A$ directly influences $M$
+
+These statements can then have further implications. In this case, age of marriage influences divorce in two ways. First it has a direct effect, $A → D$. Perhaps a direct effect would arise because younger people change faster than older people and are therefore more likely to grow incompatible with a partner. Second, it has an indirect effect by influencing the marriage rate, which then influences divorce, $A → M → D$. If people get married earlier, then the marriage rate may rise, because there are more young people. Consider for example if an evil dictator forced everyone to marry at age 65. Since a smaller fraction of the population lives to 65 than to 25, forcing delayed marriage will also reduce the marriage rate. If marriage rate itself has any direct effect on divorce, maybe by making marriage more or less normative, then some of that direct effect could be the indirect effect of age at marriage.
+
+To infer the strength of these different arrows, we need more than one statistical model. Model `m5_1`, the regression of $D$ on $A$, tells us only that the total influence of age at marriage is strongly negative with divorce rate. The “total” here means we have to account for every path from A to D. There are two such paths in this graph: $A → D$, a direct path, and $A → M → D$, an indirect path. In general, it is possible that a variable like $A$ has no direct effect at all on an outcome like $D$. It could still be associated with $D$ entirely through the indirect path. That type of relationship is known as **mediation**, and we’ll have another example later.
+
+As you’ll see however, the indirect path does almost no work in this case. How can we show that? We know from `m5_2` that marriage rate is positively associated with divorce rate. But that isn’t enough to tell us that the path $M → D$ is positive. It could be that the association between $M$ and $D$ arises entirely from $A$’s influence on both $M$ and $D$. Like this:
 
 ```{python}
 dag5_2 = CausalGraphicalModel(nodes=["A", "D", "M"], edges=[("A", "D"), ("A", "M")])
@@ -307,29 +348,37 @@ pgm2.render()
 plt.gca().invert_yaxis()
 ```
 
-This DAG is also consistent with the posterior distributions of models `m5_1` and `m5_2`. Why? Because both $M$ and $D$ “listen” to $A$. They have information from $A$. So when you inspect the association between $D$ and $M$, you pick up that common information that they both got from listening to $A$. You’ll see a more formal way to deduce this, in the later.
+This DAG is also consistent with the posterior distributions of models `m5_1` and `m5_2`. Why? Because both $M$ and $D$ “listen” to $A$. They have information from $A$. So when you inspect the association between $D$ and $M$, you pick up that common information that they both got from listening to $A$. You’ll see a more formal way to deduce this later.
 
 So which is it? Is there a direct effect of marriage rate, or rather is age at marriage just driving both, creating a spurious correlation between marriage rate and divorce rate? To find out, we need to consider carefully what each DAG implies.
 
-**What’s a cause?** Questions of causation can become bogged down in philosophical debates. These debates are worth having. But they don’t usually intersect with statistical concerns. Knowing a cause in statistics means being able to correctly predict the consequences of an intervention. There are contexts in which even this is complicated. For example, it isn’t possible to directly change someone’s body weight. Changing someone’s body weight would mean intervening on another variable, like diet, and that variable would have other causal effects in addition. But being underweight can still be a legitimate cause of disease, even when we can’t intervene on it directly.
+------------------------------------------------------------------------
 
-##### Testable Implications
+#### What’s a cause?
+
+Questions of causation can become bogged down in philosophical debates. These debates are worth having. But they don’t usually intersect with statistical concerns. Knowing a cause in statistics means being able to correctly predict the consequences of an intervention. There are contexts in which even this is complicated. For example, it isn’t possible to directly change someone’s body weight. Changing someone’s body weight would mean intervening on another variable, like diet, and that variable would have other causal effects in addition. But being underweight can still be a legitimate cause of disease, even when we can’t intervene on it directly.
+
+------------------------------------------------------------------------
+
+### Testable Implications
 
 How do we use data to compare multiple, plausible causal models? The first thing to consider is the **testable implications** of each model. Consider the two DAGs we have so far considered:
 
 ```{python}
+plt.clf()
 pgm1.render()
 plt.gca().invert_yaxis()
 ```
 
 ```{python}
+plt.clf()
 pgm2.render()
 plt.gca().invert_yaxis()
 ```
 
 Any DAG may imply that some variables are independent of others under certain conditions. These are the model’s testable implications, its conditional independencies. Conditional independencies come in two forms. First, they are statements of which variables should be associated with one another (or not) in the data. Second, they are statements of which variables become dis-associated when we condition on some other set of variables.
 
-What does “conditioning” mean? Informally, conditioning on a variable Z means learning its value and then asking if X adds any additional information about Y. If learning X doesn’t give you any more information about Y, then we might say that Y is independent of X conditional on Z. This conditioning statement is sometimes written as: $Y \perp\!\!\!\perp X \mid Z$. This is very weird notation and any feelings of annoyance on your part are justified. We’ll work with this concept a lot, so don’t worry if it doesn’t entirely make sense right now. You’ll see examples very soon.
+What does “conditioning” mean? Informally, conditioning on a variable Z means learning its value and then asking if $X$ adds any additional information about Y. If learning $X$ doesn’t give you any more information about $Y$, then we might say that $Y$ is independent of $X$ conditional on $Z$. This conditioning statement is sometimes written as: $Y \perp\!\!\!\perp X \mid Z$. This is very weird notation and any feelings of annoyance on your part are justified. We’ll work with this concept a lot, so don’t worry if it doesn’t entirely make sense right now. You’ll see examples very soon.
 
 Let’s consider conditional independence in the context of the divorce example. What are the conditional independencies of the DAGs at the top? How do we derive these conditional independencies? Finding conditional independencies is not hard, but also not at all obvious. With a little practice, it becomes very easy. The more general rules can wait until later. For now, let’s consider each DAG in turn and inspect the possibilities.
 
@@ -365,40 +414,60 @@ dag5_1.get_all_independence_relationships()
 
 There are no conditional independencies, so there is no output to display.
 
-Let’s try to summarize. The testable implications of the first DAG are that all pairs of variables should be associated, whatever we condition on. The testable implications of the second DAG are that all pairs of variables should be associated, before conditioning on anything, but that D and M should be independent after conditioning on A. So the only implication that differs between these DAGs is the last one: $D \perp\!\!\!\perp M \mid A$.
+Let’s try to summarize. The testable implications of the first DAG are that all pairs of variables should be associated, whatever we condition on. The testable implications of the second DAG are that all pairs of variables should be associated, before conditioning on anything, but that $D$ and $M$ should be independent after conditioning on $A$. So the only implication that differs between these DAGs is the last one: $D \perp\!\!\!\perp M \mid A$.
 
-To test this implication, we need a statistical model that conditions on A, so we can see whether that renders D independent of M. And that is what multiple regression helps with. It can address a useful *descriptive* question:
+To test this implication, we need a statistical model that conditions on $A$, so we can see whether that renders $D$ independent of $M$. And that is what multiple regression helps with. It can address a useful *descriptive* question:
 
 > Is there any additional value in knowing a variable, once I already know all of the other predictor variables?
 
-So for example once you fit a multiple regression to predict divorce using both marriage rate and age at marriage, the model addresses the questions: 1) After I already know marriage rate, what additional value is there in also knowing age at marriage? 2) After I already know age at marriage, what additional value is there in also knowing marriage rate?
+So for example once you fit a multiple regression to predict divorce using both marriage rate and age at marriage, the model addresses the questions:
+
+1.  After I already know marriage rate, what additional value is there in also knowing age at marriage?
+
+2.  After I already know age at marriage, what additional value is there in also knowing marriage rate?
 
 The parameter estimates corresponding to each predictor are the (often opaque) answers to these questions. The questions above are descriptive, and the answers are also descriptive. It is only the derivation of the testable implications above that gives these descriptive results a causal meaning. But that meaning is still dependent upon believing the DAG.
 
-**“Control” is out of control**. Very often, the question just above is spoken of as “statistical control,” as in controlling for the effect of one variable while estimating the effect of another. But this is sloppy language, as it implies too much. Statistical control is quite different from experimental control, as we’ll explore more in the later. The point here isn’t to police language. Instead, the point is to observe the distinction between small world and large world interpretations. Since most people who use statistics are not statisticians, sloppy language like “control” can promote a sloppy culture of interpretation. Such cultures tend to overestimate the power of statistical methods, so resisting them can be difficult. Disciplining your own language may be enough. Disciplining another’s language is hard to do, without seeming like a fastidious scold, as this very box must seem.
+------------------------------------------------------------------------
 
-##### Multiple Regression Notation
+#### “Control” is out of control
 
-Multiple regression formulas look a lot like the polynomial models, they add more parameters and variables to the definition of $μ_i$. The strategy is straightforward: 1) Nominate the predictor variables you want in the linear model of the mean. 2) For each predictor, make a parameter that will measure its conditional association with the outcome. 3) Multiply the parameter by the variable and add that term to the linear model.
+Very often, the question just above is spoken of as “statistical control,” as in controlling for the effect of one variable while estimating the effect of another. But this is sloppy language, as it implies too much. Statistical control is quite different from experimental control, as we’ll explore more in the later. The point here isn’t to police language. Instead, the point is to observe the distinction between small world and large world interpretations. Since most people who use statistics are not statisticians, sloppy language like “control” can promote a sloppy culture of interpretation. Such cultures tend to overestimate the power of statistical methods, so resisting them can be difficult. Disciplining your own language may be enough. Disciplining another’s language is hard to do, without seeming like a fastidious scold, as this very box must seem.
+
+------------------------------------------------------------------------
+
+### Multiple Regression Notation
+
+Multiple regression formulas look a lot like the polynomial models, they add more parameters and variables to the definition of $μ_i$. The strategy is straightforward:
+
+1.  Nominate the predictor variables you want in the linear model of the mean.
+
+2.  For each predictor, make a parameter that will measure its conditional association with the outcome.
+
+3.  Multiply the parameter by the variable and add that term to the linear model.
 
 Here is the model that predicts divorce rate, using both marriage rate and age at marriage.
 
 $$
 \begin{align*}
-D_{i} &\sim \text{Normal}(\mu, \sigma)\tag{Probability of Data}\\
-\mu_i &\sim \alpha + \beta_M M_i + \beta_A A_i\tag{Linear Model} \\
-\alpha &\sim \text{Normal}(0,0.2)\tag{α Prior} \\
-\beta_M &\sim \text{Normal}(0,0.5)\tag{β Prior} \\
-\beta_A &\sim \text{Normal}(0,0.5)\tag{β Prior} \\
-\sigma &\sim \text{Exponential}(1)\tag{σ Prior} \\
+D_{i} &\sim \text{Normal}(\mu, \sigma) \tag{Probability of Data}\\
+\mu_i &\sim \alpha + \beta_M M_i + \beta_A A_i \tag{Linear Model} \\
+\alpha &\sim \text{Normal}(0,0.2) \tag{α Prior} \\
+\beta_M &\sim \text{Normal}(0,0.5) \tag{β Prior} \\
+\beta_A &\sim \text{Normal}(0,0.5) \tag{β Prior} \\
+\sigma &\sim \text{Exponential}(1) \tag{σ Prior} \\
 \end{align*}
 $$
 
-You can use whatever symbols you like for the parameters and variables, but here I’ve chosen R for marriage rate and A for age at marriage, reusing these symbols as subscripts for the corresponding parameters. But feel free to use whichever symbols reduce the load on your own memory.
+You can use whatever symbols you like for the parameters and variables, but here I’ve chosen $M$ for marriage rate and $A$ for age at marriage, reusing these symbols as subscripts for the corresponding parameters. But feel free to use whichever symbols reduce the load on your own memory.
 
 So what does it mean to assume $\mu_i \sim \alpha + \beta_M M_i + \beta_A A_i$? Mechanically, it means that the expected outcome for any State with marriage rate $M_i$ and median age at marriage $A_i$ is the sum of three independent terms. If you are like most people, this is still pretty mysterious. The mechanical meaning of the equation doesn’t map onto a unique causal meaning. Let’s take care of the mechanical bits first, before returning to interpretation.
 
-**Compact notation and the design matrix**. Often, linear models are written using a compact form like:
+------------------------------------------------------------------------
+
+#### **Compact notation and the design matrix**
+
+Often, linear models are written using a compact form like:
 
 $$
 \mu_i = \alpha + \sum_{j=1}^{n} \beta_j x_{ji}
@@ -407,20 +476,22 @@ $$
 where $j$ is an index over predictor variables and $n$ is the number of predictor variables. This may be read as the **mean is modeled as the sum of an intercept and an additive combination of the products of parameters and predictors**. Even more compactly, using matrix notation:
 
 $$
-\boldsymbol{m} = \boldsymbol{Xb}
+\mathbf{m} = \mathbf{Xb}
 $$
 
-where **m** is a vector of predicted means, one for each row in the data, $\boldsymbol{b}$ is a (column) vector of parameters, one for each predictor variable (including the intercept), and $\boldsymbol{X}$ is a matrix. This matrix is called a **design matrix**. It has as many rows as the data, and as many columns as there are predictors plus one. So $\boldsymbol{X}$ is basically a data frame, but with an extra first column. The extra column is filled with 1s. These 1s are multiplied by the first parameter, which is the intercept, and so return the unmodified intercept. When $\boldsymbol{X}$ is matrix-multiplied by $\boldsymbol{b}$, you get the predicted means. In Python notation, this operation is `X @ b`.
+where $\mathbf{m}$ is a vector of predicted means, one for each row in the data, $\mathbf{b}$ is a (column) vector of parameters, one for each predictor variable (including the intercept), and $\mathbf{X}$ is a matrix. This matrix is called a **design matrix**. It has as many rows as the data, and as many columns as there are predictors plus one. So $\mathbf{X}$ is basically a data frame (or 2D Array), but with an extra first column. The extra column is filled with 1s. These 1s are multiplied by the first parameter, which is the intercept, and so return the unmodified intercept. When $\mathbf{X}$ is matrix-multiplied by $\mathbf{b}$, you get the predicted means. In Python notation, this operation is `X @ b`. (ensuring that `X` is of shape \[rows, cols\] and `b` is of shape shape \[rows, 1\], `b` should be reshaped if it is a row vector)
 
-We’re not going to use the design matrix approach. But it’s good to recognize it, and sometimes it can save you a lot of work. For example, for linear regressions, there is a nice matrix formula for the maximum likelihood (or least squares) estimates. Most statistical software exploits that formula.
+We’re will also use the design matrix approach (as we have done earlier). It’s good to recognize it, and sometimes it can save you a lot of work. For example, for linear regressions, there is a nice matrix formula for the maximum likelihood (or least squares) estimates. Most statistical software exploits that formula.
 
-##### Approximating the Posterior
+------------------------------------------------------------------------
+
+### Approximating the Posterior
 
 To fit this model to the divorce data, we just expand the linear model. Here’s the model definition again:
 
 $$
 \begin{align*}
-D_{i} &\sim \text{Normal}(\mu, \sigma)\\
+D_{i} &\sim \text{Normal}(\mu_i, \sigma)\\
 \mu_i &\sim \alpha + \beta_M M_i + \beta_A A_i\\
 \alpha &\sim \text{Normal}(0,0.2) \\
 \beta_M &\sim \text{Normal}(0,0.5)\\
@@ -432,67 +503,93 @@ $$
 And here is the code to approximate the posterior distribution:
 
 ```{python}
-with pm.Model() as m5_3:
-    M = pm.ConstantData("M", d.M, dims="obs_id")
-    A = pm.ConstantData("A", d.A, dims="obs_id")
-    
-    a = pm.Normal("a", mu=0, sigma=0.2)
-    bA = pm.Normal("bA", mu=0, sigma=0.5)
-    bM = pm.Normal("bM", mu=0, sigma=0.5)
-    sigma = pm.Exponential("sigma", 1)
-    
-    mu = pm.Deterministic('mu', a + (bM * M) + (bA * A), dims="obs_id")
-    
-    D = pm.Normal("D", mu=mu, sigma=sigma, observed=d.D, dims="obs_id")  
-    idata_m5_3 = pm.sample_prior_predictive(var_names=['a', 'bA', 'bM', 'sigma', 'mu', 'D'])   
-    
-    custom_step_m5_3 = utils.QuadraticApproximation([a, bM, bA, sigma], m5_3)
-    idata_m5_3.extend(pm.sample(draws=10_000, chains=1, tune=0, step=custom_step_m5_3, progressbar=False))
-    
-    pm.sample_posterior_predictive(
-        idata_m5_3,
-        var_names=["D", "mu"],
-        extend_inferencedata=True,
-        progressbar=False
-    )  
-```
+m5_3 = '''
+data {
+    int<lower=0> N;
+    vector[N] M;
+    vector[N] D;
+    vector[N] A;
+}
+parameters {
+    real a;
+    real bA;
+    real bM;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a + bA * A + bM * M;
+}
+model {
+    D ~ normal(mu, sigma);
+    a ~ normal(0, 0.2);
+    bA ~ normal(0, 0.5);
+    bM ~ normal(0, 0.5);
+    sigma ~ exponential(1);
+}
+generated quantities {    
+    // Posterior Predictive Check - y_rep (replications)
+    vector[N] y_rep;
+    for (i in 1:N) {
+        y_rep[i] = normal_rng(mu[i], sigma);
+    }
+}
+'''
+M_seq = np.linspace(-2, 3, 100)
+data = {'N': len(d),
+        'A': d.A.tolist(),
+        'M': d.M.tolist(),
+        'D': d.D.tolist()}
 
-```{python}
-az.summary(idata_m5_3.posterior, var_names=['~mu'], kind='stats', hdi_prob=0.89).round(2)
+m5_3_model = utils.StanQuap('stan_models/m5_3', m5_3, data=data, 
+                            generated_var=['y_rep', 'mu'])
+
+m5_3_model.precis().round(2)
 ```
 
 The posterior mean for marriage rate, `bM`, is now close to zero, with plenty of probability of both sides of zero. The posterior mean for age at marriage, `bA`, is essentially unchanged. It will help to visualize the posterior distributions for all three models, focusing just on the slope parameters $β_A$ and $β_M$:
 
 ```{python}
-fig, ax = plt.subplots()
+def plot_forest():
+    y_range = np.arange(4)
+    plt.hlines(y_range[3],
+               xmin=m5_3_model.precis()['5.5%']['bA'], 
+               xmax=m5_3_model.precis()['94.5%']['bA'], linewidth=2)
+    plt.hlines(y_range[2],
+               xmin=m5_1_model.precis()['5.5%']['bA'], 
+               xmax=m5_1_model.precis()['94.5%']['bA'], linewidth=2)
+    plt.hlines(y_range[1],
+               xmin=m5_3_model.precis()['5.5%']['bM'], 
+               xmax=m5_3_model.precis()['94.5%']['bM'], linewidth=2)
+    plt.hlines(y_range[0],
+               xmin=m5_2_model.precis()['5.5%']['bM'], 
+               xmax=m5_2_model.precis()['94.5%']['bM'], linewidth=2)
+    mean_range = np.array([m5_3_model.precis()['Mean']['bA'],
+                           m5_1_model.precis()['Mean']['bA'],
+                           m5_3_model.precis()['Mean']['bM'],
+                           m5_2_model.precis()['Mean']['bM']])
+    plt.plot(mean_range, y_range[::-1], 'o', fillstyle='none')
+    plt.axvline(0, linestyle='--', linewidth=0.3)
+    plt.yticks(y_range, labels=['bM - m5_2', 'bM - m5_3', 'bA - m5_1', 'bA - m5_3'])
+    plt.xlabel('Estimate')
 
-az.plot_forest(
-    [
-        idata_m5_3,
-        idata_m5_2,
-        idata_m5_1,
-    ],
-    model_names=["m5_3", "m5_2", "m5_1"],
-    hdi_prob=0.89,
-    var_names=["bA", "bM"],
-    combined=True,
-    ax=ax
-)
-
-fig.tight_layout()
+plt.clf()
+plot_forest()
 ```
 
-The posterior means are shown by the points and the 89% compatibility intervals by the solid horizontal lines. Notice how `bA` doesn’t move, only grows a bit more uncertain, while `bM` is only associated with divorce when age at marriage is missing from the model. You can interpret these distributions as saying:
-
-> Once we know median age at marriage for a State, there is little or no additional predictive power in also knowing the rate of marriage in that State.
+The posterior means are shown by the points and the 89% compatibility intervals by the solid horizontal lines. Notice how `bA` doesn’t move, only grows a bit more uncertain, while `bM` is only associated with divorce when age at marriage is missing from the model. You can interpret these distributions as saying: *Once we know median age at marriage for a State, there is little or no additional predictive power in also knowing the rate of marriage in that State.*
 
 In that weird notation, $D \perp\!\!\!\perp M \mid A$. This tests the implication of the second DAG from earlier. Since the first DAG did not imply this result, it is out.
 
-Note that this does not mean that there is no value in knowing marriage rate. Consistent with the earlier DAG, if you didn’t have access to age-at-marriage data, then you’d definitely find value in knowing the marriage rate. $M$ is predictive but not causal. Assuming there are no other causal variables missing from the model (more on that later), this implies there is no important direct causal path from marriage rate to divorce rate. The association between marriage rate and divorce rate is spurious, caused by the influence of age of marriage on both marriage rate and divorce rate. I’ll leave it to the reader to investigate the relationship between age at marriage, $A$, and marriage rate, M, to complete the picture.
+Note that this does not mean that there is no value in knowing marriage rate. Consistent with the earlier DAG, if you didn’t have access to age-at-marriage data, then you’d definitely find value in knowing the marriage rate. $M$ is predictive but not causal. Assuming there are no other causal variables missing from the model (more on that later), this implies there is no important direct causal path from marriage rate to divorce rate. The association between marriage rate and divorce rate is spurious, caused by the influence of age of marriage on both marriage rate and divorce rate. I’ll leave it to the reader to investigate the relationship between age at marriage, $A$, and marriage rate, $M$, to complete the picture.
 
 But how did model `m5_3` achieve the inference that marriage rate adds no additional information, once we know age at marriage? Let’s draw some pictures.
 
-**Simulating the divorce example**. The divorce data are real data. But it is useful to simulate the kind of causal relationships shown in the previous DAG: $M ← A → D$. Every DAG implies a simulation, and such simulations can help us design models to correctly infer relationships among variables. In this case, you just need to simulate each of the three variables:
+------------------------------------------------------------------------
+
+#### Simulating the divorce example
+
+The divorce data are real data. But it is useful to simulate the kind of causal relationships shown in the previous DAG: $M ← A → D$. Every DAG implies a simulation, and such simulations can help us design models to correctly infer relationships among variables. In this case, you just need to simulate each of the three variables:
 
 ```{python}
 N = 50
@@ -503,11 +600,15 @@ div = stats.norm(age).rvs(N)    # sim A -> D
 
 Now if you use these variables in models `m5_1`, `m5_2`, and `m5_3`, you’ll see the same pattern of posterior inferences. It is also possible to simulate that both $A$ and $M$ influence $D$: `div = stats.norm(age + mar).rvs(N)`. In that case, a naive regression of $D$ on $A$ will overestimate the influence of $A$, just like a naive regression of $D$ on $M$ will overestimate the importance of $M$. The multiple regression will help sort things out for you in this situation as well. But interpreting the parameter estimates will always depend upon what you believe about the causal model, because typically several (or very many) causal models are consistent with any one set of parameter estimates. We’ll discuss this later as **Markov equivalence**.
 
-##### Plotting Multivariate Posteriors
+------------------------------------------------------------------------
 
-There are a lot of moving parts here: three variables, some strange DAGs, and three models. If you feel at all confused, it is only because you are paying attention.
+### Plotting Multivariate Posteriors
 
-It will help to visualize the model’s inferences. Visualizing the posterior distribution in simple bivariate regressions, like those in the earlier, is easy. There’s only one predictor variable, so a single scatterplot can convey a lot of information. And so earlier we used scatters of the data. Then we overlaid regression lines and intervals to both (1) visualize the size of the association between the predictor and outcome and (2) to get a crude sense of the ability of the model to predict the individual observations. With multivariate regression, you’ll need more plots. There is a huge literature detailing a variety of plotting techniques that all attempt to help one understand multiple linear regression. None of these techniques is suitable for all jobs, and most do not generalize beyond linear regression. So the approach I take here is to instead help you compute whatever you need from the model. I offer three examples of interpretive plots:
+Let’s pause for a moment, before moving on. There are a lot of moving parts here: three variables, some strange DAGs, and three models. If you feel at all confused, it is only because you are paying attention.
+
+It will help to visualize the model’s inferences. Visualizing the posterior distribution in simple bivariate regressions, like those in the earlier, is easy. There’s only one predictor variable, so a single scatterplot can convey a lot of information. And so earlier we used scatters of the data. Then we overlaid regression lines and intervals to both (1) visualize the size of the association between the predictor and outcome and (2) to get a crude sense of the ability of the model to predict the individual observations.
+
+With multivariate regression, you’ll need more plots. There is a huge literature detailing a variety of plotting techniques that all attempt to help one understand multiple linear regression. None of these techniques is suitable for all jobs, and most do not generalize beyond linear regression. So the approach I take here is to instead help you compute whatever you need from the model. I offer three examples of interpretive plots:
 
 1)  **Predictor residual plots**. These plots show the outcome against residual predictor values. They are useful for understanding the statistical model, but not much else.
 2)  **Posterior prediction plots**. These show model-based predictions against raw data, or otherwise display the error in prediction. They are tools for checking fit and assessing predictions. They are not causal tools.
@@ -515,7 +616,7 @@ It will help to visualize the model’s inferences. Visualizing the posterior di
 
 Each of these plot types has its advantages and deficiencies, depending upon the context and the question of interest. In the rest of this section, I show you how to manufacture each of these in the context of the divorce data.
 
-##### Predictor Residual Plots
+#### Predictor Residual Plots
 
 A predictor residual is the average prediction error when we use all of the other predictor variables to model a predictor of interest. That’s a complicated concept, so we’ll go straight to the example, where it will make sense. The benefit of computing these things is that, once plotted against the outcome, we have a bivariate regression that has already conditioned on all of the other predictor variables. It leaves the variation that is not expected by the model of the mean, $μ$, as a function of the other predictors.
 
