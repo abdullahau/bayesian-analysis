@@ -1,0 +1,497 @@
+---
+title: 04b - The Many Variables & The Spurious Waffles
+author: Abdullah Mahmood
+date: last-modified
+format:
+  html:
+    theme: cosmo
+    css: quarto-style/style.css
+    highlight-style: atom-one
+    mainfont: Palatino
+    fontcolor: black
+    monobackgroundcolor: white
+    monofont: Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace
+    fontsize: 13pt
+    linestretch: 1.4
+    number-sections: true
+    number-depth: 3
+    toc: true
+    toc-location: right
+    code-fold: false
+    code-copy: true
+    cap-location: bottom
+    format-links: false
+    embed-resources: true
+    anchor-sections: true
+    html-math-method:
+      method: mathjax
+      url: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+editor: source
+jupyter:
+  jupytext:
+    formats: ipynb,qmd
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
+---
+
+### Imports
+
+```{python}
+# ruff: noqa: F405
+from init import *
+from causalgraphicalmodels import CausalGraphicalModel
+import daft as daft
+from formulaic import Formula
+
+%config InlineBackend.figure_formats = ['svg']
+```
+
+## Masked Relationship
+
+The divorce rate example demonstrates that multiple predictor variables are useful for knocking out spurious association. A second reason to use more than one predictor variable is to measure the direct influences of multiple factors on an outcome, when none of those influences is apparent from bivariate relationships. This kind of problem tends to arise when there are two predictor variables that are correlated with one another. However, one of these is positively correlated with the outcome and the other is negatively correlated with it.
+
+You’ll consider this kind of problem in a new data context, information about the composition of milk across primate species, as well as some facts about those species, like body mass and brain size. Milk is a huge investment, being much more expensive than gestation. Such an expensive resource is likely adjusted in subtle ways, depending upon the physiological and development details of each mammal species.
+
+```{python}
+d = pd.read_csv("data/milk.csv", sep=';')
+```
+
+You should see in the structure of the data frame that you have 29 rows for 8 variables. The variables we’ll consider for now are `kcal.per.g` (kilocalories of energy per gram of milk), `mass` (average female body mass, in kilograms), and `neocortex.perc` (percent of total brain mass that is neocortex mass).
+
+A popular hypothesis has it that primates with larger brains produce more energetic milk, so that brains can grow quickly. Answering questions of this sort consumes a lot of effort in evolutionary biology, because there are many subtle statistical issues that arise when comparing species. It doesn’t help that many biologists have no reference model other than a series of regressions, and so the output of the regressions is not really interpretable. The causal meaning of statistical estimates always depends upon information outside the data.
+
+We won’t solve these problems here. But we will explore a useful example. The question here is to what extent energy content of milk, measured here by kilocalories, is related to the percent of the brain mass that is neocortex. Neocortex is the gray, outer part of the brain that is especially elaborate in some primates. We’ll end up needing female body mass as well, to see the masking that hides the relationships among the variables. Let’s standardize these three variables. As in previous examples, standardizing helps us both get a reliable approximation of the posterior as well as build reasonable priors.
+
+```{python}
+d['K'] = utils.standardize(d['kcal.per.g'])
+d['N'] = utils.standardize(d['neocortex.perc'])
+d['M'] = utils.standardize(np.log(d['mass']))
+```
+
+The first model to consider is the simple bivariate regression between kilocalories and neocortex percent. You already know how to set up this regression. In mathematical form:
+
+$$
+\begin{align*}
+  K_i &\sim \text{Normal}(\mu_i,\sigma) \\
+  \mu_i &= \alpha + \beta_N N_{i} \\
+\end{align*}
+$$
+
+where $K$ is standardized kilocalories and $N$ is standardized neocortex percent. We still need to consider the priors but we will consider some vague priors for now. Before that, we note that `d.N` consists of `NaN` or missing values. If you pass a vector like this to a likelihood function like `pm.Normal`, it doesn’t know what to do. After all, what’s the probability of a missing value? Whatever the answer, it isn’t a number, and so `pm.Normal` returns a NaN.
+
+This is easy to fix. What you need to do here is manually drop all the cases with missing values. This is known as a **complete case analysis**. Some automated model fitting commands will silently drop such cases for you. But this isn’t always a good thing. First, it’s validity depends upon the process that caused these particular values to go missing. Later, we'll explore this in much more depth. Second, once you start comparing models, you must compare models fit to the same data. If some variables have missing values that others do not, automated tools will silently produce misleading comparisons. Let’s march forward for now, dropping any cases with missing values. It’s worth learning how to do this yourself. To make a new data frame with only complete cases, use:
+
+```{python}
+dcc = d.dropna(subset=['K', 'N', 'M']).reset_index(drop=True)
+dcc.shape
+```
+
+This makes a new data frame, `dcc`, that consists of the 17 rows from `d` that have no missing values in any of the variables listed inside `df.dropna`. Now let’s work with the new data frame:
+
+```{python}
+with pm.Model() as m5_5_draft:
+    N = pm.ConstantData('N', dcc.N, dims='obs_id')
+    
+    a = pm.Normal('a', 0, 1)
+    bN = pm.Normal('bN', 0, 1)
+    sigma = pm.Exponential('sigma', 1)
+    
+    mu = pm.Deterministic('mu', a + bN * N, dims='obs_id')
+    
+    K = pm.Normal('K', mu=mu, sigma=sigma, observed=dcc.K, dims='obs_id')
+    
+    custom_step_m5_5 = utils.QuadraticApproximation([a, bN, sigma], m5_5_draft)
+    idata_m5_5_draft = pm.sample(step=custom_step_m5_5, progressbar=False)
+```
+
+Before considering the posterior predictions, let’s consider those priors. As in many simple linear regression problems, these priors are harmless. But are they reasonable? It is important to build reasonable priors, because as the model becomes less simple, the priors can be very helpful, but only if they are scientifically reasonable. To simulate and plot 50 prior regression lines:
+
+```{python}
+with m5_5_draft:
+    pm.set_data({'N': [-2,2]})
+    idata_m5_5_draft.extend(pm.sample_prior_predictive())
+```
+
+```{python}
+plt.plot([-2,2], az.extract(idata_m5_5_draft, 'prior').mu[:,:50], 'k', alpha=0.2)
+plt.xlim(-2.1,2.1)
+plt.ylim(-2.1,2.1)
+plt.xlabel('Neocortex Percent (std)')
+plt.ylabel('Kilocal per g (std)')
+plt.title('a ~ pm.Normal(0, 1)\nbN ~ pm.Normal(0, 1)');
+```
+
+We’ve shown a range of 2 standard deviations for both variables. So that is most of the outcome space. These lines are crazy. As in previous examples, we can do better by both tightening the $α$ prior so that it sticks closer to zero. With two standardized variables, when predictor is zero, the expected value of the outcome should also be zero. And the slope $β_N$ needs to be a bit tighter as well, so that it doesn’t regularly produce impossibly strong relationships. Here’s an attempt:
+
+```{python}
+with pm.Model() as m5_5:
+    N = pm.ConstantData('N', dcc.N, dims='obs_id')
+    
+    a = pm.Normal('a', 0, 0.2)
+    bN = pm.Normal('bN', 0, 0.5)
+    sigma = pm.Exponential('sigma', 1)
+    
+    mu = pm.Deterministic('mu', a + bN * N, dims='obs_id')
+    
+    K = pm.Normal('K', mu=mu, sigma=sigma, observed=dcc.K, dims='obs_id')
+    
+    custom_step_m5_5 = utils.QuadraticApproximation([a, bN, sigma], m5_5)
+    idata_m5_5 = pm.sample(step=custom_step_m5_5, progressbar=False)
+```
+
+```{python}
+with m5_5:
+    pm.set_data({'N': [-2,2]})
+    idata_m5_5.extend(pm.sample_prior_predictive())
+```
+
+```{python}
+plt.plot([-2,2], az.extract(idata_m5_5, 'prior').mu[:,:50], 'k', alpha=0.2)
+plt.xlim(-2.1,2.1)
+plt.ylim(-2.1,2.1)
+plt.xlabel('Neocortex Percent (std)')
+plt.ylabel('Kilocal per g (std)')
+plt.title('a ~ pm.Normal(0, 0.2)\nbN ~ pm.Normal(0, 0.5)');
+```
+
+The modified priors produces the above plot. These are still very vague priors, but at least the lines stay within the high probability region of the observable data.
+
+Now let's look at the posterior:
+
+```{python}
+az.summary(idata_m5_5, var_names=['~mu'], kind='stats', hdi_prob=0.89)
+```
+
+From this summary, you can possibly see that this is neither a strong nor very precise association. The standard deviation is almost twice the posterior mean. But as always, it’s much easier to see this if we draw a picture. We can plot the predicted mean and 89% compatibility interval for the mean to see this more easily. The code below contains no surprises.
+
+```{python}
+xseq = np.linspace(dcc.N.min()-0.15, dcc.N.max()+0.15, 30)
+
+with m5_5:
+    pm.set_data({'N': xseq})
+    idata_m5_5_posterior_pred = pm.sample_posterior_predictive(idata_m5_5, var_names=["mu", 'K'], progressbar=False)
+
+mu_ppd = idata_m5_5_posterior_pred.posterior_predictive["mu"]
+mu_mean = mu_ppd.mean(dim=['chain', 'draw'])
+
+az.plot_hdi(xseq, mu_ppd, hdi_prob=0.89)
+plt.plot(xseq, mu_mean, c="black")
+plt.plot(dcc.N, dcc.K, 'o', fillstyle='none')
+plt.xlabel("Neocortex Percent (std)")
+plt.ylabel("Kilocal per g (std)");
+```
+
+The posterior mean line is weakly positive, but it is highly imprecise. A lot of mildly positive and negative slopes are plausible, given this model and these data.
+
+Now consider another predictor variable, adult female body mass, `mass` in the data frame. Let’s use the logarithm of mass, `np.log(mass)`, as a predictor as well. Why the logarithm of mass instead of the raw mass in kilograms? It is often true that *scaling measurements like body mass are related by magnitudes to other variables*. Taking the *log of a measure translates the measure into magnitudes*. So by using the logarithm of body mass here, we’re saying that we suspect that the magnitude of a mother’s body mass is related to milk energy, in a linear fashion. Much later, we’ll see why these logarithmic relationships are almost inevitable results of the physics of organisms.
+
+Now we construct a similar model, but consider the bivariate relationship between kilocalories and body mass. Since body mass is also standardized, we can use the same priors and stay within possible outcome values. But if you were a domain expert in growth, you could surely do better than this.
+
+```{python}
+with pm.Model() as m5_6:
+    M = pm.ConstantData('M', dcc.M, dims='obs_id')
+    
+    a = pm.Normal('a', 0, 0.2)
+    bM = pm.Normal('bM', 0, 0.5)
+    sigma = pm.Exponential('sigma')
+    
+    mu = pm.Deterministic('mu', a + bM * M, dims='obs_id')
+    
+    K = pm.Normal('K', mu=mu, sigma=sigma, observed=dcc.K, dims='obs_id')
+    
+    custom_step_m5_6 = utils.QuadraticApproximation([a, bM, sigma], m5_6)
+    idata_m5_6 = pm.sample(step=custom_step_m5_6, progressbar=False)
+
+az.summary(idata_m5_6, var_names=['~mu'], hdi_prob=0.89, kind='stats')
+```
+
+```{python}
+xseq = np.linspace(-2, 2, 30)
+
+with m5_6:
+    pm.set_data({'M': xseq})
+    idata_m5_6_posterior_pred = pm.sample_posterior_predictive(idata_m5_6, var_names=["mu", 'K'], progressbar=False)
+
+mu_ppd = idata_m5_6_posterior_pred.posterior_predictive["mu"]
+mu_mean = mu_ppd.mean(dim=['chain', 'draw'])
+
+az.plot_hdi(xseq, mu_ppd, hdi_prob=0.89)
+plt.plot(xseq, mu_mean, c="black")
+plt.plot(dcc.M, dcc.K, 'o', fillstyle='none')
+plt.xlabel("Log Body Mass (std)")
+plt.ylabel("Kilocal per g (std)");
+```
+
+Log-mass is negatively associated with kilocalories. This association does seem stronger than that of neocortex percent, although in the opposite direction. It is quite uncertain though, with a wide compatibility interval that is consistent with a wide range of both weak and stronger relationships.
+
+Now let’s see what happens when we add both predictor variables at the same time to the regression. This is the multivariate model, in math form:
+
+$$
+\begin{align*}
+  K_i &\sim \text{Normal}(\mu_i,\sigma) \\
+  \mu_i &= \alpha + \beta_N N_{i} + \beta_M M_i \\
+  \alpha &\sim \text{Normal}(0,0.2) \\
+  \beta_N &\sim \text{Normal}(0,0.5) \\
+  \beta_M &\sim \text{Normal}(0,0.5) \\
+  \sigma &\sim \text{Exponential}(1) \\
+\end{align*}
+$$
+
+```{python}
+with pm.Model() as m5_7:
+    N = pm.ConstantData('N', dcc.N, dims='obs_id')
+    M = pm.ConstantData('M', dcc.M, dims='obs_id')
+    
+    a = pm.Normal('a', 0, 0.2)
+    bN = pm.Normal('bN', 0, 0.5)
+    bM = pm.Normal('bM', 0, 0.5)
+    sigma = pm.Exponential('sigma', 1)
+    
+    mu = pm.Deterministic('mu', a + bN * N + bM * M, dims='obs_id')
+    
+    K = pm.Normal('K', mu=mu, sigma=sigma, observed=dcc.K, dims='obs_id')
+    
+    custom_step_m5_7 = utils.QuadraticApproximation([a, bN, bM, sigma], m5_7)
+    idata_m5_7 = pm.sample(step=custom_step_m5_7, progressbar=False)
+
+az.summary(idata_m5_7, var_names=['~mu'], hdi_prob=0.89, kind='stats')
+```
+
+By incorporating both predictor variables in the regression, the posterior association of both with the outcome has increased. Visually comparing this posterior to those of the previous two models helps to see the pattern of change:
+
+```{python}
+# Reset the data passed into the models:
+with m5_6:
+    pm.set_data({'M': dcc.M})
+    idata_m5_6_posterior_pred = pm.sample_posterior_predictive(idata_m5_6, var_names=["mu", 'K'], progressbar=False)
+
+with m5_5:
+    pm.set_data({'N': dcc.N})
+    idata_m5_5.extend(pm.sample_posterior_predictive(idata_m5_6, var_names=["mu", 'K'], progressbar=False))
+
+fig, ax = plt.subplots()
+
+az.plot_forest(
+    [
+        idata_m5_7,
+        idata_m5_6,
+        idata_m5_5,
+    ],
+    model_names=["m5_7", "m5_6", "m5_5"],
+    hdi_prob=0.89,
+    var_names=["bM", "bN"],
+    combined=True,
+    ax=ax
+)
+
+ax.axvline(0, linestyle="--", alpha=0.5)
+
+fig.tight_layout()
+```
+
+The posterior means for neocortex percent and log-mass have both moved away from zero. Adding both predictors to the model seems to have made their estimates move apart.
+
+What happened here? Why did adding neocortex and body mass to the same model lead to stronger associations for both? This is a context in which there are two variables correlated with the outcome, but one is positively correlated with it and the other is negatively correlated with it. In addition, both of the explanatory variables are positively correlated with one another. Try a simple pairs plot to appreciate this pattern of correlation. The result of this pattern is that the variables tend to cancel one another out.
+
+```{python}
+_, ax = plt.subplots(3,3)
+az.plot_pair({'K': dcc.K, 'M': dcc.M, 'N': dcc.N}, marginals=True, ax=ax);
+```
+
+This is another case in which multiple regression automatically finds the most revealing cases and uses them to produce inferences. What the regression model does is ask if species that have high neocortex percent for their body mass have higher milk energy. Likewise, the model asks if species with high body mass for their neocortex percent have higher milk energy. Bigger species, like apes, have milk with less energy. But species with more neocortex tend to have richer milk. The fact that these two variables, body size and neocortex, are correlated across species makes it hard to see these relationships, unless we account for both.
+
+Some DAGs will help. There are at least three graphs consistent with these data.
+
+```{python}
+dag5_1 = CausalGraphicalModel(nodes=["M", "N", "K"], edges=[("M", "N"), ("M", "K"), ("N", "K")])
+pgm1 = daft.PGM()
+coordinates = {"M": (0, 0), "K": (1, 1), "N": (2, 0)}
+for node in dag5_1.dag.nodes:
+    pgm1.add_node(node, node, *coordinates[node], plot_params={'linewidth': 0})
+for edge in dag5_1.dag.edges:
+    pgm1.add_edge(*edge)
+pgm1.render()
+plt.gca().invert_yaxis()
+```
+
+```{python}
+dag5_2 = CausalGraphicalModel(nodes=["M", "N", "K"], edges=[("N", "M"), ("M", "K"), ("N", "K")])
+pgm2 = daft.PGM()
+coordinates = {"M": (0, 0), "K": (1, 1), "N": (2, 0)}
+for node in dag5_2.dag.nodes:
+    pgm2.add_node(node, node, *coordinates[node], plot_params={'linewidth': 0})
+for edge in dag5_2.dag.edges:
+    pgm2.add_edge(*edge)
+pgm2.render()
+plt.gca().invert_yaxis()
+```
+
+```{python}
+dag5_3 = CausalGraphicalModel(nodes=["M", "N", "K", "U"], edges=[("U", "M"), ("U", "N"), ("M", "K"), ("N", "K")])
+pgm3 = daft.PGM()
+coordinates = {"M": (0, 0), "K": (1, 1), "N": (2, 0), "U": (1, 0)}
+for node in dag5_3.dag.nodes:
+    if node != "U":
+        pgm3.add_node(node, node, *coordinates[node], plot_params={'linewidth': 0})
+    else:
+        pgm3.add_node(node, node, *coordinates[node])
+for edge in dag5_3.dag.edges:
+    pgm3.add_edge(*edge)
+pgm3.render()
+plt.gca().invert_yaxis()
+```
+
+Beginning on the left, the first possibility is that body mass (M) influences neocortex percent (N). Both then influence kilocalories in milk (K). Second, in the middle, neocortex could instead influence body mass. The two variables still end up correlated in the sample. Finally, on the right, there could be an unobserved variable U that influences both M and N, producing a correlation between them. In this book, I’ll circle variables that are unobserved. One of the threats to causal inference is that there are potentially many unobserved variables that influence an outcome or the predictors. We’ll consider this more in the next chapter.
+
+Which of these graphs is right? We can’t tell from the data alone, because these graphs imply the same set of **conditional independencies**. In this case, there are no conditional independencies—each DAG above implies that all pairs of variables are associated, regardless of what we condition on. A set of DAGs with the same conditional independencies is known as a **Markov equivalence** set. Next, I’ll show you how to simulate observations consistent with each of these DAGs, how each can produce the masking phenomenon, and how to use the `CausalGraphicalModel` package to compute the complete set of Markov equivalent DAGs. Remember that while the data alone can never tell you which causal model is correct, your scientific knowledge of the variables will eliminate a large number of silly, but Markov equivalent, DAGs.
+
+The final thing we’d like to do with these models is to make *counterfactual* plots again. Suppose the third DAG above is the right one. Then imagine manipulating $M$ and $N$, breaking the influence of $U$ on each. In the real world, such experiments are impossible. If we change an animal’s body size, natural selection would then change the other features to match it. But these counterfactual plots do help us see how the model views the association between each predictor and the outcome. Here is the code:
+
+```{python}
+xseq = np.linspace(dcc.M.min()-0.15, dcc.M.max()+0.15, 30)
+
+m5_7_counterM = pm.do(m5_7, {'M': xseq, 'N': np.zeros(30)})
+
+with m5_7_counterM:
+    m5_7_posterior_predictive = pm.sample_posterior_predictive(idata_m5_7, var_names=["mu"], progressbar=False)
+
+mu_ppd = m5_7_posterior_predictive.posterior_predictive["mu"]
+mu_mean = mu_ppd.mean(dim=["chain", "draw"])
+
+az.plot_hdi(xseq, mu_ppd, hdi_prob=0.89)
+plt.plot(xseq, mu_mean, c="black")
+plt.xlabel("Log Body Mass (std)")
+plt.ylabel("Kilocal per g (std)")
+plt.title('Counterfactual holding N = 0');
+```
+
+```{python}
+xseq = np.linspace(dcc.N.min()-0.15, dcc.N.max()+0.15, 30)
+
+m5_7_counterN = pm.do(m5_7, {'N': xseq, 'M': np.zeros(30)})
+
+with m5_7_counterN:
+    m5_7_posterior_predictive = pm.sample_posterior_predictive(idata_m5_7, var_names=["mu"], progressbar=False)
+
+mu_ppd = m5_7_posterior_predictive.posterior_predictive["mu"]
+mu_mean = mu_ppd.mean(dim=["chain", "draw"])
+
+az.plot_hdi(xseq, mu_ppd, hdi_prob=0.89)
+plt.plot(xseq, mu_mean, c="black")
+plt.xlabel("Neocortex Percent (std)")
+plt.ylabel("Kilocal per g (std)")
+plt.title('Counterfactual holding M = 0');
+```
+
+#### Simulating a Masking Relationship
+
+Just as with understanding spurious association, it may help to simulate data in which two meaningful predictors act to mask one another. In the previous section, I showed three DAGs consistent with this. To simulate data consistent with the first DAG:
+
+```{python}
+# M -> K <- N
+# M -> N
+n = 100
+M = np.random.normal(size=n)
+N = np.random.normal(M)
+K = np.random.normal(N - M)
+d_sim = pd.DataFrame({'K':K, 'N': N, 'M':M})
+```
+
+You can quickly see the masking pattern of inferences by replacing `dcc` with `d_sim` in models `m5_5`, `m5_6`, and `m5_7`. Look at the summaries and you’ll see the same masking pattern where the slopes become more extreme in `m5_7`.
+
+```{python}
+with pm.Model() as m5_5:
+    N_obs = pm.ConstantData('N_obs', N, dims='obs_id')
+    a = pm.Normal('a', 0, 0.2)
+    bN = pm.Normal('bN', 0, 0.5)
+    sigma = pm.Exponential('sigma', 1)
+    
+    mu = pm.Deterministic('mu', a + bN * N_obs, dims='obs_id')
+    
+    K_pos = pm.Normal('K_pos', mu=mu, sigma=sigma, observed=K, dims='obs_id')
+    
+    custom_step_m5_5 = utils.QuadraticApproximation([a, bN, sigma], m5_5)
+    idata_m5_5 = pm.sample(step=custom_step_m5_5, progressbar=False)
+
+with pm.Model() as m5_6:
+    M_obs = pm.ConstantData('M_obs', M, dims='obs_id')
+    
+    a = pm.Normal('a', 0, 0.2)
+    bM = pm.Normal('bM', 0, 0.5)
+    sigma = pm.Exponential('sigma')
+    
+    mu = pm.Deterministic('mu', a + bM * M_obs, dims='obs_id')
+    
+    K_pos = pm.Normal('K_pos', mu=mu, sigma=sigma, observed=K, dims='obs_id')
+    
+    custom_step_m5_6 = utils.QuadraticApproximation([a, bM, sigma], m5_6)
+    idata_m5_6 = pm.sample(step=custom_step_m5_6, progressbar=False)
+
+with pm.Model() as m5_7:
+    N_obs = pm.ConstantData('N_obs', N, dims='obs_id')
+    M_obs = pm.ConstantData('M_obs', M, dims='obs_id')
+    
+    a = pm.Normal('a', 0, 0.2)
+    bN = pm.Normal('bN', 0, 0.5)
+    bM = pm.Normal('bM', 0, 0.5)
+    sigma = pm.Exponential('sigma', 1)
+    
+    mu = pm.Deterministic('mu', a + bN * N_obs + bM * M_obs, dims='obs_id')
+    
+    K_pos = pm.Normal('K_pos', mu=mu, sigma=sigma, observed=K, dims='obs_id')
+    
+    custom_step_m5_7 = utils.QuadraticApproximation([a, bN, bM, sigma], m5_7)
+    idata_m5_7 = pm.sample(step=custom_step_m5_7, progressbar=False)
+```
+
+```{python}
+print('m5_5:')
+display(az.summary(idata_m5_5, var_names=['~mu'], kind='stats', hdi_prob=0.89))
+print('m5_6:')
+display(az.summary(idata_m5_6, var_names=['~mu'], hdi_prob=0.89, kind='stats'))
+print('m5_7:')
+display(az.summary(idata_m5_7, var_names=['~mu'], hdi_prob=0.89, kind='stats'))
+```
+
+```{python}
+_, ax = plt.subplots(3,3)
+az.plot_pair({'K': K, 'M': M, 'N': N}, marginals=True, ax=ax);
+```
+
+The other two DAGs can be simulated like this:
+
+```{python}
+# M -> K <- N
+# N -> M
+n = 100
+N = np.random.normal(size=n)
+M = np.random.normal(N)
+K = np.random.normal(N - M)
+d_sim2 = pd.DataFrame({'K':K, 'N': N, 'M':M})
+
+# M -> K <- N
+# M <- U -> N
+n = 100
+U = np.random.normal(size=n)
+M = np.random.normal(U)
+N = np.random.normal(U)
+K = np.random.normal(N - M)
+d_sim3 = pd.DataFrame({'K':K, 'N': N, 'M':M})
+```
+
+In the primate milk example, it may be that the positive association between large body size and neocortex percent arises from a tradeoff between lifespan and learning. Large animals tend to live a long time. And in such animals, an investment in learning may be a better investment, because learning can be amortized over a longer lifespan. Both large body size and large neocortex then influence milk composition, but in different directions, for different reasons. This story implies that the DAG with an arrow from $M$ to $N$, the first one, is the right one. But with the evidence at hand, we cannot easily see which is right. We should compute the **Markov equivalence** set and eliminate those that we think are not valid based upon our scientific knowledge of the variables.
+
+#### Categorical Variables
+
+A common question for statistical methods is to what extent an outcome changes as a result of presence or absence of a category. A category here means discrete and unordered. For example, consider the different species in the milk energy data again. Some of them are apes, while others are New World monkeys. We might want to ask how predictions should vary when the species is an ape instead of a monkey. Taxonomic group is a **categorical variable**, because no species can be half-ape and half-monkey (discreteness), and there is no sense in which one is larger or smaller than the other (unordered). Other common examples of categorical variables include:
+
+-   Sex: male, female
+-   Developmental status: infant, juvenile, adult
+-   Geographic region: Africa, Europe, Melanesia
