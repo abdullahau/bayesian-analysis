@@ -887,28 +887,39 @@ It’s easy to see from this arrangement of the simulations that the model under
 
 What is unusual about Idaho and Utah? Both of these States have large proportions of members of the Church of Jesus Christ of Latter-day Saints. Members of this church have low rates of divorce, wherever they live. This suggests that having a finer view on the demographic composition of each State, beyond just median age at marriage, would help.
 
-**Stats, huh, yeah what is it good for?** Often people want statistical modeling to do things that statistical modeling cannot do. For example, we’d like to know whether an effect is “real” or rather spurious. Unfortunately, modeling merely quantifies uncertainty in the precise way that the model understands the problem. Usually answers to large world questions about truth and causation depend upon information not included in the model. For example, any observed correlation between an outcome and predictor could be eliminated or reversed once another predictor is added to the model. But if we cannot think of the right variable, we might never notice. Therefore all statistical models are vulnerable to and demand critique, regardless of the precision of their estimates and apparent accuracy of their predictions. Rounds of model criticism and revision embody the real tests of scientific hypotheses. A true hypothesis will pass and fail many statistical “tests” on its way to acceptance.
+------------------------------------------------------------------------
 
-##### Overthinking: Simulating Spurious Association
+#### Stats, huh, yeah what is it good for?
+
+Often people want statistical modeling to do things that statistical modeling cannot do. For example, we’d like to know whether an effect is “real” or rather spurious. Unfortunately, modeling merely quantifies uncertainty in the precise way that the model understands the problem. Usually answers to large world questions about truth and causation depend upon information not included in the model. For example, any observed correlation between an outcome and predictor could be eliminated or reversed once another predictor is added to the model. But if we cannot think of the right variable, we might never notice. Therefore all statistical models are vulnerable to and demand critique, regardless of the precision of their estimates and apparent accuracy of their predictions. Rounds of model criticism and revision embody the real tests of scientific hypotheses. A true hypothesis will pass and fail many statistical “tests” on its way to acceptance.
+
+------------------------------------------------------------------------
+
+#### Simulating Spurious Association
 
 One way that spurious associations between a predictor and outcome can arise is when a truly causal predictor, call it $x_{real}$, influences both the outcome, $y$, and a spurious predictor, $x_{spur}$. This can be confusing, however, so it may help to simulate this scenario and see both how the spurious data arise and prove to yourself that multiple regression can reliably indicate the right predictor, $x_{real}$. So here’s a very basic simulation:
 
 ```{python}
-N = 100
-x_real = np.random.normal(size=100)
-x_spur = np.random.normal(loc=x_real, size=100)
-y = np.random.normal(loc=x_real, size=100)
-df = pd.DataFrame({'y': y, 'x_real': x_real, 'x_spur': x_spur})
+N = 100                                                          # Number of Cases        
+x_real = np.random.normal(size=100)                              # x_real as Gaussian with mean 0 and stddev 1
+x_spur = np.random.normal(loc=x_real, size=100)                  # x_spur as Gaussian with mean=x_real
+y = np.random.normal(loc=x_real, size=100)                       # y as Gaussian with mean=x_real
+df = pd.DataFrame({'y': y, 'x_real': x_real, 'x_spur': x_spur})  # bind all together in data frame
 ```
 
 Now the data frame `d` has 100 simulated cases. Because `x_real` influences both `y` and `x_spur`, you can think of `x_spur` as another outcome of `x_real`, but one which we mistake as a potential predictor of `y`. As a result, both $x_{real}$ and $x_{spur}$ are correlated with `y`. You can see this in the scatterplots. But when you include both $x$ variables in a linear regression predicting $y$, the posterior mean for the association between $y$ and $x_{spur}$ will be close to zero.
 
 ```{python}
-_, ax = plt.subplots(3,3)
-az.plot_pair({'y': y, 'x_real': x_real, 'x_spur': x_spur}, marginals=True, ax=ax);
+def plot_scatter():
+    _, ax = plt.subplots(3,3)
+    az.plot_pair({'y': y, 'x_real': x_real, 'x_spur': x_spur}, marginals=True, ax=ax);
+
+plot_scatter()
 ```
 
-##### Counterfactual Plots
+------------------------------------------------------------------------
+
+#### Counterfactual Plots
 
 A second sort of inferential plot displays the causal implications of the model. I call these plots **counterfactual**, because they can be produced for any values of the predictor variables you like, even unobserved combinations like very high median age of marriage and very high marriage rate. There are no States with this combination, but in a counterfactual plot, you can ask the model for a prediction for such a State, asking questions like “What would Utah’s divorce rate be, if it’s median age at marriage were higher?” Used with clarity of purpose, counterfactual plots help you understand the model, as well as generate predictions for imaginary interventions and compute how much some observed outcome could be attributed to some cause.
 
@@ -916,7 +927,13 @@ Note that the term “counterfactual” is highly overloaded in statistics and p
 
 The simplest use of a counterfactual plot is to see how the outcome would change as you change one predictor at a time. If some predictor X took on a new value for one or more cases in our data, how would the outcome Y have changed? Changing just one predictor X might also change other predictors, depending upon the causal model. Suppose for example that you pay young couples to postpone marriage until they are 35 years old. Surely this will also decrease the number of couples who ever get married—some people will die before turning 35, among other reasons—decreasing the overall marriage rate. An extraordinary and evil degree of control over people would be necessary to really hold marriage rate constant while forcing everyone to marry at a later age.
 
-So let’s see how to generate plots of model predictions that take the causal structure into account. The basic recipe is: 1) Pick a variable to manipulate, the intervention variable. 2) Define the range of values to set the intervention variable to. 3) For each value of the intervention variable, and for each sample in posterior, use the causal model to simulate the values of other variables, including the outcome.
+So let’s see how to generate plots of model predictions that take the causal structure into account. The basic recipe is:
+
+1.  Pick a variable to manipulate, the intervention variable.
+
+2.  Define the range of values to set the intervention variable to.
+
+3.  For each value of the intervention variable, and for each sample in posterior, use the causal model to simulate the values of other variables, including the outcome.
 
 In the end, you end up with a posterior distribution of counterfactual outcomes that you can plot and summarize in various ways, depending upon your goal.
 
@@ -932,94 +949,141 @@ To simulate from this, we need more than the DAG. We also need a set of function
 To estimate the influence of $A$ on $M$, all we need is to regress $A$ on $M$. There are no other variables in the DAG creating an association between $A$ and $M$. We can just add this regression to the model, running two regressions at the same time:
 
 ```{python}
-coords = {
-    'states': d.Loc.values
+m5_3_A = '''
+data {
+    int<lower=0> N;          // Number of observations
+    vector[N] M;             // Marriage rate
+    vector[N] D;             // Divorce rate
+    vector[N] A;             // Median age at marriage
+
+    int<lower=0> N_tilde;    // Number of counterfactual simulations
+    vector[N_tilde] A_seq;   // Counterfactual A values for A -> M -> D path
+    vector[N_tilde] M_seq;   // Counterfactual M values for direct M -> D path
 }
-with pm.Model(coords=coords) as m5_3_A:
-    A = pm.ConstantData('A', d.A, dims='states')
-    M = pm.ConstantData('M', d.M, dims='states')
-    
-    # A -> M
-    aM = pm.Normal("aM", mu=0, sigma=0.2)
-    bAM = pm.Normal("bAM", mu=0, sigma=0.5)
-    sigma_M = pm.Exponential("sigma_M", 1)
-    mu_M = pm.Deterministic('mu_M', aM + (bAM * A), dims='states')
-    marriage = pm.Normal("marriage", mu=mu_M, sigma=sigma_M, observed=M, dims='states')  
-    
-    # A -> D <- M
-    a = pm.Normal("a", mu=0, sigma=0.2)
-    bA = pm.Normal("bA", mu=0, sigma=0.5)
-    bM = pm.Normal("bM", mu=0, sigma=0.5)
-    sigma = pm.Exponential("sigma", 1)
-    mu = pm.Deterministic('mu', a + (bM * marriage) + (bA * A), dims='states')
-    divorce = pm.Normal("divorce", mu=mu, sigma=sigma, observed=d.D, dims='states')      
-    
-    idata_m5_3_A = pm.sample(progressbar=False)
+parameters {
+    real a;
+    real bA;
+    real bM;
+    real<lower=0> sigma;
+
+    real aM;
+    real bAM;
+    real<lower=0> sigma_M;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a + bA * A + bM * M;   // A -> D <- M
+
+    vector[N] mu_M;
+    mu_M = aM + bAM * A;        // A -> M
+}
+model {
+    // Priors
+    a ~ normal(0, 0.2);
+    bA ~ normal(0, 0.5);
+    bM ~ normal(0, 0.5);
+    sigma ~ exponential(1);
+
+    aM ~ normal(0, 0.2);
+    bAM ~ normal(0, 0.5);
+    sigma_M ~ exponential(1);
+
+    // Likelihood
+    D ~ normal(mu, sigma);
+    M ~ normal(mu_M, sigma_M);
+}
+generated quantities {
+    vector[N_tilde] M_tilde;
+    vector[N_tilde] D_tilde;
+    vector[N_tilde] D_tilde_M;
+
+    // Simulating M first (A -> M)
+    for (i in 1:N_tilde) {
+        M_tilde[i] = normal_rng(aM + bAM * A_seq[i], sigma_M);
+    }
+
+    // Simulating D given new M (A -> D <- M)
+    for (i in 1:N_tilde) {
+        D_tilde[i] = normal_rng(a + bA * A_seq[i] + bM * M_tilde[i], sigma);
+    }
+
+    // Simulating D for directly controlled M
+    for (i in 1:N_tilde) {
+        D_tilde_M[i] = normal_rng(a + bA * A_seq[i] + bM * M_seq[i], sigma);
+    }
+}
+'''
+
+seq = np.linspace(-2, 2, 30)
+
+data = {'N': len(d),
+        'A': d.A.tolist(),
+        'M': d.M.tolist(),
+        'D': d.D.tolist(),
+        'N_tilde': len(seq),
+        'A_seq': seq.tolist(),
+        'M_seq': seq.tolist()}
+
+m5_3_A_model = utils.StanQuap('stan_models/m5_3_A', m5_3_A, data=data, algorithm='LBFGS',
+                            generated_var=['M_tilde', 'D_tilde', 'D_tilde_M', 'mu', 'mu_M'])
 ```
 
 ```{python}
-pm.model_to_graphviz(m5_3_A)
-```
-
-```{python}
-az.summary(idata_m5_3_A,var_names=['~mu', '~mu_M'], kind='stats', hdi_prob=0.89)
+m5_3_A_model.precis().round(2)
 ```
 
 Look at the summary. You’ll see that $M$ and $A$ are strongly negatively associated. If we interpret this causally, it indicates that manipulating $A$ reduces $M$.
 
+The goal is to simulate what would happen, if we manipulate $A$. During model set-up, we have defined a range of values for $A$ in `A_seq` which is a list of 30 imaginary interventions, ranging from 2 standard deviations below and 2 above the mean. Now we can use `sim`, which you met in the previous chapter, to simulate observations from model `m5_3_A`. But this time we’ll tell it to simulate both $M$ and $D$, in that order. Why in that order? Because we have to simulate the influence of $A$ on $M$ before we simulate the joint influence of $A$ and $M$ on $D$. Note that this logic was also coded right into our Stan model's `generated quantities` block, therefore the model setup tells it both which observables to simulate and in which order.
+
 ```{python}
-A.set_value(np.linspace(-2,2,50))
-with m5_3_A:
-    pm.sample_posterior_predictive(
-        idata_m5_3_A,
-        var_names=['mu_M', "marriage", "mu", "divorce"],
-        extend_inferencedata=True,
-        progressbar=False
-    )       
+# simulate M_tilde and then D_tilde, using A_seq
+s = m5_3_A_model.sim(n=1000, select=['M_tilde', 'D_tilde'])
 ```
 
-The goal is to simulate what would happen, if we manipulate $A$. In the model definition above, we have defined a new range of values for $A$. This defines a list of 50 imaginary interventions, ranging from 2 standard deviations below and 2 above the mean. Then we used `pm.sample_posterior_predictive`, to simulate observations from model `m5_3_A`. We have designed the model definition in such a way that PyMC simulates both `marriage` and `divorce`, in that order. Why in that order? Because we have to simulate the influence of $A$ on $M$ before we simulate the joint influence of A and M on D. The model setup tells it both which observables to simulate and in which order.
-
-Now to plot the predictions:
+That’s all there is to it. But do at least glance at the '**Simulating counterfactuals**' box at the end of this section, where we walk through the individual steps, so we can perform this kind of counterfactual simulation for any model fit with any software. Now to plot the predictions:
 
 ```{python}
-_, ax = plt.subplots(1, 2, figsize=(9, 4))
-A_seq = np.linspace(-2,2,50)
-az.plot_hdi(A_seq, idata_m5_3_A.posterior_predictive["divorce"], ax=ax[0], smooth=False, hdi_prob=0.89)
-ax[0].plot(A_seq, idata_m5_3_A.posterior_predictive["divorce"].mean(dim=["chain", "draw"]))
-ax[0].set_title("Total counterfactual effect of A on D")
-ax[0].set_xlabel("Manipulated A")
-ax[0].set_ylabel("Counterfactual D")
+def plot_counterfactual():
+    D_mean, D_plo, D_phi = utils.precis(s['D_tilde'])
+    M_mean, M_plo, M_phi = utils.precis(s['M_tilde'])
 
+    _, ax = plt.subplots(1, 2, figsize=(9, 4))
+    
+    ax[0].plot(seq, D_mean)
+    ax[0].fill_between(seq, D_plo, D_phi, alpha=0.2)
+    ax[0].set(xlabel='Manipulated A', 
+              ylabel='Counterfactual D', 
+              title='Total Counterfactual Effect of A on D')
 
-az.plot_hdi(A_seq, idata_m5_3_A.posterior_predictive["marriage"], ax=ax[1], smooth=False, hdi_prob=0.89)
-ax[1].plot(A_seq, idata_m5_3_A.posterior_predictive["marriage"].mean(dim=["chain", "draw"]))
-ax[1].set_title("Total counterfactual effect of A -> M")
-ax[1].set_xlabel("Manipulated A")
-ax[1].set_ylabel("Counterfactual M");
+    ax[1].plot(seq, M_mean)
+    ax[1].fill_between(seq, M_plo, M_phi, alpha=0.2)
+    ax[1].set(xlabel='Manipulated A', 
+              ylabel='Counterfactual M', 
+              title='Counterfactual Effect A -> M')
+
+plt.clf()
+plot_counterfactual()
 ```
 
 Counterfactual plots for the multivariate divorce model, `m5_3_A`. These plots visualize the predicted effect of manipulating age at marriage $A$ on divorce rate $D$. Left: Total causal effect of manipulating $A$ (horizontal) on $D$. This plot contains both paths, $A → D$ and $A → M → D$. Right: Simulated values of M show the estimated influence $A →M$.
 
-Left Plot: This predicted trend in $D$ includes both paths: $A → D$ and $A → M → D$. We found previously that $M → D$ is very small, so the second path doesn’t contribute much to the trend. But if $M$ were to strongly influence $D$, the code above would include the effect. The counterfactual simulation also generated values for $M$. These are shown on the right.
+Left Plot: This predicted trend in $D$ includes both paths: $A → D$ and $A → M → D$. We found previously that $M → D$ is very small, so the second path doesn’t contribute much to the trend. But if $M$ were to strongly influence $D$, the code above would include the effect. The counterfactual simulation also generated values for $M$. These are shown on the right. The object `s` from the code above includes these simulated $M$ values.
 
 Of course these calculations also permit numerical summaries. For example, the expected causal effect of increasing median age at marriage from 20 to 30 is:
 
 ```{python}
-A.set_value((np.linspace(20, 30, 50) - 26.1) / 1.24)
-with m5_3_A:
-    idata_m5_3_M_ppc = pm.sample_posterior_predictive(
-        idata_m5_3_A,
-        var_names=['mu_M', "marriage", "mu", "divorce"],
-        return_inferencedata=True,
-        progressbar=False
-    )   
+# A_seq standardized to mean 26.1 and std dev 1.24
+data = {'N': len(d),
+        'A': d.A.tolist(),
+        'M': d.M.tolist(),
+        'D': d.D.tolist(),
+        'N_tilde': 2,
+        'A_seq': ((np.array([20,30])-26.1) / 1.24).tolist(),
+        'M_seq': [0,0]}
 
-# Average first and last column and take difference
-(
-    idata_m5_3_M_ppc.posterior_predictive["divorce"][0,:, -1].mean()
-    - idata_m5_3_M_ppc.posterior_predictive["divorce"][0,:, 0].mean()
-)
+s2 = m5_3_A_model.sim(data=data, n=1000, select=['M_tilde', 'D_tilde'])
+(s2['D_tilde'][:, 1] - s2['D_tilde'][:, 0]).mean()
 ```
 
 This is a huge effect of four and one half standard deviations, probably impossibly large.
@@ -1041,31 +1105,39 @@ plt.gca().invert_yaxis()
 The arrow $A → M$ is deleted, because if we control the values of $M$, then $A$ no longer influences it. It’s like a perfectly controlled experiment. Now we can modify the code above to simulate the counterfactual result of manipulating $M$. We’ll simulate a counterfactual for an average state, with $A =0$, and see what changing $M$ does.
 
 ```{python}
-marriage_counterfactual = np.linspace(-2,2,50)
+data = {'N': len(d),
+        'A': d.A.tolist(),
+        'M': d.M.tolist(),
+        'D': d.D.tolist(),
+        'N_tilde': len(seq),
+        'A_seq': np.zeros(30).tolist(),
+        'M_seq': seq.tolist()}
 
-m5_3_A_Mcounter = pm.do(m5_3_A, {'marriage': marriage_counterfactual, 'A': np.zeros(50)})
+s = m5_3_A_model.sim(data=data, n=1000, select=['D_tilde_M'])
 
-with m5_3_A_Mcounter:
-    idata_m5_3_M_ppc = pm.sample_posterior_predictive(idata_m5_3_A, progressbar=False)
+def plot_counterfactual():
+    D_mean, D_plo, D_phi = utils.precis(s['D_tilde_M'])
+    plt.plot(seq, D_mean)
+    plt.fill_between(seq, D_plo, D_phi, alpha=0.2)
+    plt.ylim(-2.1, 2)
+    plt.xlabel('Manipulated M'), plt.ylabel('Counterfactual D')
+    plt.title('Total Counterfactual Effect of M on D')
+
+plt.clf()
+plot_counterfactual()
 ```
 
-```{python}
-fig, ax = plt.subplots()
-az.plot_hdi(marriage_counterfactual, idata_m5_3_M_ppc.posterior_predictive["divorce"], ax=ax, hdi_prob=0.89, smooth=False)
-ax.plot(
-    marriage_counterfactual,
-    idata_m5_3_M_ppc.posterior_predictive["divorce"].mean(dim=["chain", "draw"]),
-)
-ax.set_title("Total Counterfactual effect M on D")
-ax.set_xlabel("Manipulated M")
-ax.set_ylabel("Counterfactual D");
-```
+The counterfactual effect of manipulating marriage rate $M$ on divorce rate $D$. Since $M →D$ was estimated to be very small, there is no strong trend here. By manipulating $M$, we break the influence of $A$ on $M$, and this removes the association between $M$ and $D$.
 
-We only simulate D now. We don’t simulate A, because M doesn’t influence it. We show this plot in the plot above. This trend is less strong, because there is no evidence for a strong influence of M on D.
+We only simulate D now (we only retrieve `D_tilde_M` from our model). We don’t simulate A, because M doesn’t influence it. We show this plot in the plot above. This trend is less strong, because there is no evidence for a strong influence of $M$ on $D$.
 
 In more complex models with many potential paths, the same strategy will compute counterfactuals for an exposure of interest. But as we'll see in later examples, often it is simply not possible to estimate a plausible, un-confounded causal effect of some exposure $X$ on some outcome $Y$. But even in those cases, there are still important counterfactuals to consider. So we’ll return to this theme in the future.
 
-**Simulating counterfactuals**. The example in this section used `pm.set_data()` and `pm.do()` to hide the details. But simulating counterfactuals on your own is not hard. It just uses the model definition. Assume we’ve already fit model `m5_3_A`, the model that includes both causal paths $A → D$ and $A →M →D$. We define a range of values that we want to assign to $A$:
+------------------------------------------------------------------------
+
+#### Simulating counterfactuals
+
+The example in this section programmed code into the `generated quantities` block and used `.sim()` method to access those simulated scenarios. But simulating counterfactuals on your own is not hard. It just uses the model definition. Assume we’ve already fit model `m5_3_A`, the model that includes both causal paths $A → D$ and $A →M →D$. We define a range of values that we want to assign to $A$:
 
 ```{python}
 A_seq = np.linspace(-2, 2, 30)
@@ -1074,70 +1146,29 @@ A_seq = np.linspace(-2, 2, 30)
 Next we need to extract the posterior samples, because we’ll simulate observations for each set of samples. Then it really is just a matter of using the model definition with the samples, as in previous examples. The model defines the distribution of $M$. We just convert that definition to the corresponding simulation function, which is `stats.norm.rvs` in this case:
 
 ```{python}
-coords = {
-    'states': d.Loc.values
-}
-with pm.Model(coords=coords) as m5_3_A:
-    A = pm.ConstantData('A', d.A, dims='states')
-    M = pm.ConstantData('M', d.M, dims='states')
-    
-    # A -> M
-    aM = pm.Normal("aM", mu=0, sigma=0.2)
-    bAM = pm.Normal("bAM", mu=0, sigma=0.5)
-    sigma_M = pm.Exponential("sigma_M", 1)
-    mu_M = pm.Deterministic('mu_M', aM + (bAM * A), dims='states')
-    marriage = pm.Normal("marriage", mu=mu_M, sigma=sigma_M, observed=M, dims='states')  
-    
-    # A -> D <- M
-    a = pm.Normal("a", mu=0, sigma=0.2)
-    bA = pm.Normal("bA", mu=0, sigma=0.5)
-    bM = pm.Normal("bM", mu=0, sigma=0.5)
-    sigma = pm.Exponential("sigma", 1)
-    mu = pm.Deterministic('mu', a + (bM * marriage) + (bA * A), dims='states')
-    divorce = pm.Normal("divorce", mu=mu, sigma=sigma, observed=d.D, dims='states')      
-    
-    idata_m5_3_A = pm.sample(progressbar=False)
+post = m5_3_A_model.extract_samples(n=1000)
+
+M_sim = stats.norm.rvs(loc=post['aM'] + post['bAM'] * A_seq.reshape(-1,1), scale=post['sigma_M'])
+M_sim.T
 ```
 
-```{python}
-M_mu = (
-    idata_m5_3_A.posterior.aM.to_numpy().flatten().reshape(-1,1)
-    + idata_m5_3_A.posterior.bAM.to_numpy().flatten().reshape(-1,1) * A_seq
-)
-
-M_sigma = idata_m5_3_A.posterior.sigma_M.to_numpy().flatten().reshape(-1,1)
-
-M_sim = np.random.normal(
-    loc=M_mu,
-    scale=M_sigma
-)
-```
-
-The linear model inside `np.random.normal` comes right out of the `pm.sample_posterior_predictive` inside the model definition. This produces a matrix of values, with samples in rows and cases corresponding to the values in `A_seq` in the columns. Now that we have simulated values for $M$, we can simulate $D$ too:
+The linear model inside `stats.norm.rvs` comes right out of the model definition (`M ~ normal(mu_M, sigma_M)`). This produces a matrix of values, with samples in rows and cases corresponding to the values in `A_seq` in the columns. Now that we have simulated values for $M$, we can simulate $D$ too:
 
 ```{python}
-a = idata_m5_3_A.posterior.a.to_numpy().flatten().reshape(-1,1)
-bM = idata_m5_3_A.posterior.bM.to_numpy().flatten().reshape(-1,1)
-bA = idata_m5_3_A.posterior.bA.to_numpy().flatten().reshape(-1,1)
-sigma = idata_m5_3_A.posterior.sigma.to_numpy().flatten().reshape(-1,1)
-
-D_sim = np.random.normal(a + bA * A_seq + bM * M_sim, sigma)
+D_sim = stats.norm.rvs(loc=post['a'] + post['bA'] * A_seq.reshape(-1,1) + post['bM'] * M_sim, scale=post['sigma_M'])
+D_sim.T
 ```
 
 If you plot `A_seq` against the row means of `D_sim`, you’ll see the same result as before. In complex models, there might be many more variables to simulate. But the basic procedure is the same.
 
 ```{python}
-_, ax = plt.subplots(1, 2, figsize=(9, 4))
-az.plot_hdi(A_seq, D_sim, ax=ax[0], smooth=False, hdi_prob=0.89)
-# ax[0].plot(A_seq, idata_m5_3_A.posterior_predictive["divorce"].mean(dim=["chain", "draw"]))
-ax[0].set_title("Total counterfactual effect of A on D")
-ax[0].set_xlabel("Manipulated A")
-ax[0].set_ylabel("Counterfactual D")
+def plot_counterfactual():
+    D_mean, D_phi, D_plo = utils.precis(D_sim.T)
+    plt.plot(A_seq, D_mean)
+    plt.fill_between(A_seq, D_plo, D_phi, alpha=0.2)
+    plt.xlabel('Manipulated A'), plt.ylabel('Counterfactual D')
+    plt.title('Total Counterfactual Effect of A on D')
 
-
-az.plot_hdi(A_seq, M_sim, ax=ax[1], smooth=False, hdi_prob=0.89)
-# ax[1].plot(A_seq, idata_m5_3_A.posterior_predictive["marriage"].mean(dim=["chain", "draw"]))
-ax[1].set_title("Total counterfactual effect of A -> M")
-ax[1].set_xlabel("Manipulated A")
-ax[1].set_ylabel("Counterfactual M");
+plt.clf()
+plot_counterfactual()
 ```

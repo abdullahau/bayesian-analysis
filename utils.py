@@ -129,10 +129,15 @@ class StanQuap(object):
         return cov_matrix
 
     def laplace_sample(self, data: dict = None, draws: int = 100_000):
-        if data is None:
-            data = self.train_data
+        if data is not None:
+            return self.stan_model.laplace_sample(
+                data=data, draws=draws, jacobian=self.jacobian
+            )
         return self.stan_model.laplace_sample(
-            data=data, mode=self.opt_model, draws=draws, jacobian=self.jacobian
+            data=self.train_data,
+            mode=self.opt_model,
+            draws=draws,
+            jacobian=self.jacobian,
         )
 
     def extract_samples(
@@ -156,7 +161,9 @@ class StanQuap(object):
             post = self.extract_samples(n=n, dict_out=True, drop=drop)
         return lm_func(post, predictor)
 
-    def sim(self, data: dict = None, n=1000, dict_out: bool = True, select: list = None):
+    def sim(
+        self, data: dict = None, n=1000, dict_out: bool = True, select: list = None
+    ):
         """
         Simulate posterior observations - Posterior Predictive Sampling
         https://mc-stan.org/docs/stan-users-guide/posterior-prediction.html

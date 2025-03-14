@@ -271,3 +271,51 @@ for ( i in 1:50 ) lines( c(-2,2) , mu[i,] , col=col.alpha("black",0.4) )
 
 prior
 ```
+
+
+
+```{r}
+N <- 100 # number of cases
+x_real <- rnorm( N ) # x_real as Gaussian with mean 0 and stddev 1
+x_spur <- rnorm( N , x_real ) # x_spur as Gaussian with mean=x_real
+y <- rnorm( N , x_real ) # y as Gaussian with mean=x_real
+d <- data.frame(y,x_real,x_spur) # bind all together in data frame
+
+pairs(d)
+```
+
+
+```{r}
+library(rethinking)
+
+data(WaffleDivorce)
+d <- list()
+d$A <- standardize( WaffleDivorce$MedianAgeMarriage )
+d$D <- standardize( WaffleDivorce$Divorce )
+d$M <- standardize( WaffleDivorce$Marriage )
+
+
+m5.3_A <- quap(
+alist(
+## A -> D <- M
+D ~ dnorm( mu , sigma ) ,
+mu <- a + bM*M + bA*A ,
+a ~ dnorm( 0 , 0.2 ) ,
+bM ~ dnorm( 0 , 0.5 ) ,
+bA ~ dnorm( 0 , 0.5 ) ,
+sigma ~ dexp( 1 ),
+## A -> M
+M ~ dnorm( mu_M , sigma_M ),
+mu_M <- aM + bAM*A,
+aM ~ dnorm( 0 , 0.2 ),
+bAM ~ dnorm( 0 , 0.5 ),
+sigma_M ~ dexp( 1 )
+) , data = d )
+
+precis(m5.3_A)
+
+```
+
+```{r}
+(c(20,30)-26.1)/1.24
+```
