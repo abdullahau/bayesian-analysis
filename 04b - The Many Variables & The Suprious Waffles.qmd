@@ -57,7 +57,7 @@ from formulaic import Formula
 
 The divorce rate example demonstrates that multiple predictor variables are useful for knocking out spurious association. A second reason to use more than one predictor variable is to measure the direct influences of multiple factors on an outcome, when none of those influences is apparent from bivariate relationships. This kind of problem tends to arise when there are two predictor variables that are correlated with one another. However, one of these is positively correlated with the outcome and the other is negatively correlated with it.
 
-You’ll consider this kind of problem in a new data context, information about the composition of milk across primate species, as well as some facts about those species, like body mass and brain size. Milk is a huge investment, being much more expensive than gestation. Such an expensive resource is likely adjusted in subtle ways, depending upon the physiological and development details of each mammal species.
+You’ll consider this kind of problem in a new data context, information about the composition of milk across primate species, as well as some facts about those species, like body mass and brain size. Milk is a huge investment, being much more expensive than gestation. Such an expensive resource is likely adjusted in subtle ways, depending upon the physiological and development details of each mammal species. Let’s load the data:
 
 ```{python}
 d = pd.read_csv("data/milk.csv", sep=';')
@@ -84,7 +84,11 @@ $$
 \end{align*}
 $$
 
-where $K$ is standardized kilocalories and $N$ is standardized neocortex percent. We still need to consider the priors but we will consider some vague priors for now. Before that, we note that `d.N` consists of `NaN` or missing values. If you pass a vector like this to a likelihood function like `pm.Normal`, it doesn’t know what to do. After all, what’s the probability of a missing value? Whatever the answer, it isn’t a number, and so `pm.Normal` returns a NaN.
+where $K$ is standardized kilocalories and $N$ is standardized neocortex percent. We still need to consider the priors. But first let’s just try to run this as a `StanQuap` model with some vague priors, because there is another key modeling issue to address first. We note that the column `d.N` consists of `NaN` or missing values. If you pass a vector like this to Stan's likelihood function, it doesn’t know what to do. After all, what’s the probability of a missing value? Whatever the answer, it isn’t a number, and so Stan returns an error failing to evaluate the log probability at the "initial value".
+
+```{python}
+d.N
+```
 
 This is easy to fix. What you need to do here is manually drop all the cases with missing values. This is known as a **complete case analysis**. Some automated model fitting commands will silently drop such cases for you. But this isn’t always a good thing. First, it’s validity depends upon the process that caused these particular values to go missing. Later, we'll explore this in much more depth. Second, once you start comparing models, you must compare models fit to the same data. If some variables have missing values that others do not, automated tools will silently produce misleading comparisons. Let’s march forward for now, dropping any cases with missing values. It’s worth learning how to do this yourself. To make a new data frame with only complete cases, use:
 
@@ -96,36 +100,64 @@ dcc.shape
 This makes a new data frame, `dcc`, that consists of the 17 rows from `d` that have no missing values in any of the variables listed inside `df.dropna`. Now let’s work with the new data frame:
 
 ```{python}
-with pm.Model() as m5_5_draft:
-    N = pm.ConstantData('N', dcc.N, dims='obs_id')
-    
-    a = pm.Normal('a', 0, 1)
-    bN = pm.Normal('bN', 0, 1)
-    sigma = pm.Exponential('sigma', 1)
-    
-    mu = pm.Deterministic('mu', a + bN * N, dims='obs_id')
-    
-    K = pm.Normal('K', mu=mu, sigma=sigma, observed=dcc.K, dims='obs_id')
-    
-    custom_step_m5_5 = utils.QuadraticApproximation([a, bN, sigma], m5_5_draft)
-    idata_m5_5_draft = pm.sample(step=custom_step_m5_5, progressbar=False)
+m5_5_draft = '''
+data {
+    int<lower=0> n;
+    vector[n] N;
+    vector[n] K;
+
+    int<lower=0> n_tilde;
+    vector[n_tilde] N_seq;
+}
+parameters {
+    real a;
+    real bN;
+    real<lower=0> sigma;
+}
+transformed parameters {
+    vector[n] mu;
+    mu = a + bN * N;
+}
+model {
+    K ~ normal(mu, sigma);
+    a ~ normal(0, 1);
+    bN ~ normal(0, 1);
+    sigma ~ exponential(1);
+}
+generated quantities {
+    real a_sim = normal_rng(0, 1);
+    real bN_sim = normal_rng(0, 1);
+    vector[n_tilde] mu_sim = a_sim + bN_sim * N_seq;
+}
+'''
+
+data = {'n': len(dcc),
+        'N': dcc.N.tolist(),
+        'K': dcc.K.tolist(),
+        'n_tilde': 2,
+        'N_seq': [-2, 2]}
+
+m5_5_draft_model = utils.StanQuap('stan_models/m5_5_draft', m5_5_draft, data=data, 
+                                  generated_var=['mu_sim','mu'])
 ```
 
 Before considering the posterior predictions, let’s consider those priors. As in many simple linear regression problems, these priors are harmless. But are they reasonable? It is important to build reasonable priors, because as the model becomes less simple, the priors can be very helpful, but only if they are scientifically reasonable. To simulate and plot 50 prior regression lines:
 
 ```{python}
-with m5_5_draft:
-    pm.set_data({'N': [-2,2]})
-    idata_m5_5_draft.extend(pm.sample_prior_predictive())
+mu = m5_5_draft_model.extract_samples(n=1000, select=['mu_sim'])
 ```
 
 ```{python}
-plt.plot([-2,2], az.extract(idata_m5_5_draft, 'prior').mu[:,:50], 'k', alpha=0.2)
-plt.xlim(-2.1,2.1)
-plt.ylim(-2.1,2.1)
-plt.xlabel('Neocortex Percent (std)')
-plt.ylabel('Kilocal per g (std)')
-plt.title('a ~ pm.Normal(0, 1)\nbN ~ pm.Normal(0, 1)');
+def plot_prior():
+    plt.plot([-2,2], mu['mu_sim'][:50,].T, 'k', alpha=0.2)
+    plt.xlim(-2.1,2.1)
+    plt.ylim(-2.1,2.1)
+    plt.xlabel('Neocortex Percent (std)')
+    plt.ylabel('Kilocal per g (std)')
+    plt.title(r'$\alpha$ ~ Normal(0, 1), $\beta_N$ ~ Normal(0, 1)')
+
+plt.clf()
+plot_prior()
 ```
 
 We’ve shown a range of 2 standard deviations for both variables. So that is most of the outcome space. These lines are crazy. As in previous examples, we can do better by both tightening the $α$ prior so that it sticks closer to zero. With two standardized variables, when predictor is zero, the expected value of the outcome should also be zero. And the slope $β_N$ needs to be a bit tighter as well, so that it doesn’t regularly produce impossibly strong relationships. Here’s an attempt:

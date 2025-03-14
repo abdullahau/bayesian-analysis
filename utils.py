@@ -141,24 +141,49 @@ class StanQuap(object):
         )
 
     def extract_samples(
-        self, n: int = 100_000, dict_out: bool = True, drop: list = None
+        self,
+        n: int = 100_000,
+        dict_out: bool = True,
+        drop: list = None,
+        select: list = None,
     ):
         if drop is None:
-            drop = self.generated_var
+            drop = self.generated_var  # Default drop list
+
         laplace_obj = self.laplace_sample(draws=n)
+
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
+
+            # If select is provided, return only those variables
+            if select is not None:
+                return {
+                    param: stan_var_dict[param]
+                    for param in select
+                    if param in stan_var_dict
+                }
+
+            # Otherwise, drop the specified variables
             return {
                 param: stan_var_dict[param]
                 for param in stan_var_dict.keys()
                 if param not in drop
             }
+
         return laplace_obj.draws()
 
-    def link(self, lm_func, predictor, n=1000, post=None, drop: list = None):
+    def link(
+        self,
+        lm_func,
+        predictor,
+        n=1000,
+        post=None,
+        drop: list = None,
+        select: list = None,
+    ):
         # Extract Posterior Samples
         if post is None:
-            post = self.extract_samples(n=n, dict_out=True, drop=drop)
+            post = self.extract_samples(n=n, dict_out=True, drop=drop, select=select)
         return lm_func(post, predictor)
 
     def sim(
