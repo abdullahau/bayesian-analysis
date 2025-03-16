@@ -103,6 +103,45 @@ This makes a new data frame, `dcc`, that consists of the 17 rows from `d` that h
 m5_5_draft = '''
 data {
     int<lower=0> n;
+    vector[n] N_seq;
+}
+generated quantities {
+    real a = normal_rng(0, 1);
+    real bN = normal_rng(0, 1);
+    vector[n] mu = a + bN * N_seq;
+}
+'''
+
+data = {'n': 2, 'N_seq': [-2, 2]}
+
+m5_5_draft_model = utils.Stan('stan_models/m5_5_draft', m5_5_draft)
+```
+
+Before considering the posterior predictions, let’s consider those priors. As in many simple linear regression problems, these priors are harmless. But are they reasonable? It is important to build reasonable priors, because as the model becomes less simple, the priors can be very helpful, but only if they are scientifically reasonable. To simulate and plot 50 prior regression lines:
+
+```{python}
+mu = m5_5_draft_model.laplace_sample(data=data, draws=1000).stan_variable('mu')
+```
+
+```{python}
+def plot_prior():
+    plt.plot([-2,2], mu[:50,].T, 'k', alpha=0.2)
+    plt.xlim(-2.1,2.1)
+    plt.ylim(-2.1,2.1)
+    plt.xlabel('Neocortex Percent (std)')
+    plt.ylabel('Kilocal per g (std)')
+    plt.title(r'$\alpha$ ~ Normal(0, 1), $\beta_N$ ~ Normal(0, 1)')
+
+plt.clf()
+plot_prior()
+```
+
+We’ve shown a range of 2 standard deviations for both variables. So that is most of the outcome space. These lines are crazy. As in previous examples, we can do better by both tightening the $α$ prior so that it sticks closer to zero. With two standardized variables, when predictor is zero, the expected value of the outcome should also be zero. And the slope $β_N$ needs to be a bit tighter as well, so that it doesn’t regularly produce impossibly strong relationships. Here’s an attempt:
+
+```{python}
+m5_5 = '''
+data {
+    int<lower=0> n;
     vector[n] N;
     vector[n] K;
 
@@ -120,13 +159,13 @@ transformed parameters {
 }
 model {
     K ~ normal(mu, sigma);
-    a ~ normal(0, 1);
-    bN ~ normal(0, 1);
+    a ~ normal(0, 0.2);
+    bN ~ normal(0, 0.5);
     sigma ~ exponential(1);
 }
 generated quantities {
-    real a_sim = normal_rng(0, 1);
-    real bN_sim = normal_rng(0, 1);
+    real a_sim = normal_rng(0, 0.2);
+    real bN_sim = normal_rng(0, 0.5);
     vector[n_tilde] mu_sim = a_sim + bN_sim * N_seq;
 }
 '''
@@ -137,14 +176,12 @@ data = {'n': len(dcc),
         'n_tilde': 2,
         'N_seq': [-2, 2]}
 
-m5_5_draft_model = utils.StanQuap('stan_models/m5_5_draft', m5_5_draft, data=data, 
-                                  generated_var=['mu_sim','mu'])
+m5_5_model = utils.StanQuap('stan_models/m5_5', m5_5, data=data,
+                            generated_var=['mu_sim','mu'])
 ```
 
-Before considering the posterior predictions, let’s consider those priors. As in many simple linear regression problems, these priors are harmless. But are they reasonable? It is important to build reasonable priors, because as the model becomes less simple, the priors can be very helpful, but only if they are scientifically reasonable. To simulate and plot 50 prior regression lines:
-
 ```{python}
-mu = m5_5_draft_model.extract_samples(n=1000, select=['mu_sim'])
+mu = m5_5_model.extract_samples(n=1000, select=['mu_sim'])
 ```
 
 ```{python}
@@ -154,43 +191,10 @@ def plot_prior():
     plt.ylim(-2.1,2.1)
     plt.xlabel('Neocortex Percent (std)')
     plt.ylabel('Kilocal per g (std)')
-    plt.title(r'$\alpha$ ~ Normal(0, 1), $\beta_N$ ~ Normal(0, 1)')
+    plt.title(r'$\alpha$ ~ Normal(0, 0.2), $\beta_N$ ~ Normal(0, 0.5)')
 
 plt.clf()
 plot_prior()
-```
-
-We’ve shown a range of 2 standard deviations for both variables. So that is most of the outcome space. These lines are crazy. As in previous examples, we can do better by both tightening the $α$ prior so that it sticks closer to zero. With two standardized variables, when predictor is zero, the expected value of the outcome should also be zero. And the slope $β_N$ needs to be a bit tighter as well, so that it doesn’t regularly produce impossibly strong relationships. Here’s an attempt:
-
-```{python}
-with pm.Model() as m5_5:
-    N = pm.ConstantData('N', dcc.N, dims='obs_id')
-    
-    a = pm.Normal('a', 0, 0.2)
-    bN = pm.Normal('bN', 0, 0.5)
-    sigma = pm.Exponential('sigma', 1)
-    
-    mu = pm.Deterministic('mu', a + bN * N, dims='obs_id')
-    
-    K = pm.Normal('K', mu=mu, sigma=sigma, observed=dcc.K, dims='obs_id')
-    
-    custom_step_m5_5 = utils.QuadraticApproximation([a, bN, sigma], m5_5)
-    idata_m5_5 = pm.sample(step=custom_step_m5_5, progressbar=False)
-```
-
-```{python}
-with m5_5:
-    pm.set_data({'N': [-2,2]})
-    idata_m5_5.extend(pm.sample_prior_predictive())
-```
-
-```{python}
-plt.plot([-2,2], az.extract(idata_m5_5, 'prior').mu[:,:50], 'k', alpha=0.2)
-plt.xlim(-2.1,2.1)
-plt.ylim(-2.1,2.1)
-plt.xlabel('Neocortex Percent (std)')
-plt.ylabel('Kilocal per g (std)')
-plt.title('a ~ pm.Normal(0, 0.2)\nbN ~ pm.Normal(0, 0.5)');
 ```
 
 The modified priors produces the above plot. These are still very vague priors, but at least the lines stay within the high probability region of the observable data.
