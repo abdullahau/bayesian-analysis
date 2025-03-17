@@ -250,5 +250,7 @@ d$K <- standardize( d$kcal.per.g )
 d$N <- standardize( d$neocortex.perc )
 d$M <- standardize( log(d$mass) )
 
-c(-2,2)
+
+dcc <- d[ complete.cases(d$K,d$N,d$M) , ]
 ```
+
