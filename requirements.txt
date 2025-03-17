@@ -8,10 +8,11 @@ pandas
 xarray
 patsy
 formulaic
+daft-pgm
+CausalGraphicalModel
 graphviz
 networkx
 statsmodels
 seaborn
 watermark
 colorama
-
