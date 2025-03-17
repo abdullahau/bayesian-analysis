@@ -114,6 +114,7 @@ class StanQuap(object):
             np.array(self._flatten_dict_values(self.opt_params))
         )
         self.jacobian = jacobian
+        self.algorithm = algorithm
 
     def log_density_hessian(self):
         log_dens, gradient, hessian = self.bs_model.log_density_hessian(
@@ -127,10 +128,13 @@ class StanQuap(object):
         cov_matrix = self.transform_vcov(vcov_unc, param_types, eps)
         return cov_matrix
 
-    def laplace_sample(self, data: dict = None, draws: int = 100_000):
+    def laplace_sample(self, data: dict = None, draws: int = 100_000, opt_args=None):
         if data is not None:
             return self.stan_model.laplace_sample(
-                data=data, draws=draws, jacobian=self.jacobian
+                data=data,
+                draws=draws,
+                jacobian=self.jacobian,
+                opt_args=opt_args,
             )
         return self.stan_model.laplace_sample(
             data=self.train_data,
@@ -196,8 +200,16 @@ class StanQuap(object):
         if select is None:
             select = self.generated_var
         if data is None:
-            data = self.train_data
-        laplace_obj = self.laplace_sample(data=data, draws=n)
+            laplace_obj = self.laplace_sample(draws=n)
+        else:
+            laplace_obj = self.laplace_sample(
+                data=data,
+                draws=n,
+                opt_args={
+                    "algorithm": self.algorithm,
+                    "jacobian": self.jacobian,
+                },
+            )
         if dict_out:
             stan_var_dict = laplace_obj.stan_variables()
             return {
