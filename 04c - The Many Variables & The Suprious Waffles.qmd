@@ -59,4 +59,3 @@ A common question for statistical methods is to what extent an outcome changes a
 -   Sex: male, female
 -   Developmental status: infant, juvenile, adult
 -   Geographic region: Africa, Europe, Melanesia
-
