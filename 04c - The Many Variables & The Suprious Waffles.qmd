@@ -59,3 +59,226 @@ A common question for statistical methods is to what extent an outcome changes a
 -   Sex: male, female
 -   Developmental status: infant, juvenile, adult
 -   Geographic region: Africa, Europe, Melanesia
+
+Many readers will already know that variables like this, routinely called **factors**, can easily be included in linear models. But what is not widely understood is how these variables are represented in a model. The computer does all of the work for us, hiding the machinery. But there are some subtleties that make it worth exposing the machinery. Knowing how the machine works both helps you interpret the posterior distribution and gives you additional power in building the model.
+
+------------------------------------------------------------------------
+
+#### Continuous countries
+
+With automated software and lack of attention, categorical variables can be dangerous. In 2015, a high-impact journal published a study of 1170 children from six countries, finding a strong negative association between religiosity and generosity. The paper caused a small stir among religion researchers, because it disagreed with the existing literature. Upon reanalysis, it was found that the country variable, which is categorical, was entered as a continuous variable instead. This made Canada (value 2) twice as much “country” as the United States (value 1). After reanalysis with country as a categorical variable, the result vanished and the original paper has been retracted. This is a happy ending, because the authors shared their data. How many cases like this exist, undiscovered because the data have never been shared and are possible lost forever?
+
+------------------------------------------------------------------------
+
+### Binary categories
+
+In the simplest case, the variable of interest has only two categories, like male and female. Let’s rewind to the Kalahari data from earlier. Back then, we ignored sex when predicting height, but obviously we expect males and females to have different averages. Take a look at the variables available:
+
+```{python}
+d = pd.read_csv("data/Howell1.csv", sep=';')
+d.head()
+```
+
+The `male` variable is our new predictor, an example of a **indicator variable**. Indicator variables—sometimes also called “dummy” variables—are devices for encoding unordered categories into quantitative models. There is no sense here in which “male” is one more than “female.” The purpose of the male variable is to indicate when a person in the sample is “male.” So it takes the value 1 whenever the person is male, but it takes the value 0 when the person belongs to any other category. It doesn’t matter which category is indicated by the 1. The model won’t care. But correctly interpreting the model demands that you remember, so it’s a good idea to name the variable after the category assigned the 1 value.
+
+There are two ways to make a model with this information. The first is to use the indicator variable directly inside the linear model, as if it were a typical predictor variable. The effect of an indicator variable is to turn a parameter on for those cases in the category. Simultaneously, the variable turns the same parameter off for those cases in another category. This will make more sense, once you see it in the mathematical definition of the model. Consider again a linear model of height, from earlier. Now we’ll ignore weight and the other variables and focus only on sex.
+
+$$
+\begin{align*}
+h_i &\sim \text{Normal}(\mu_i, \sigma) \\
+\mu_i &= \alpha + \beta_m m_i \\
+\alpha &\sim \text{Normal}(178,20) \\
+\beta_m &\sim \text{Normal}(0,10)\\
+\sigma &\sim \text{Uniform}(0,50) \\
+\end{align*}
+$$
+
+where $h$ is height and $m$ is the dummy variable indicating a male individual. The parameter $β_m$ influences prediction only for those cases where $m_i = 1$. When $m_i = 0$, it has no effect on prediction, because it is multiplied by zero inside the linear model, $α + β_m m_i$, canceling it out, whatever its value. This is just to say that, when $m_i = 1$, the linear model is $\mu_i = α+β_m$. And when $m_i = 0$, the linear model is simply $\mu_i = α$.
+
+Using this approach means that $β_m$ represents the expected *difference* between males and females in height. The parameter $α$ is used to predict both female and male heights. But male height gets an extra $β_m$. This also means that $α$ is no longer the average height in the sample, but rather just the average female height. This can make assigning sensible priors a little harder. If you don’t have a sense of the expected difference in height—what would be reasonable before seeing the data?—then this approach can be a bother. Of course you could get away with a vague prior in this case—there is a lot of data.
+
+Another consequence of having to assign a prior to the difference is that this approach necessarily assumes there is more uncertainty about one of the categories—“male” in this case—than the other. Why? Because a prediction for a male includes two parameters and therefore two priors. We can simulate this directly from the priors. The prior distributions for $\mu$ for females and males are:
+
+```{python}
+mu_female = stats.norm.rvs(loc=178, scale=20, size=int(1e4))
+mu_male = stats.norm.rvs(loc=178, scale=20, size=int(1e4)) + stats.norm.rvs(loc=0, scale=10, size=int(1e4))
+utils.precis(pd.DataFrame({'mu_female': mu_female, 'mu_male': mu_male}))
+```
+
+The prior for males is wider, because it uses both parameters. While in a regression this simple, these priors will wash out very quickly, in general we should be careful. We aren’t actually more unsure about male height than female height, *a priori*. Is there another way?
+
+Another approach available to us is an **index variable**. An index variable contains integers that correspond to different categories. The integers are just names, but they also let us reference a list of corresponding parameters, one for each category. In this case, we can construct our index like this:
+
+```{python}
+d['sex'] = np.where(d['male'] == 1, 2, 1)
+d.head()
+```
+
+Now “1” means female and “2” means male. No order is implied. These are just labels. And the mathematical version of the model becomes:
+
+$$
+\begin{align*}
+h_i &\sim \text{Normal}(\mu_i, \sigma) \\
+\mu_i &= \alpha_{\text{sex}[i]} \\
+\alpha_j &\sim \text{Normal}(178,20) \quad \text{for } j=1 \ldots 2 \\
+\sigma &\sim \text{Uniform}(0,50) \\
+\end{align*}
+$$
+
+What this does is create a list of $\alpha$ parameters, one for each unique value in the index variable. So in this case we end up with two $\alpha$ parameters, named $\alpha_1$ and $\alpha_2$. The numbers correspond to the values in the index variable `sex`. I know this seems overly complicated, but it solves our problem with the priors. Now the same prior can be assigned to each, corresponding to the notion that all the categories are the same, prior to the data. Neither category has more prior uncertainty than the other. And as you’ll see in a bit, this approach extends effortlessly to contexts with more than two categories.
+
+Let’s approximate the posterior for the above model, the one using an index variable.
+
+```{python}
+m5_8 = """
+data {
+    int<lower=1> N;
+    vector[N] height;
+    array[N] int sex;
+}
+parameters {
+    vector[2] a;
+    real<lower=0, upper=50> sigma;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a[sex];
+}
+model {
+    height ~ normal(mu, sigma);
+    sigma ~ uniform(0, 50);
+    a[1] ~ normal(178, 20);
+    a[2] ~ normal(178, 20);
+}
+generated quantities {
+    real diff_fm;
+    diff_fm = a[1] - a[2];
+}
+"""
+
+data = {
+    'N': len(d),
+    'height': d.height.tolist(),
+    'sex': d.sex.tolist()
+}
+
+m5_8_model = utils.StanQuap('stan_models/m5_8', m5_8, data=data, generated_var=['diff_fm', 'mu'])
+
+m5_8_model.precis().round(2)
+```
+
+Interpreting these parameters is easy enough—they are the expected heights in each category. But often we are interested in differences between categories. In this case, what is the expected difference between females and males? We can compute this using samples from the posterior. In fact, I’ll extract posterior samples into a data frame and insert our calculation directly into the same frame:
+
+```{python}
+post = m5_8_model.extract_samples(n=1000)
+diff_fm = post['a'][:,0] - post['a'][:,1]
+post_df = pd.DataFrame({'sigma': post['sigma'], 'a.1': post['a'][:,0], 'a.2': post['a'][:,1], 'diff_fm': diff_fm})
+utils.precis(post_df).round(2)
+```
+
+Additionally, while setting up the model, I have added a `diff_fm` quantity inside the `generated quantities` block that directly computes the difference of $\alpha_1$ and $\alpha_2$ sampled from the posterior.
+
+```{python}
+post = m5_8_model.laplace_sample(draws=5).stan_variables()
+post_df = pd.DataFrame({'sigma': post['sigma'], 'a.1': post['a'][:,0], 'a.2': post['a'][:,1], 'diff_fm': post['diff_fm']})
+utils.precis(post_df).round(2)
+```
+
+Our calculation appears at the bottom, as a new parameter in the posterior. This is the expected difference between a female and male in the sample. This kind of calculation is called a **contrast**. No matter how many categories you have, you can use samples from the posterior to compute the contrast between any two.
+
+### Many categories
+
+Binary categories are easy, whether you use an indicator variable or instead an index variable. But when there are more than two categories, the indicator variable approach explodes. You’ll need a new indicator variable for each new category. If you have $k$ unique categories, you need $k−1$ indicator variables. Automated tools do in fact go this route, constructing $k−1$ indicator variables for you and returning $k−1$ parameters (in addition to the intercept).
+
+But we’ll instead stick with the index variable approach. It does not change at all when you add more categories. You do get more parameters, of course, just as many as in the indicator variable approach. But the model specification looks just like it does in the binary case. And the priors continue to be easier, unless you really do have prior information about contrasts. It is also important to get used to index variables, because multilevel models depend upon them.
+
+Let’s explore an example using the primate milk data again. We’re interested now in the `clade` variable, which encodes the broad taxonomic membership of each species:
+
+```{python}
+d = pd.read_csv("data/milk.csv", sep=';')
+d.clade.unique()
+```
+
+We want an index value for each of these four categories. You could do this by hand, but just coercing the factor to an integer will do the job:
+
+```{python}
+d['clade_id'] = d.clade.astype('category').cat.codes + 1
+```
+
+Let’s use a model to measure the average milk energy in each clade. In math form:
+
+$$
+\begin{align*}
+K_i &\sim \text{Normal}(\mu_i, \sigma) \\
+\mu_i &= \alpha_{\text{CLADE}[i]} \\
+\alpha_j &\sim \text{Normal}(0,0.5) \quad \text{for } j=1 \ldots 4 \\
+\sigma &\sim \text{Exponential}(1) \\
+\end{align*}
+$$
+
+Remember, $K$ is the standardized kilocalories. We have widened the prior on $\alpha$ a little, to allow the different clades to disperse, if the data wants them to. But I encourage you to play with that prior and repeatedly re-approximate the posterior so you can see how the posterior differences among the categories depend upon it. Firing up `StanQuap` now:
+
+```{python}
+d['K'] = utils.standardize(d['kcal.per.g'])
+
+m5_9 = """
+data {
+    int N;
+    vector[N] K;
+    array[N] int clade_id;
+}
+parameters {
+    real<lower=0> sigma;
+    vector[4] a;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a[clade_id];
+}
+model {
+    K ~ normal(mu, sigma);
+    sigma ~ exponential(1);
+    a ~ normal(0, .5);
+}
+"""
+
+data = {
+    'N': len(d),
+    'K': d.K.tolist(),
+    'clade_id': d.clade_id.tolist()
+}
+
+m5_9_model = utils.StanQuap('stan_models/m5_9', m5_9, data=data, generated_var=['mu'])
+summary = m5_9_model.precis()
+summary.round(2)
+```
+
+```{python}
+def plot_forest():
+    y_range = np.arange(4)
+    plt.hlines(y_range[0],
+               xmin=summary['5.5%']['a.4'], 
+               xmax=summary['94.5%']['a.4'], linewidth=2)
+    plt.hlines(y_range[1],
+               xmin=summary['5.5%']['a.3'], 
+               xmax=summary['94.5%']['a.3'], linewidth=2)
+    plt.hlines(y_range[2],
+               xmin=summary['5.5%']['a.2'], 
+               xmax=summary['94.5%']['a.2'], linewidth=2)
+    plt.hlines(y_range[3],
+               xmin=summary['5.5%']['a.1'], 
+               xmax=summary['94.5%']['a.1'], linewidth=2)
+    mean_range = np.array([summary['Mean']['a.4'],
+                           summary['Mean']['a.3'],
+                           summary['Mean']['a.2'],
+                           summary['Mean']['a.1']])
+    plt.plot(mean_range, y_range, 'o', fillstyle='none')
+    plt.axvline(0, linestyle='--', linewidth=0.3)
+    plt.yticks(y_range, labels=['a.4: Strepsirrhine', 'a.3: Old World Monkey', 'a.2: New World Monkey', 'a.1: Ape'])
+    plt.xlabel('Expected kcal (std)')
+
+plt.clf()
+plot_forest()
+```
+
+In practice, we have to be very careful to keep track of which index values go with which categories.
