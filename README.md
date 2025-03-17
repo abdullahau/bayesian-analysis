@@ -12,7 +12,7 @@ Rendered Quarto notebooks can be viewed here:
 6)  [The Many Variables & The Spurious Waffles (a)](https://abdullahau.github.io/bayesian-analysis/04a%20-%20The%20Many%20Variables%20&%20The%20Suprious%20Waffles)
 7)  [The Many Variables & The Spurious Waffles (b)](https://abdullahau.github.io/bayesian-analysis/04b%20-%20The%20Many%20Variables%20&%20The%20Suprious%20Waffles)
 
-All data and code can be downloaded from GitHub: [bayesian-analysis](https://github.com/abdullahau/bayesian-analysis)
+All data and code can be downloaded from GitHub: https://github.com/abdullahau/bayesian-analysis
 
 ---
 
@@ -25,9 +25,9 @@ In the first part of his book, Richard McElreath utilizes his custom `quap` func
 ## How `StanQuap` Works
 
 - The provided Stan model is optimized using CmdStanPy's `optimize()` API to compute the Maximum Likelihood Estimate (MLE) or Maximum A Posteriori Estimate (MAP).
-- The class constructor passes the model, data, and unconstrained parameters from the MLE/MAP into BridgeStan's `log_density_hessian`, which computes the unconstrained Hessian matrix.
+- The class constructor passes the model, data, and unconstrained parameters from the MLE/MAP into BridgeStan's `log_density_hessian`, which computes (or provides access to) the unconstrained Hessian matrix.
 - The inverse of the unconstrained Hessian matrix is computed and transformed into the constrained space using an analytical method (Jacobian matrix).
-- The parameter output and variance-covariance matrix allow sampling from the posterior normal/multivariate normal distribution.
+- The posterior distribution is approximated as a normal/multivariate normal distribution, where the mean is the parameter output and the covariance is the variance-covariance matrix.
 - The methods `laplace_sample`, `extract_samples`, `link`, and `sim` utilize CmdStanPy's `laplace_sample` API for speed and robustness, ensuring proper parameter transformations.
 
 ## Features
@@ -46,20 +46,27 @@ In the first part of his book, Richard McElreath utilizes his custom `quap` func
 ```python
 import utils
 
-stan_code = """
+bernoulli = """
+data {
+  int<lower=1> N;
+  array[N] int<lower=0,upper=1> y;
+}
 parameters {
-  real theta;
+  real<lower=0,upper=1> theta;
 }
 model {
-  theta ~ normal(0, 1);
+  theta ~ beta(1,1);
+  y ~ bernoulli(theta);
 }
 """
 
+data = {"N":10,"y":[0,1,0,1,0,0,0,0,0,1]}
+
 # Define StanQuap Model
 quap = utils.StanQuap(
-    stan_file="simple_model",
-    stan_code=stan_code,
-    data={},
+    stan_file="bernoulli_model",
+    stan_code=bernoulli,
+    data=data,
 )
 
 # Extract Samples
