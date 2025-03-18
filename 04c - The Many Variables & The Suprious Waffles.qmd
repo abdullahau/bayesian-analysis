@@ -282,3 +282,171 @@ plot_forest()
 ```
 
 In practice, we have to be very careful to keep track of which index values go with which categories.
+
+If you have another kind of categorical variable that you’d like to add to the model, the approach is just the same. For example, let’s randomly assign these primates to some made up categories: \[1\] Gryffindor, \[2\] Hufflepuff, \[3\] Ravenclaw, and \[4\] Slytherin.
+
+```{python}
+np.random.seed(63)
+d['house'] = np.random.choice(np.tile(np.arange(1, 5), 8), len(d), replace=False)
+d.head()
+```
+
+Now we can include these categories as another predictor in the model:
+
+```{python}
+m5_10 = """
+data {
+    int N;
+    vector[N] K;
+    array[N] int clade_id;
+    array[N] int house;
+}
+parameters {
+    real<lower=0> sigma;
+    vector[4] a;
+    vector[4] h;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a[clade_id] + h[house];
+}
+model {
+    K ~ normal(mu, sigma);
+    sigma ~ exponential(1);
+    a ~ normal(0, .5);
+    h ~ normal(0, .5);
+}
+"""
+
+data = {
+    'N': len(d),
+    'K': d.K.tolist(),
+    'clade_id': d.clade_id.tolist(),
+    'house': d.house.tolist()
+}
+
+m5_10_model = utils.StanQuap('stan_models/m5_10', m5_10, data=data, generated_var=['mu'])
+summary = m5_10_model.precis()
+summary.round(2)
+```
+
+If you inspect the posterior, you’ll see that \[h.1\] Gryffindor and \[h.4\] Slytherin stands out.
+
+------------------------------------------------------------------------
+
+#### Differences and statistical significance
+
+A common error in interpretation of parameter estimates is to suppose that because one parameter is sufficiently far from zero—is “significant”—and another parameter is not—is “not significant”—that the difference between the parameters is also significant. This is not necessarily so. This isn’t just an issue for non-Bayesian analysis: If you want to know the distribution of a difference, then you must compute that difference, a **contrast**. It isn’t enough to just observe, for example, that a slope among males overlaps a lot with zero while the same slope among females is reliably above zero. You must compute the posterior distribution of the difference in slope between males and females. For example, suppose you have posterior distributions for two parameters, $\beta_f$ and $\beta_m$. $\beta_f$’s mean and standard deviation is $0.15±0.02$, and $\beta_m$’s is $0.02±0.10$. So while $\beta_f$ is reliably different from zero (“significant”) and $\beta_m$ is not, the difference between the two (assuming they are uncorrelated) is $(0.15−0.02) ± \sqrt{0.02^2 + 0.1^2} ≈ 0.13 ± 0.10.$ The distribution of the difference overlaps a lot with zero. In other words, you can be confident that $\beta_f$ is far from zero, but you cannot be sure that the difference between $\beta_f$ and $\beta_m$ is far from zero.
+
+In the context of non-Bayesian significance testing, this phenomenon arises from the fact that statistical significance is inferentially powerful in one way: difference from the null. When $\beta_m$ overlaps with zero, it may also overlap with values very far from zero. Its value is uncertain. So when you then compare $\beta_m$ to $\beta_f$, that comparison is also uncertain, manifesting in the width of the posterior distribution of the difference $\beta_f−\beta_m$. Lurking underneath this example is a more fundamental mistake in interpreting statistical significance: The mistake of accepting the null hypothesis. Whenever an article or book says something like “we found no difference” or “no effect,” this usually means that some parameter was not significantly different from zero, and so the authors adopted zero as the estimate. This is both illogical and extremely common.
+
+------------------------------------------------------------------------
+
+## Summary
+
+This chapter introduced multiple regression, a way of constructing descriptive models for how the mean of a measurement is associated with more than one predictor variable. The defining question of multiple regression is: *What is the value of knowing each predictor, once we already know the other predictors?* The answer to this question does not by itself provide any causal information. Causal inference requires additional assumptions. Simple directed acyclic graph (DAG) models of causation are one way to represent those assumptions. In the next chapter we’ll continue building the DAG framework and see how adding predictor variables can create as many problems as it can solve.
+
+## Practice Problems
+
+### 5E1
+
+Which of the linear models below are multiple linear regressions?
+
+\(2\) $\mu_i = \beta_x x_i + \beta_z z_i$ and (4) $\mu_i = \alpha + \beta_x x_i + \beta_z z_i$
+
+Only (2) and (4) are multiple linear regressions. Both have more than one predictor variable and corresponding coefficients in the linear model. The model (1) has only a single predictor variable, $x$. The model (3) has two predictor variables, but only their difference for each case enters the model, so effectively this is a uni-variate regression, with a single slope parameter.
+
+### 5E2
+
+Write down a multiple regression to evaluate the claim: *Animal diversity is linearly related to latitude, but only after controlling for plant diversity*. You just need to write down the model definition.
+
+A verbal model statement like this will always be somewhat ambiguous. That is why mathemat- ical notation is needed in scientific communication. However, the conventional interpretation of the statement would be:
+
+$$
+\begin{align*}
+A_i &\sim \text{Normal}(\mu_i , \sigma) \\ 
+\mu_i &= \alpha + \beta_L L_i - \beta_P P_i \\
+\end{align*}
+$$
+
+where A is animal diversity, L is latitude, and P is plant diversity. This linear model “controls” for plant diversity, while estimating a linear relationship between latitude and animal diversity.
+
+### 5E3
+
+Write down a multiple regression to evaluate the claim: *Neither amount of funding nor size of laboratory is by itself a good predictor of time to PhD degree; but together these variables are both positively associated with time to degree*. Write down the model definition and indicate which side of zero each slope parameter should be on.
+
+Define $T$ as time to PhD degree, the outcome variable implied by the problem. Define $F$ as amount of funding and $S$ as size of laboratory, the implied predictor variables. Then the model (ignoring priors) might be:
+
+$$
+\begin{align*}
+Ai &\sim \text{Normal}(\mu_i , \sigma) \\ 
+\mu_i &= \alpha + \beta_F F_i - \beta_S S_i \\
+\end{align*}
+$$
+
+The slopes $\beta_F$ and $\beta_S$ should both be positive. How can both be positively associated with the outcome in a multiple regression, but neither by itself? If they are negatively correlated with one another, then considering each alone may miss the positive relationships with the outcome. For example, large labs have less funding per student. Small labs have more funding per student, but poorer intellectual environments. So both could be positive influences on time to degree, but be negatively associated in nature.
+
+### 5E4
+
+Suppose you have a single categorical predictor with 4 levels (unique values), labeled $A$, $B$, $C$ and $D$. Let $A_i$ be an indicator variable that is $1$ where case $i$ is in category $A$. Also suppose $B_i$, $C_i$, and $D_i$ for the other categories. Now which of the following linear models are inferentially equivalent ways to include the categorical variable in a regression? Models are inferentially equivalent when it’s possible to compute one posterior distribution from the posterior distribution of another model.
+
+1.  $\mu_i = \alpha + \beta_A A_i + \beta_B B_i + \beta_D D_i$
+
+2.  $\mu_i = \alpha + \beta_A A_i + \beta_B B_i + \beta_C C_i + \beta_D D_i$
+
+3.  $\mu_i = \alpha + \beta_B B_i + \beta_C C_i + \beta_D D_i$
+
+4.  $\mu_i = \alpha_A A_i + \alpha_B B_i + \alpha_C C_i + \alpha_D D_i$
+
+5.  $\mu_i = \alpha_A (1-B_i - C_i - D_i) + \alpha_B B_i + \alpha_C C_i + \alpha_D D_i$
+
+First, the answer will actually depend upon the priors, which aren’t mentioned in the problem. But assuming weakly informative or flat priors, the answer is that (1), (3), (4), and (5) are inferentially equivalent. They’ll make the same predictions, and you can convert among them after model fitting. (2) stands out because it has a redundant parameter, the intercept $α$.
+
+### 5M1
+
+Invent your own example of a spurious correlation. An outcome variable should be correlated with both predictor variables. But when both predictors are entered in the same model, the correlation between the outcome and one of the predictors should mostly vanish (or at least be greatly reduced).
+
+The are many good answers to this question. The easiest approach is to think of some context that follows the divorce rate pattern in the chapter: one predictor influences both the outcome and the other predictor. For example, we might consider predicting whether or not a scientific study replicates. Two predictor variables are available: (1) sample size and (2) statistical significance. Sample size influences both statistical significance and reliability of a finding. This induces a correlation between significance and successful replication, even though significance is not associated with replication, once sample size is taken into account.
+
+### 5M2
+
+Invent your own example of a masked relationship. An outcome variable should be correlated with both predictor variables, but in opposite directions. And the two predictor variables should be correlated with one another.
+
+Again, many good answers are possible. The pattern from the milk energy example in the chapter is the simplest. Consider for example the influences of income and drug use on health. Income is positively associated, in reality, with health. Drug use is, for the sake of the example, negatively associated with health. But wealthy people consume more drugs than the poor, simply because the wealthy can afford them. So income and drug use are positively associated in the population. If this positive association is strong enough, examining either income or drug use alone will show only a weak relationship with health, because each works on health in opposite directions.
+
+### 5M3
+
+It is sometimes observed that the best predictor of fire risk is the presence of firefighters— States and localities with many firefighters also have more fires. Presumably firefighters do not cause fires. Nevertheless, this is not a spurious correlation. Instead fires cause firefighters. Consider the same reversal of causal inference in the context of the divorce and marriage data. How might a high divorce rate cause a higher marriage rate? Can you think of a way to evaluate this relationship, using multiple regression?
+
+Divorce might lead to, or be in expectation of, remarriage. Thus divorce could cause marriage rate to rise. In order to examine this idea, or another like it, the data would need to be structured into more categories, such as remarriage rate versus first marriage rate. Better yet would be longitudinal data. In many real empirical contexts, causation involves feedback loops that can render regression fairly useless, unless some kind of time series framework is used.
+
+### 5M4
+
+In the divorce data, States with high numbers of members of the Church of Jesus Christ of Latter-day Saints (LDS) have much lower divorce rates than the regression models expected. Find a list of LDS population by State and use those numbers as a predictor variable, predicting divorce rate using marriage rate, median age at marriage, and percent LDS population (possibly standardized). You may want to consider transformations of the raw percent LDS variable.
+
+It is worth finding and entering the values yourself, for the practice at data management. But here are the values I found, scraped from Wikipedia and merged into the original data:
+
+```{python}
+# load data
+d = pd.read_csv("data/WaffleDivorce.csv", sep=';')
+
+# standardize variables
+d['D'] = utils.standardize(d.Divorce)
+d['M'] = utils.standardize(d.Marriage)
+d['A'] = utils.standardize(d.MedianAgeMarriage)
+
+d['pct_LDS'] = [0.75, 4.53, 6.18, 1, 2.01, 2.82, 0.43, 0.55, 0.38,
+                0.75, 0.82, 5.18, 26.35, 0.44, 0.66, 0.87, 1.25, 0.77, 0.64, 0.81,
+                0.72, 0.39, 0.44, 0.58, 0.72, 1.14, 4.78, 1.29, 0.61, 0.37, 3.34,
+                0.41, 0.82, 1.48, 0.52, 1.2, 3.85, 0.4, 0.37, 0.83, 1.27, 0.75,
+                1.21, 67.97, 0.74, 1.13, 3.99, 0.92, 0.44, 11.5]
+d.head()
+```
+
+A first regression model including this variable might be:
+
+```{python}
+m_5M4 = """
+
+"""
+```

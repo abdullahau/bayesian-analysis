@@ -6,11 +6,11 @@ Rendered Quarto notebooks can be viewed here:
 
 1)  [The Garden of Forking Data](https://abdullahau.github.io/bayesian-analysis/01%20-%20The%20Garden%20of%20Forking%20Data)
 2)  [Sampling The Imaginary](https://abdullahau.github.io/bayesian-analysis/02%20-%20Sampling%20The%20Imaginary)
-3)  [Geocentric Model (a)](https://abdullahau.github.io/bayesian-analysis/03a%20-%20Geocentric%20Models)
-4)  [Geocentric Model (b)](https://abdullahau.github.io/bayesian-analysis/03b%20-%20Geocentric%20Models)
-5)  [Geocentric Model (c)](https://abdullahau.github.io/bayesian-analysis/03c%20-%20Geocentric%20Models)
-6)  [The Many Variables & The Spurious Waffles (a)](https://abdullahau.github.io/bayesian-analysis/04a%20-%20The%20Many%20Variables%20&%20The%20Suprious%20Waffles)
-7)  [The Many Variables & The Spurious Waffles (b)](https://abdullahau.github.io/bayesian-analysis/04b%20-%20The%20Many%20Variables%20&%20The%20Suprious%20Waffles)
+3)  [(a) Geocentric Model](https://abdullahau.github.io/bayesian-analysis/03a%20-%20Geocentric%20Models)
+4)  [(b) Geocentric Model](https://abdullahau.github.io/bayesian-analysis/03b%20-%20Geocentric%20Models)
+5)  [(c) Geocentric Model](https://abdullahau.github.io/bayesian-analysis/03c%20-%20Geocentric%20Models)
+6)  [(a) The Many Variables & The Spurious Waffles](https://abdullahau.github.io/bayesian-analysis/04a%20-%20The%20Many%20Variables%20&%20The%20Suprious%20Waffles)
+7)  [(b) The Many Variables & The Spurious Waffles](https://abdullahau.github.io/bayesian-analysis/04b%20-%20The%20Many%20Variables%20&%20The%20Suprious%20Waffles)
 
 All data and code can be downloaded from GitHub: https://github.com/abdullahau/bayesian-analysis
 
