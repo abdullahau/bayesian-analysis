@@ -14,9 +14,10 @@ format:
     fontsize: 13pt
     linestretch: 1.4
     number-sections: true
-    number-depth: 3
+    number-depth: 4
     toc: true
     toc-location: right
+    toc-depth: 4
     code-fold: false
     code-copy: true
     cap-location: bottom
@@ -447,6 +448,104 @@ A first regression model including this variable might be:
 
 ```{python}
 m_5M4 = """
-
+data {
+    int N;
+    vector[N] Divorce;
+    vector[N] Marriage;
+    vector[N] MedianAgeMarriage;
+    vector[N] pct_LDS;
+    
+}
+parameters {
+    real<lower=0, upper=10> sigma;
+    real a;
+    real bR;
+    real bA;
+    real bM;
+}
+transformed parameters {
+    vector[N] mu;
+    mu = a + bR * Marriage + bA * MedianAgeMarriage + bM * pct_LDS;
+}
+model {
+    Divorce ~ normal(mu, sigma);
+    sigma ~ uniform(0, 10);
+    a ~ normal(0, 100);
+    bR ~ normal(0, 10);
+    bA ~ normal(0, 10);
+    bM ~ normal(0, 10);
+}
 """
+
+data = {
+    'N': len(d),
+    'Divorce': d.Divorce.tolist(),
+    'Marriage': d.Marriage.tolist(),
+    'MedianAgeMarriage': d.MedianAgeMarriage.tolist(),
+    'pct_LDS': d.pct_LDS.tolist()
+}
+
+m_5M4_model = utils.StanQuap('stan_models/m_5M4', m_5M4, 
+                             data=data, generated_var=['mu'], 
+                             algorithm='LBFGS')
+
+m_5M4_model.precis().round(2)
 ```
+
+As expected, there is a negative association between percent LDS and divorce rate. This model assumes the relationship between divorce rate and percent LDF is linear. This makes sense if the LDS community has a lower divorce rate within itself only, and so as it makes up more of a State’s population, that State’s divorce rate declines. This is to say that the expected divorce rate of State $i$ is a “convex” mix of two average divorce rates:
+
+$$
+D_i = (1-P)D_G + PD_{LDS}
+$$
+
+where $D_i$ is the divorce rate for State $i$, $P$ is the proportion of the State’s population that is LDS, and the two divorce rates $D_G$ and $D_{LDS}$ are the divorce rates for gentiles (non-LDS) and LDS, respectively. If $D_G > D_{LDS}$, then as $P$ increases, the value of $D_i$ increases linearly as well. But maybe the percent LDS in the population has a secondary impact as a marker of a State-level cultural environment that has lower divorce in more demographic groups than just LDS. In that case, this model will miss that impact. Can you think of a way to address this? (Maybe, we should evaluate the significance of the differences in $D_{G}$ between different states based on $1-P$, proportion of the population that is not a member of the LDS)
+
+### 5M5
+
+One way to reason through multiple causation hypotheses is to imagine detailed mechanisms through which predictor variables may influence outcomes. For example, it is sometimes argued that the price of gasoline (predictor variable) is positively associated with lower obesity rates (outcome variable). However, there are at least two important mechanisms by which the price of gas could reduce obesity. First, it could lead to less driving and therefore more exercise. Second, it could lead to less driving, which leads to less eating out, which leads to less consumption of huge restaurant meals. Can you outline one or more multiple regressions that address these two mechanisms? Assume you can have any predictor data you need.
+
+This is an open-ended question with many good, expanding answers. Here’s the basic outline of an approach. The first two implied variables are the rate of obesity $O$ and the price of gasoline $P$. The first proposed mechanism suggests that higher price $P$ reduces driving $D$, which in turn increases exercise $X$, which then reduces obesity $O$. As a set of regressions, this mechanism implies:
+
+1.  $D$ as a declining function of $P$
+
+2.  $X$ as a declining function of $D$
+
+3.  $O$ as a declining function of $X$
+
+In other words, for the mechanism to work, each predictor above needs be negatively associated with each outcome. Note that each outcome becomes a predictor. That’s just how these causal chains look. A bunch of reasonable control variables could be added to each of the regressions above. Consider for example that a very wealthy person will be more insensitive to changes in price, so we might think to interact $P$ with income. The second proposed mechanism suggests that price $P$ reduces driving $D$ which reduces eating out $E$ which reduces obesity $O$. A similar chain of regressions is implied:
+
+1.  $D$ as a declining function of $P$
+
+2.  $E$ as an increasing function of $D$
+
+3.  $O$ as an increasing function of $E$
+
+### 5H1
+
+In the divorce example, suppose the DAG is: $M →A →D$. What are the implied conditional independencies of the graph? Are the data consistent with it?
+
+```{python}
+dag_5H1 = CausalGraphicalModel(nodes=["A", "D", "M"], edges=[("M", "A"), ("A", "D")])
+pgm = daft.PGM()
+coordinates = {"A": (0, 0), "D": (1, 1), "M": (2, 0)}
+for node in dag_5H1.dag.nodes:
+    pgm.add_node(node, node, *coordinates[node], plot_params={'linewidth': 0})
+for edge in dag_5H1.dag.edges:
+    pgm.add_edge(*edge)
+pgm.render()
+plt.gca().invert_yaxis()
+```
+
+```{python}
+print('DAG:', dag_5H1.get_distribution())
+
+# get_all_independence_relationships() method 
+# Returns a list of all pairwise conditional independence relationships 
+# implied by the graph structure.
+
+print(dag_5H1.get_all_independence_relationships())
+```
+
+### 5H2
+
+Assuming that the DAG for the divorce example is indeed $M→A→D$, fit a new model and use it to estimate the counterfactual effect of halving a State’s marriage rate $M$. Using the counterfactual example from the chapter as a template.

@@ -17,6 +17,7 @@ format:
     number-depth: 4
     toc: true
     toc-location: right
+    toc-depth: 4
     code-fold: false
     code-copy: true
     cap-location: bottom

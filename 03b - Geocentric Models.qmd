@@ -14,9 +14,10 @@ format:
     fontsize: 13pt
     linestretch: 1.4
     number-sections: true
-    number-depth: 3
+    number-depth: 4
     toc: true
     toc-location: right
+    toc-depth: 4
     code-fold: false
     code-copy: true
     cap-location: bottom

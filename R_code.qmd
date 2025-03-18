@@ -255,3 +255,10 @@ dcc <- d[ complete.cases(d$K,d$N,d$M) , ]
 ```
 
 
+```{r}
+library(dagitty)
+maddog = dagitty("dag{M -> A -> D}")
+impliedConditionalIndependencies(maddog)
+
+equivalentDAGs(maddog)
+```
