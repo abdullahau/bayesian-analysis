@@ -1,17 +1,17 @@
 ---
-title: "Getting Started with Bayesian Statistics"
-subtitle: "using Stan and Python"
-author: "Abdullah Mahmood"
-date: "last-modified"
+title: Getting Started with Bayesian Statistics
+subtitle: using Stan and Python
+author: Abdullah Mahmood
+date: last-modified
 format:
   html:
-    theme: cosmo # united is darker
-    css: style.css
+    theme: cosmo
+    css: quarto-style/style.css
     highlight-style: atom-one
     mainfont: Palatino
     fontcolor: black
     monobackgroundcolor: white
-    monofont: "Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace"
+    monofont: Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace
     fontsize: 13pt
     linestretch: 1.4
     number-sections: true
@@ -26,10 +26,21 @@ format:
     anchor-sections: true
     html-math-method:
         method: mathjax
-        url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+        url: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 editor: source
-jupyter: main
-bibliography: references.bib
+jupyter:
+  jupytext:
+    formats: ipynb,qmd
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.7
+  kernelspec:
+    display_name: main
+    language: python
+    name: main
+bibliography: quarto-style/references.bib
 ---
 
 ```{python}
