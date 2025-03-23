@@ -1,11 +1,11 @@
-from cmdstanpy import CmdStanModel, CmdStanMCMC
+from cmdstanpy import CmdStanModel
 import bridgestan as bs
+import cmdstanpy as csp
 import pandas as pd
 import numpy as np
 import arviz as az
 import scipy.stats as stats
 import matplotlib.pyplot as plt
-from collections import defaultdict
 
 import os
 import gc
@@ -16,10 +16,27 @@ import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", module="plotnine/..*")
-
-import cmdstanpy as csp
-
 csp.utils.get_logger().setLevel(logging.ERROR)
+
+
+__all__ = [
+    "StanModel",
+    "Stan",
+    "BridgeStan",
+    "StanQuap",
+    "link",
+    "center",
+    "standardize",
+    "convert_to_categorical",
+    "precis",
+    "precis_az",
+    "cov2cor",
+    "cov2corr",
+    "chainmode",
+    "bw_nrd0",
+    "crosstab",
+    "clear_memory",
+]
 
 
 # -------------- Load & Compile Stan Model -------------------
@@ -267,7 +284,7 @@ class StanQuap(object):
         Args:
         - vcov_unc (np.array): variance-covariance matrix in the unconstrained space.
         - param_types (list) [Required for analytical solution]: List of strings specifying the type of each parameter.
-          Options: 'uncons' (unconstrained), 'pos_real' (positive real), 'prob' (0 to 1).
+        Options: 'uncons' (unconstrained), 'pos_real' (positive real), 'prob' (0 to 1).
         - eps (float) [Required for numerical solution]: Small perturbation for numerical differentiation.
         Returns:
         - vcov_con (np.array): variance-covariance matrix in the constrained space.
@@ -438,21 +455,6 @@ def bw_nrd0(x):
 # were not user-specified and do not bracket the root.
 
 
-# ----------------- Quarto (RStudio) Inline Plotting -----------------
-def inline_plot(plot_func, *args, **kwargs):
-    """
-    A helper function to display plots inline in Quarto (RStudio).
-
-    Parameters:
-    - plot_func: Function that generates the plot (e.g., plt.plot).
-    - *args, **kwargs: Arguments to pass to the plot function.
-    """
-    plt.clf()  # Clear any existing plot
-    plot_func(*args, **kwargs)  # Call the plotting function with arguments
-    plt.show()  # Show the plot inline
-    plt.close()  # Close the plot to avoid display issues
-
-
 # ----------------------- Crosstable -----------------------
 def crosstab(x: np.array, y: np.array, labels: list[str] = None):
     """Simple cross tabulation of two discrete vectors x and y"""
@@ -479,24 +481,23 @@ def clear_memory(exceptions=None, targeted_types=None):
 
     # Default targeted types
     default_types = [
-        CmdStanModel,
-        CmdStanMCMC,
-        plt.Axes,
-        az.InferenceData,
-        pd.DataFrame,
-        pd.Series,
         dict,
         list,
         int,
         float,
         str,
         tuple,
+        CmdStanModel,
+        plt.Axes,
+        az.InferenceData,
+        pd.DataFrame,
+        pd.Series,
         plt.Figure,
-        defaultdict,
         np.ndarray,
         np.int64,
         np.float32,
     ]
+
     if targeted_types:
         default_types.extend(targeted_types)  # Append user-provided types
 

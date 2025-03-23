@@ -3,43 +3,43 @@ title: 04c - The Many Variables & The Spurious Waffles
 author: Abdullah Mahmood
 date: last-modified
 format:
-  html:
-    theme: cosmo
-    css: quarto-style/style.css
-    highlight-style: atom-one
-    mainfont: Palatino
-    fontcolor: black
-    monobackgroundcolor: white
-    monofont: Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace
-    fontsize: 13pt
-    linestretch: 1.4
-    number-sections: true
-    number-depth: 4
-    toc: true
-    toc-location: right
-    toc-depth: 4
-    code-fold: false
-    code-copy: true
-    cap-location: bottom
-    format-links: false
-    embed-resources: true
-    anchor-sections: true
-    html-math-method:
-      method: mathjax
-      url: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+    html:
+        theme: cosmo
+        css: quarto-style/style.css
+        highlight-style: atom-one
+        mainfont: Palatino
+        fontcolor: black
+        monobackgroundcolor: white
+        monofont: Menlo, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace
+        fontsize: 13pt
+        linestretch: 1.4
+        number-sections: true
+        number-depth: 4
+        toc: true
+        toc-location: right
+        toc-depth: 4
+        code-fold: false
+        code-copy: true
+        cap-location: bottom
+        format-links: false
+        embed-resources: true
+        anchor-sections: true
+        html-math-method:
+            method: mathjax
+            url: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 editor: source
 jupyter:
-  jupytext:
-    formats: ipynb,qmd
-    text_representation:
-      extension: .qmd
-      format_name: quarto
-      format_version: '1.0'
-      jupytext_version: 1.16.7
-  kernelspec:
-    display_name: main
-    language: python
-    name: main
+    jupytext:
+        formats: ipynb,qmd
+        text_representation:
+            extension: .qmd
+            format_name: quarto
+            format_version: '1.0'
+            jupytext_version: 1.16.7
+    kernelspec:
+        display_name: main
+        language: python
+        name: main
 ---
 
 ### Imports
@@ -257,22 +257,32 @@ summary.round(2)
 ```{python}
 def plot_forest():
     y_range = np.arange(4)
-    plt.hlines(y_range[0],
-               xmin=summary['5.5%']['a.4'], 
-               xmax=summary['94.5%']['a.4'], linewidth=2)
-    plt.hlines(y_range[1],
-               xmin=summary['5.5%']['a.3'], 
-               xmax=summary['94.5%']['a.3'], linewidth=2)
-    plt.hlines(y_range[2],
-               xmin=summary['5.5%']['a.2'], 
-               xmax=summary['94.5%']['a.2'], linewidth=2)
-    plt.hlines(y_range[3],
-               xmin=summary['5.5%']['a.1'], 
-               xmax=summary['94.5%']['a.1'], linewidth=2)
-    mean_range = np.array([summary['Mean']['a.4'],
-                           summary['Mean']['a.3'],
-                           summary['Mean']['a.2'],
-                           summary['Mean']['a.1']])
+    plt.hlines(
+        y_range[0],
+        xmin=summary['5.5%']['a.4'], 
+        xmax=summary['94.5%']['a.4'], linewidth=2
+    )
+    plt.hlines(
+        y_range[1],
+        xmin=summary['5.5%']['a.3'], 
+        xmax=summary['94.5%']['a.3'], linewidth=2
+    )
+    plt.hlines(
+        y_range[2],
+        xmin=summary['5.5%']['a.2'], 
+        xmax=summary['94.5%']['a.2'], linewidth=2
+    )
+    plt.hlines(
+        y_range[3],
+        xmin=summary['5.5%']['a.1'], 
+        xmax=summary['94.5%']['a.1'], linewidth=2
+    )
+    mean_range = np.array([
+        summary['Mean']['a.4'],
+        summary['Mean']['a.3'],
+        summary['Mean']['a.2'],
+        summary['Mean']['a.1']
+    ])
     plt.plot(mean_range, y_range, 'o', fillstyle='none')
     plt.axvline(0, linestyle='--', linewidth=0.3)
     plt.yticks(y_range, labels=['a.4: Strepsirrhine', 'a.3: Old World Monkey', 'a.2: New World Monkey', 'a.1: Ape'])
@@ -485,9 +495,11 @@ data = {
     'pct_LDS': d.pct_LDS.tolist()
 }
 
-m_5M4_model = utils.StanQuap('stan_models/m_5M4', m_5M4, 
-                             data=data, generated_var=['mu'], 
-                             algorithm='LBFGS')
+m_5M4_model = utils.StanQuap(
+    'stan_models/m_5M4', m_5M4, 
+    data=data, generated_var=['mu'], 
+    algorithm='LBFGS'
+)
 
 m_5M4_model.precis().round(2)
 ```

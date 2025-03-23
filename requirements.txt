@@ -14,5 +14,7 @@ graphviz
 networkx
 statsmodels
 seaborn
+plotnine
+patchworklib
 watermark
 colorama
