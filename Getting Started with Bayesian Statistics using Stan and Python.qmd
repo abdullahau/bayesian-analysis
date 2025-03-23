@@ -43,31 +43,342 @@ jupyter:
 bibliography: quarto-style/references.bib
 ---
 
-```{python}
-from cmdstanpy import CmdStanModel
-import bridgestan as bs
-import numpy as np
-import os
-import json
-from scipy.special import expit
-import scipy.stats as stats
-import pandas as pd
+# Preface {.unnumbered}
 
+Welcome to this introduction to Bayesian statistics using Stan in
+Python.  The preface explains what we expect you to know before
+starting, how to install Stan, and provides the Python boilerplate
+we will use throughout.
+
+## Prerequisites {.unnumbered}
+
+We will assume the reader will be able to follow text that includes
+basic notions from
+
+* differential and integral calculus in multiple dimensions,
+* matrix arithmetic (but not linear algebra),
+* probability theory, including probability density and mass
+functions, cumulative distribution functions, expectations, events,
+and the basic rules of probability theory, and
+* Python numerical programming with NumPy.
+
+By basics, we really do mean basics. You won't need to do any
+calculus, we will just use it to express what Stan computes.
+Similarly, we will use matrix notation to express models, and we will
+avoid advanced topics in linear algebra that are at the heart of some
+of Stan's internals.
+
+We include several appendices as both mathematical background and
+summary of notation, with rigorous definitions of the concepts used
+in this introduction.  Those who are more mathematically inclined may
+wish to start with the appendices.
+
+
+## Python, CmdStanPy, NumPy, pandas, and plotnine {.unnumbered}
+
+For scripting language, we use [Python 3](https://www.python.org/downloads/).
+
+To access Stan, we use the Python package
+[CmdStanPy](https://mc-stan.org/cmdstanpy/installation.html).
+
+For numerical and statistical computation in Python, we use
+[NumPy](https://numpy.org/).
+
+For plotting, we use the Python package
+[plotnine](https://plotnine.readthedocs.io/).  plotnine is a Python
+reimplementation of [ggplot2](https://ggplot2.tidyverse.org/), which is
+itself an implementation of the grammar of graphics [@wilkinson2005].
+
+We use [pandas](https://pandas.pydata.org/) for representing wide-form
+data frames, primarily because it is the required input for plotnine.
+
+
+## Python boilerplate  {.unnumbered}
+
+We include the following Python boilerplate to import and configure
+packages we will use throughout this tutorial.  
+
+```{python}
+# PROJECT SETUP
+# set DRAFT = False for final output; DRAFT = True is faster
+DRAFT = True
+
+import itertools
 import logging
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.filterwarnings( "ignore", module = "plotnine/..*" )
+warnings.filterwarnings( "ignore", module = "plotnine\..*" )
 
+from cmdstanpy import CmdStanModel
+import bridgestan as bs
 import cmdstanpy as csp
 csp.utils.get_logger().setLevel(logging.ERROR)
 
-def inline_plot(plot_func, *args, **kwargs):
-    plt.clf()  
-    plot_func(*args, **kwargs)
-    plt.show()
-    plt.close()
+import numpy as np
+import statistics as stat
+import pandas as pd
+import plotnine as pn
+import patchworklib as pw
 ```
 
+# Introduction
 
+These notes are intended to introduce several technical topics to
+practitioners: Bayesian statistics and probabilistic modeling, Markov
+chain Monte Carlo methods for Bayesian inference, and the Stan
+probabilistic programming language.
+
+
+## Bayesian statistics
+
+The general problem addressed by statistical inference is that of
+reasoning from a limited number of noisy observations. For example, we
+might want to perform inference about a population after measuring a
+subset of its members, or we might want to predict future events after
+observing past events.
+
+There are many approaches to applied statistics.  These notes focus
+on Bayesian statistics, a form of statistical modeling and inference
+that is grounded in probability theory.  In the Bayesian
+approach to statistics, we characterize our knowledge of the world in
+terms of probabilities (e.g., there is a 24.3% chance of rain after
+lunch today, the probability that the next baby born in the United
+states is male is 51\%).
+
+Bayesian inference is always carried out with respect to a
+mathematical model of a stochastic data generating process. If the
+model is well-specified in the sense of matching the true data
+generating process, then Bayesian statistical inference can be shown
+to have several desirable properties, such as calibration and
+resistance to overfitting.
+
+[Appendix D. Bayesian statistics](#d.-bayesian-statistics) provides a
+short, but precise introduction to Bayesian inference, following
+[Appendix A. Set theory](#a.-set-theory) and [Appendix B. Probability
+theory](#b.-probability-theor), which provide background.  The
+appendices establish a rigorous basis for the notation and provide
+more formal definitions of exactly what Stan is computing.
+
+If you're looking for a gentle introduction to Bayesian statistics, I
+highly recommend *Statistical Rethinking* [@mcelreath2023].  For a
+more advanced introduction, try *Bayesian Data Analysis*
+[@gelman2013], which is available from the authors as a [free
+pdf](http://www.stat.columbia.edu/~gelman/book/).
+
+## Markov chain Monte Carlo methods
+
+Bayesian inference for parameter estimation, prediction, or event
+probability estimation is based on posterior expectations.  A
+posterior expectation is a high dimensional integral over the space of
+parameters.  Stan adopts the standard approach to solving general
+high-dimensional integrals, which is the [Monte Carlo
+method](https://en.wikipedia.org/wiki/Monte_Carlo_method). Monte Carlo
+methods use random sampling (hence the name) to solve high-dimensional
+integrals (which is not itself a random quantity).
+
+We cannot use standard Monte Carlo methods for most problems of
+interest in Bayesian statistics because we cannot generate a sample of
+independent draws from the posterior density of interest.[^1]
+The exception is simple models in the exponential family with
+conjugate priors [@diaconis1979].  So instead, we have to resort to
+Markov chain Monte Carlo (MCMC) methods [@brooks2011], which create
+samples with correlation structure among the draws making up the
+sample.
+
+[^1]: The statistical sampling literature often overloads "sample" to mean both a sample and a draw.  We will try to stick to the notation where a sample consists of a sequence of one or more draws.
+
+Alternatives to MCMC include rejection sampling [@gilks1992],
+sequential Monte Carlo [@doucet2001], approximate Bayesian computation
+(ABC) [@marin2012], variational inference [@blei2017], and nested
+Laplace approximation [@rue2009], among others.
+
+Among MCMC methods, Stan adopts Hamiltonian Monte Carlo (HMC)
+[@neal2011], which is currently the most efficient and scalable MCMC
+method for smooth target densities.  Popular alternatives include
+random-walk Metropolis-Hastings [@chib1995] and Gibbs sampling
+[@casella1992], both of which are simpler, but much less efficient
+than HMC for all but the easiest of problems.
+
+## Stan and probabilistic programming
+
+Stan is what is known as a *domain specific language* (DSL), meaning
+it was written for a particular application. Specifically, Stan is
+a *probabilistic programming language* (PPL) designed for coding
+statistical models. Although Stan is used most widely for Bayesian
+inference, it can also perform standard frequentist inference (e.g.,
+maximum likelihood, bootstrap, etc.), though we do not touch on those
+capabilities in this introduction.
+
+A Stan program declares data variables and parameters, along with
+a differentiable posterior log density (of the parameters given the
+data) up to a constant.  Although this is the only requirement, most
+Stan programs define the joint log density of the parameters and
+variables, which can be shown to be equal to the log posterior plus a
+constant.  
+
+Stan programs are probabilistic programs in the sense that their data
+and parameters can represent *random variables*.  A random variable is
+something that takes on different values with some probability,
+although mathematically it is a deterministic function and gets its
+randomness from an underlying probability measure that determines how
+probable the values of a random variable are.  An example of a random
+variable is the outcome of a coin flip.  The variable takes on the
+value heads or tails, but we don't know which.  Somewhat confusingly,
+statistics often operates counterfactually, where we have actually
+observed the outcome of a coin flip but persist in treating it as if
+it were random and could have resulted in a different value.
+
+In practice, Stan parameters, transformed paraemters, and posterior
+predictive quantities are all unobserved random variables.  Such
+variables are inferred from the model and the values of other
+variables.  Stan typically produces different values for unobserved
+random variables each time it is run.  Stan programs can be made
+deterministic in order to provide reproducible results by fixing a
+random seed.
+
+Stan programs are translated to C++ and we estimate quantities of
+interest using either MCMC or approximate methods like variational
+inference or Laplace approximation.  Users provide data to Stan
+defining constants (like the number of observations) and providing the
+values of observed random variables.  Stan provides output consisting
+of a sample, each draw of which provides a possible value for all of
+the unobserved random variables in the model.  Stan is available
+through the open-source analytics languages Python, R, or Julia and
+compatible with these languages' built-in Bayesian analysis tools as
+well as Stan's own tools, some of which we will cover in this
+introduction.  Stan's also available in Mathematica, Stata, and
+MATLAB, but those interfaces are very basic compared to our
+open-source interfaces.
+  
+# Pragmatic Bayesian statistics
+
+There have been several schools of Bayesian statisticians, and
+@lin2022 provides an excellent overview with primary references and
+@little2006 provides a more in-depth summary comparing to frequentist
+philosophy.  The two most prominent schools are the *subjective
+Bayesians* and the *objective Bayesians*. As suggested by the names,
+these two paradigms have diametrically opposed philosophical
+approaches.  While both use proper priors in the sense of being
+probability distributions, the "subjective" approach tries to capture
+actual prior "beliefs," whereas the "objective" approach tries to
+minimize the use of prior information.  Both these groups trust their
+posterior inferences based on their chosen philosophical approach to
+priors.
+
+We are going to follow a more pragmatic approach to Bayesian
+statistics that views model building as more of an engineering
+discipline than a philosophical exercise. This perspective is laid out
+in detail in @gelman2013 and refined in @gelman2020workflow. The
+pragmatic approach feels more like modern machine learning than
+statistics, with its emphasis on predictive calibration [@dawid1982,
+@gneiting2007].  Roughly speaking, a probabilistic inference is
+calibrated if it has the right coverage for future data.  For example,
+I might predict a 70% chance of rain on 100 different days.  I would
+like to see roughly 70 of those days be rainy for my predictions to be
+well calibrated.  Calibration is itself a frequentist notion, but we
+do not follow standard frequentist practice in that we are willing to
+modify our modeling assumptions once we have investigated their
+behavior on data [@gelman2013]. 
+
+The fundamental distinguishing feature of frequentist statistics is
+that probabilities are understood as long-run frequencies of
+repeatable processes. This prohibits placing probability distributions
+over parameters, because there is no long-term repeatable process in
+the world generating new parameters. For example, the gravitational
+constant has a single value and is not the value of a potentially
+repeatable trial like a coin flip (other than in a philosophical,
+possible worlds sense).
+
+In our pragmatic approach to Bayesian statistics, we treat probability
+as fundamentally _epistemic_ rather than _deontic_, meaning it is
+about human _knowledge_, not about human _belief_. This is a subtle,
+but important distinction. Although frequentists sometimes worry that
+Bayesians are "putting their thumb on the scale" by including their
+prior knowledge in a model rather than "letting the data speak for
+itself," this is an instance of the pot calling the kettle black. The
+biggest "subjective" decision in model building is shared between
+Bayesian and frequentist approaches, namely the likelihood assumed to
+model the data-generating process.  In practice, we often sidestep the
+concerns of subjectivity by using weakly informative priors that
+indicate the scale, but not the particular value, of a prior.  And we
+furthermore run sensitivity analyses to test the effect of our prior
+assumptions. 
+
+@laplace1814 begins his book on probability by stating the general
+epistemic position on probability in terms of an entity that knows all
+(aka Laplace's demon).
+
+> We may regard the present state of the universe as the effect of its
+past and the cause of its future. An intellect which at a certain
+moment would know all forces that set nature in motion, and all
+positions of all items of which nature is composed, if this intellect
+were also vast enough to submit these data to analysis, it would
+embrace in a single formula the movements of the greatest bodies of
+the universe and those of the tiniest atom; for such an intellect
+nothing would be uncertain and the future just like the past would be
+present before its eyes.
+
+John Stuart @mill1882 is more explicit in laying out the epistemic
+view of probability as follows.
+
+> We must remember that the probability of an event is not a quality
+of the event itself, but a mere name for the degree of ground which
+we, or some one else, have for expecting it. $\ldots$ Every event is
+in itself certain, not probable; if we knew all, we should either know
+positively that it will happen, or positively that it will not. But
+its probability to us means the degree of expectation of its
+occurrence, which we are warranted in entertaining by our present
+evidence.
+
+
+# Stan examples: forward simulation and Monte Carlo
+
+By *forward simulation*, we mean running a simulation of a scientific
+process forward from the parameter values to simulated data. For
+example, consider a simple clinical trial with $N$ subjects and a
+probability $\theta \in (0, 1)$ of a positive outcome. Given $\theta$
+and $N$, we can simulate the number of patients $y \in 0{:}N$ with a
+successful outcome according to a binomial distribution (which we
+define below).
+
+The *inverse problem* is that of estimating the probability of success
+$\theta,$ given an observation of $y$ successes out of $N$ subjects.
+For example, we might have $N = 100$ subjects in the trial, $y = 32$
+of whom had a positive outcome from the trial. A simple estimate of
+$\theta$ in this case would be 0.32.  We return to estimation and
+uncertainty quantification in later sections.
+
+Let's say we have $N = 100$ subjects in our clinical trial and the
+success rate is $\theta = 0.3$. We can simulate a result $y$ from the
+clinical trial by randomly generating the number of subjects with a
+successful outcome. Although this could be done by simulating the
+binary outcome for each patient, it wouldn't be an efficient way to
+sample from a binomial distribution.
+
+In statistical sampling notation, we write
+$$
+Y \sim \textrm{binomial}(N, \theta)
+$$
+
+to indicate that there are $N \in \mathbb{N}$ patients with
+probability $\theta \in (0, 1)$ of a successful outcome, with $Y \in 0{:}N$
+representing the number of successful outcomes out of $N$ patients.
+
+The probability mass function function for $Y$, written $p_Y$, is
+defined for $N \in \mathbb{N}$, $\theta \in (0, 1)$, and $y \in 0{:}N$ by
+
+$$
+\begin{align}
+p_Y(y \mid N, \theta)
+&= \textrm{binomial}(y \mid N, \theta)
+\\[6pt]
+&=
+\binom{N}{y} \cdot \theta^y \cdot (1 - \theta)^{N - y}.
+\end{align}
+$$
+
+Unless necessary for disambiguation, we will drop the random variable
+subscripts on probability density or mass functions like $p_Y$ going forward, writing
+simply $p(y \mid N, \theta)$ and allowing context to disambiguate.
 
 
