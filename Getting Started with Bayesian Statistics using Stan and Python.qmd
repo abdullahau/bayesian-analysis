@@ -4267,280 +4267,198 @@ print(f"mean(y) = {np.mean(y):5.2f};  sd(y) = {np.std(y):4.2f}")
 
 ## A final note on priors
 
-Priors are particularly important when there is not much data in order
-to control computation.  We can evaluate prior sensitivity by
-considering changing priors, as we did in the last section, to see
-what their effect is on the posterior.
+Priors are particularly important when there is not much data in order to control computation. We can evaluate prior sensitivity by considering changing priors, as we did in the last section, to see what their effect is on the posterior.
 
-In general, we would recommend using as much prior knowledge as you
-can during inference.  Not doing so leaves useful information on the table.
+In general, we would recommend using as much prior knowledge as you can during inference. Not doing so leaves useful information on the table.
 
 
 # Further reading
 
 ## Scientific programming in Python
 
-A good introduction to Python for data science applications is
-@vanderplas2023. The current edition is available open access
-from the [GitHub repository for the *Python Data Science
-Handbook*](https://jakevdp.github.io/PythonDataScienceHandbook/).
+A good introduction to Python for data science applications is @vanderplas2023. The current edition is available open access
+from the [GitHub repository for the *Python Data Science Handbook*](https://jakevdp.github.io/PythonDataScienceHandbook/).
 
-For intermediate Python programming, a standard
-reference is *Fluent Python* by @ramalho2022.
+For intermediate Python programming, a standard reference is *Fluent Python* by @ramalho2022.
 
 
 ## Random number generation
 
-The standard reference for pseudorandom number generation is still the
-book by @devroye1986.  It starts from scratch with an overview of
-uniform pseudorandom number generation and proceeds through advanced
-multivariate techniques.  The author has provided a free online pdf on the
-[home page of *Non-Uniform Random Variate Generation*](http://www.nrbook.com/devroye/).
+The standard reference for pseudorandom number generation is still the book by @devroye1986. It starts from scratch with an overview of uniform pseudorandom number generation and proceeds through advanced multivariate techniques. The author has provided a free online pdf on the [home page of *Non-Uniform Random Variate Generation*](http://www.nrbook.com/devroye/).
 
 ## Bayesian statistics
 
-For an introduction to Bayesian statistics, I would highly recommend
-starting with the book by @mcelreath2023. The second edition is
-available as a free online pdf from the [GitHub repository
-for *Statistical
-Rethinking*](https://github.com/Booleans/statistical-rethinking/blob/master/Statistical%20Rethinking%202nd%20Edition.pdf).
+For an introduction to Bayesian statistics, I would highly recommend starting with the book by @mcelreath2023. The second edition is available as a free online pdf from the [GitHub repository for *Statistical Rethinking*](https://github.com/Booleans/statistical-rethinking/blob/master/Statistical%20Rethinking%202nd%20Edition.pdf).
 
-For more advanced Bayesian statistics and more on computation, the
-third edition of the classic by @gelman2013. The third edition
-is available as a free pdf from the [home page for *Bayesian Data
-Analysis 3*](http://www.stat.columbia.edu/~gelman/book/).
+For more advanced Bayesian statistics and more on computation, the third edition of the classic by @gelman2013. The third edition
+is available as a free pdf from the [home page for *Bayesian Data Analysis 3*](http://www.stat.columbia.edu/~gelman/book/).
 
-We provide a summary of the mathematics of Bayesian statistics in
-[Appendix D: Bayesian statistics](#c.-monte-carlo-methods), as well as
-background material in [Appendix A: Set theory](#a.-set-theory) and
-[Appendix B: Probability theory](#b.-probability-theory).
+We provide a summary of the mathematics of Bayesian statistics in [Appendix D: Bayesian statistics](#c.-monte-carlo-methods), as well as background material in [Appendix A: Set theory](#a.-set-theory) and [Appendix B: Probability theory](#b.-probability-theory).
 
 ## Markov chain Monte Carlo
 
-A good single-source for learning about MCMC methods is the handbook
-edited by @brooks2011. The key chapters on basic MCMC theory,
-convergence monitoring, and Hamiltonian Monte Carlo are available for
-free from the [sample chapters page of the *Handbook of Markov Chain
-Monte
-Carlo*](https://www.mcmchandbook.net/HandbookSampleChapters.html).
+A good single-source for learning about MCMC methods is the handbook edited by @brooks2011. The key chapters on basic MCMC theory,
+convergence monitoring, and Hamiltonian Monte Carlo are available for free from the [sample chapters page of the *Handbook of Markov Chain Monte Carlo*](https://www.mcmchandbook.net/HandbookSampleChapters.html).
 
-We can also recommend the paper by @roberts2004 as a solid
-mathematical foundation for MCMC that is about the same mathematical
+We can also recommend the paper by @roberts2004 as a solid mathematical foundation for MCMC that is about the same mathematical
 level as the appendices of this introduction.
 
-We provide a summary of the mathematics of Monte Carlo methods and
-Markov chain Monte Carlo methods in [Appendix C: Monte Carlo methods]
+We provide a summary of the mathematics of Monte Carlo methods and Markov chain Monte Carlo methods in [Appendix C: Monte Carlo methods]
 
 
 ## Stan
 
-The reference Stan paper is by our original development team
-[@carpenter2015], but there is no point in reading that paper if you
-have read this. It's better to skip directly to the *Stan User's
-Guide* [@stan2023users], which contains much more information on
-modeling in Stan than this introduction. For full details on Stan's
-programming language and execution, see the
-*Stan Reference Manual* [@stan2023]; for information on the library of
-special mathematical and statistical functions, see the *Stan
-Functions Reference* [@stan2023funs].
+The reference Stan paper is by our original development team [@carpenter2015], but there is no point in reading that paper if you
+have read this. It's better to skip directly to the *Stan User's Guide* [@stan2023users], which contains much more information on
+modeling in Stan than this introduction. For full details on Stan's programming language and execution, see the *Stan Reference Manual* [@stan2023]; for information on the library of special mathematical and statistical functions, see the *Stan Functions Reference* [@stan2023funs].
 
-There is also a wealth of information available in the form of [Stan
-case studies](https://mc-stan.org/users/documentation/case-studies)
-and [Stan conference
-proceedings](https://github.com/stan-dev/stancon_talks), both of which
-are distributed in the form of reproducible notebooks.
+There is also a wealth of information available in the form of [Stan case studies](https://mc-stan.org/users/documentation/case-studies) and [Stan conference proceedings](https://github.com/stan-dev/stancon_talks), both of which are distributed in the form of reproducible notebooks.
 
 ## Bayesian workflow
 
-The paper that kicked off the Stan project's focus on workflow is
-@gabry2019; the current state of our thinking is @gelman2020workflow.
-Many of the Stan developers are working on turning the paper into a
-book; the current state is available from the public [GitHub
-repository for *Bayesian Workflow*](https://github.com/jgabry/bayes-workflow-book).
+The paper that kicked off the Stan project's focus on workflow is @gabry2019; the current state of our thinking is @gelman2020workflow. Many of the Stan developers are working on turning the paper into a book; the current state is available from the public [GitHub repository for *Bayesian Workflow*](https://github.com/jgabry/bayes-workflow-book).
 
 # A.  Set theory {.unnumbered}
 
-Probability theory is based on relatively simple set theory.  We
-define the set theory we need, including notions of countability,
+Probability theory is based on relatively simple set theory. We define the set theory we need, including notions of countability,
 relations, and functions, in this section.
 
 ## A.1 Basic set notation {.unnumbered}
 
-One way to think of a set is as a bag of objects without duplicates.
-We write sets using curly braces.  For example, the set containing the
-numbers 1 and 2 is written as $\{ 1, 2 \}$.  Sets are not ordered, so
-the notation $\{ 1, 2 \}$ picks out the same set as $\{ 2, 1 \}$.
+One way to think of a set is as a bag of objects without duplicates. We write sets using curly braces. For example, the set containing the numbers 1 and 2 is written as $\{ 1, 2 \}$.  Sets are not ordered, so the notation $\{ 1, 2 \}$ picks out the same set as $\{ 2, 1 \}$.
 
 ### Ellipses notation
 
-Sets are often written with informal shorthand with *ellipses*
-($\ldots$) standing in for a sequence of elements.  For example, $\{
-1, 2, \ldots, 7\}$ would pick out the set $\{ 1, 2, 3, 4, 5, 6, 7 \}$
-and $\{ x_0, x_1, \ldots, x_4 \}$ is shorthand for $\{ x_0, x_1, x_2,
-x_3, x_4 \}$.
+Sets are often written with informal shorthand with *ellipses* ($\ldots$) standing in for a sequence of elements. For example, $\{1, 2, \ldots, 7\}$ would pick out the set $\{ 1, 2, 3, 4, 5, 6, 7 \}$ and $\{ x_0, x_1, \ldots, x_4 \}$ is shorthand for $\{ x_0, x_1, x_2, x_3, x_4 \}$.
 
-Ellipses that end rather than separate are used to denote an unbounded
-sequence of elements.  For example, we will write $\{ 0, 1, 2, \ldots
-\}$ for the set of all counting numbers.
-
+Ellipses that end rather than separate are used to denote an unbounded sequence of elements. For example, we will write $\{ 0, 1, 2, \ldots \}$ for the set of all counting numbers.
 
 ## A.2 Membership, subsets, and equality {.unnumbered}
 
-If $A$ is a set, we write $x \in A$ if $x$ is a *member* of the set $A$,
-and we write $x \not\in A$ otherwise.  For example, $1 \in \{ 1, 2
-\}$, but $7 \not\in \{ 1, 2 \}$.
+If $A$ is a set, we write $x \in A$ if $x$ is a *member* of the set $A$, and we write $x \not\in A$ otherwise. For example, $1 \in \{ 1, 2 \}$, but $7 \not\in \{ 1, 2 \}$.
 
-If $A$ and $B$ are sets, we write $A \subseteq B$ and say that $A$ is
-a *subset* of $B$ if $x \in A$ implies $x \in B$.  For example,
-$\{ 1, 3 \} \subseteq \{ 0, 1, 2, 3, 4 \}$, but
-$\{ 1, 3 \} \not\subseteq \{ 0, 2, 4 \}$.
+If $A$ and $B$ are sets, we write $A \subseteq B$ and say that $A$ is a *subset* of $B$ if $x \in A$ implies $x \in B$. For example, $\{ 1, 3 \} \subseteq \{ 0, 1, 2, 3, 4 \}$, but $\{ 1, 3 \} \not\subseteq \{ 0, 2, 4 \}$.
 
-Two sets $A$ and $B$ are *equal*, written $A = B$, if they are subsets
-of each other, $A \subseteq B$ and $B \subseteq A$.
+Two sets $A$ and $B$ are *equal*, written $A = B$, if they are subsets of each other, $A \subseteq B$ and $B \subseteq A$.
 
-If $A \subseteq B$ and $A \neq B,$ we say that $A$ is a *proper
-subset* of $B$ (this notion of propriety extends to other orderings,
-such as those of the numbers).
+If $A \subseteq B$ and $A \neq B,$ we say that $A$ is a *proper subset* of $B$ (this notion of propriety extends to other orderings, such as those of the numbers).
 
 ## A.3 Distinguished sets {.unnumbered}
 
 ### Empty set
 
-We use the notation $\emptyset$ for the unique *empty set* which
-contains no members.  In other words, for any $x$, we know $x \not\in
-\emptyset$.  That means the empty set is a subset of every other set
-$A$, $\emptyset \subseteq A$.
+We use the notation $\emptyset$ for the unique *empty set* which contains no members. In other words, for any $x$, we know $x \not\in \emptyset$. That means the empty set is a subset of every other set $A$, $\emptyset \subseteq A$.
 
 ### Universal set {.unnumbered}
 
-A *universal* set $\mathcal{U}$ is one such that for every set $A$
-under consideration in some context, we have
+A *universal* set $\mathcal{U}$ is one such that for every set $A$ under consideration in some context, we have
+
 $$
 A \subseteq \mathcal{U}.
 $$
-Depending on the sets under consideration, universal sets may not
-exist (in the sense of not being a set).  We will only be considering
-sets of numbers here rather than infinitely nested sets of sets, so
-most of the complications of more general set theory do not arise.
+
+Depending on the sets under consideration, universal sets may not exist (in the sense of not being a set). We will only be considering sets of numbers here rather than infinitely nested sets of sets, so most of the complications of more general set theory do not arise.
 
 ### Sets of numbers
 
-The symbol $\mathbb{Z}$ is conventionally used for the set of all
-*integers* (i.e., whole numbers).  The symbol $\mathbb{N}$ is used for
-the set of all *counting number*s (i.e., non-negative whole numbers).
-The symbol $\mathbb{R}$ is conventionally used for the set of all
-*real numbers*.  The symbol $\mathbb{C}$ is used for the set of all
-*complex numbers*.
+The symbol $\mathbb{Z}$ is conventionally used for the set of all *integers* (i.e., whole numbers). The symbol $\mathbb{N}$ is used for the set of all *counting number*s (i.e., non-negative whole numbers). The symbol $\mathbb{R}$ is conventionally used for the set of all *real numbers*.  The symbol $\mathbb{C}$ is used for the set of all *complex numbers*.
 
 ## A.4 Finite and infinite sets {.unnumbered}
 
-A set $s$ is *finite* if it can be written in the form $s = \{ x_0,
-x_1, \ldots, x_{n-1}\}$ for some $n \geq 0.$ If a set is not finite,
-it is *infinite*.
+A set $s$ is *finite* if it can be written in the form $s = \{ x_0, x_1, \ldots, x_{n-1}\}$ for some $n \geq 0$. If a set is not finite, it is *infinite*.
 
-The *size* of a finite set is the number of distinct members it has.
-For example, the set $s = \{ 1, 2, 3 \}$ has size 3.  It is standard
-to use absolute-value notation for the size of a set, for example,
+The *size* of a finite set is the number of distinct members it has. For example, the set $s = \{ 1, 2, 3 \}$ has size 3. It is standard to use absolute-value notation for the size of a set, for example,
+
 $$
 \left|  \{ 1, 2, 3 \} \right| = 3.
 $$
-In general, every finite set $s = \{ x_0, \ldots, x_{n-1} \}$ has size
-$n$.  The empty set $\emptyset$ has size 0.
 
-
+In general, every finite set $s = \{ x_0, \ldots, x_{n-1} \}$ has size $n$. The empty set $\emptyset$ has size 0.
 
 ## A.5 Comprehensions and power sets {.unnumbered}
 
-Comprehensions are a way to turn conditions into sets.  For example, I
-might take all the natural numbers that satisfy the condition of being
-odd or being less than 17 or both.  We use the standard
-*comprehension* notation,
+Comprehensions are a way to turn conditions into sets. For example, I might take all the natural numbers that satisfy the condition of being odd or being less than 17 or both. We use the standard *comprehension* notation,
+
 $$
 B = \{ x \in A \, : \, \phi(x) \},
 $$
-for the set $B$ that contains all of the elements of $A$ that satisfy
-the condition $\phi$.
 
-The set of all subsets of a set $A$ is called its *power set* and is
-defined by
+for the set $B$ that contains all of the elements of $A$ that satisfy the condition $\phi$.
+
+The set of all subsets of a set $A$ is called its *power set* and is defined by
+
 $$
 \textrm{pow}(A) = \{ B : B \subseteq A \}.
 $$
 
 #### Intervals
 
-Given a set of numbers $A,$ and two elements $a, b \in A,$ define
-the *open interval*
+Given a set of numbers $A$, and two elements $a, b \in A,$ define the *open interval*
+
 $$
 (a, b) = \{ x \in A : a < x \textrm{ and } x < b \},
 $$
+
 the *closed interval* includes he boundaries,
+
 $$
 [a, b] = \{ x \in A : a \leq x \textrm{ and } x \leq b \}.
 $$
-We can also have mixed intervals $(a, b]$ and $[a, b)$ defined in the
-obvious way.  This notation can be further extended to $\infty$ and
-$-\infty$ in the obvious way, e.g.,
+
+We can also have mixed intervals $(a, b]$ and $[a, b)$ defined in the obvious way. This notation can be further extended to $\infty$ and $-\infty$ in the obvious way, e.g.,
+
 $$
 (0, \infty) = \{ x : 0 < x \textrm{ and } x < \infty \},
 $$
-where $x < \infty$ holds for all $x.$  The closed interval
-$(0, \infty]$ does not make sense because $\infty$ is not a
-number and hence $\infty \not\in A.$
 
-In the discrete case, we often write $[a, b]$ as $a{:}b$ for
-the set $\{ a, a + 1, \ldots, b \}.$  This can be confusing because in
-some programming languages (MATLAB, R, Stan) $a:b$ is defined as
-above, whereas in Python it is defined to exclude the upper bound as
-$[a, b).$ 
+where $x < \infty$ holds for all $x$. The closed interval $(0, \infty]$ does not make sense because $\infty$ is not a number and hence $\infty \not\in A$.
 
+In the discrete case, we often write $[a, b]$ as $a{:}b$ for the set $\{ a, a + 1, \ldots, b \}$.  This can be confusing because in some programming languages (MATLAB, R, Stan) $a:b$ is defined as above, whereas in Python it is defined to exclude the upper bound as $[a, b)$. 
 
 ## A.6 Union, intersection, difference, and complement {.unnumbered}
 
-The *union* of two sets $A$ and $B$, written $A \cup B$, contains the
-elements that are in either set,
+The *union* of two sets $A$ and $B$, written $A \cup B$, contains the elements that are in either set,
+
 $$
 A \cup B = \{ x \, : \, x \in A \textrm{ or } x \in B \}.
 $$
-The *intersection* of two sets $A$ and $B$, written $A \cap B$, contains the
-elements that are in either set,
+
+The *intersection* of two sets $A$ and $B$, written $A \cap B$, contains the elements that are in either set,
+
 $$
 A \cap B = \{ x \, : \, x \in A \textrm{ and } x \in B \}.
 $$
-The set of sets under union and intersection form what is known as a
-*boolean algebra,* with intersection being like logical conjunction
-and union being like logical disjunction (and with complementation,
-defined below, being like logical negation).  So all of the logical
-laws of Boolean algebra follow for sets.  
 
-Both unions and intersections can be extended to infinite sets using
-subscript notation.  If $A_0, A_1, \ldots$ is an infinite sequence of
-sets, then
+The set of sets under union and intersection form what is known as a *boolean algebra*, with intersection being like logical conjunction and union being like logical disjunction (and with complementation, defined below, being like logical negation).  So all of the logical laws of Boolean algebra follow for sets.
+
+Both unions and intersections can be extended to infinite sets using subscript notation. If $A_0, A_1, \ldots$ is an infinite sequence of sets, then
+
 $$
-\bigcup_{n = 0}^{\infty} A_n = \{ x \, : \, x \in A_n \textrm{ for some }
-n < \infty \}
+\bigcup_{n = 0}^{\infty} A_n = \{ x \, : \, x \in A_n \textrm{ for some } n < \infty \}
 $$
+
 and
+
 $$
-\bigcap_{n = 0}^{\infty} A_n = \{ x \, : \, x \in A_n \textrm{ for all }
-n < \infty \}
+\bigcap_{n = 0}^{\infty} A_n = \{ x \, : \, x \in A_n \textrm{ for all } n < \infty \}
 $$
 
-If $A$ and $B$ are sets, then their *difference*, written $A \setminus
-B$, is the set of elements in $A$ that are not in $B$,
+If $A$ and $B$ are sets, then their *difference*, written $A \setminus B$, is the set of elements in $A$ that are not in $B$,
+
 $$
 A \setminus B = \{ x \in A \, : \, x \not\in B \}.
 $$
 
-If there is a universal set $\mathcal{U}$, the *complement* of the set
-$A$ is the set of elements in $\mathcal{U}$ that are not in $A$, 
+If there is a universal set $\mathcal{U}$, the *complement* of the set $A$ is the set of elements in $\mathcal{U}$ that are not in $A$, 
+
 $$
 A^\complement = \mathcal{U} \setminus A = \{ x \in \mathcal{U} \, : \, x \not\in A \}.
 $$
+
 The complement $A^\complement$ is sometimes written as $\bar{A}$.
 
-If we have a universal set $\mathcal{U}$, then we can use it to define
-difference in terms of complementation through
+If we have a universal set $\mathcal{U}$, then we can use it to define difference in terms of complementation through
+
 $$
 A \setminus B = A \cap B^\complement.
 $$
@@ -4548,18 +4466,12 @@ $$
 
 ## A.7 Disjointness and partitions {.unnumbered}
 
-A pair of sets $A$ and $B$ are *disjoint* if $A \cap B = \emptyset$.
-Disjoint sets share no elements in the sense that if $A$ and $B$ are
-disjoint, there is no element $x \in A$ such that $x \in B.$
+A pair of sets $A$ and $B$ are *disjoint* if $A \cap B = \emptyset$. Disjoint sets share no elements in the sense that if $A$ and $B$ are disjoint, there is no element $x \in A$ such that $x \in B$.
 
-A potentially infinite sequence of sets $A_0, A_1, \ldots$ is *pairwise
-disjoint* if for every $i, j < \infty$, $A_i$ and $A_j$ are
-disjoint, $A_i \cap A_j = \emptyset$.  In a sequence of pairwise
-disjoint sets, each element of their union appears in exactly one of
-the sets in the sequence.
+A potentially infinite sequence of sets $A_0, A_1, \ldots$ is *pairwise disjoint* if for every $i, j < \infty$, $A_i$ and $A_j$ are disjoint, $A_i \cap A_j = \emptyset$. In a sequence of pairwise disjoint sets, each element of their union appears in exactly one of the sets in the sequence.
 
-A pairwise disjoint sequence of sets $B_0, B_1, \ldots$ is
-a *partition* of a set $A$ if
+A pairwise disjoint sequence of sets $B_0, B_1, \ldots$ is a *partition* of a set $A$ if
+
 $$
 A = \bigcup_{n < \infty} B_n.
 $$
@@ -4570,40 +4482,45 @@ $$
 ### Commutativity
 
 Set operations are *commutative*, meaning that for all sets $A$ and $B$,
+
 $$
 A \cup B = B \cup A
 $$
+
 and
+
 $$
 A \cap B = B \cap A.
 $$
 
 ### Associativity
 
-Set operations are *associative*, meaning that for all sets $A$, $B$,
-and $C$,
+Set operations are *associative*, meaning that for all sets $A$, $B$, and $C$,
+
 $$
 (A \cup B) \cup C = A \cup (B \cup C)
 $$
+
 and
+
 $$
 (A \cap B) \cap C = A \cap (B \cap C).
 $$
 
 ### Distributivity
 
-The intersection operation is *distributive* with respect to the union
-operation, so that for all sets $A$, $B$, and $C$,
+The intersection operation is *distributive* with respect to the union operation, so that for all sets $A$, $B$, and $C$,
+
 $$
 A \cap (B \cup C) = (A \cap B) \cup (A \cap C).
 $$
-Because of commutativity, this also holds on the right for $(B \cup C)
-\cap A$.
+
+Because of commutativity, this also holds on the right for $(B \cup C) \cap A$.
 
 ### Involutivity
 
-The complementation operation is an *involution* (i.e., equal to its
-own inverse), so that for all sets $A$,
+The complementation operation is an *involution* (i.e., equal to its own inverse), so that for all sets $A$,
+
 $$
 \left(A^\complement\right)^{\complement} = A.
 $$
@@ -4611,11 +4528,13 @@ $$
 ### Identities
 
 The empty set is a left and right *identity* for union, so that for all sets $A$,
+
 $$
 \emptyset \cup A \ = \ A \cup \emptyset \ = \ A.
 $$
-If there is a universal set $\mathcal{U}$, it is an identity for
-intersection, so that for all sets $A$,
+
+If there is a universal set $\mathcal{U}$, it is an identity for intersection, so that for all sets $A$,
+
 $$
 \mathcal{U} \cap A \ = \ A \cap \mathcal{U} \ = \ A.
 $$
@@ -4623,11 +4542,13 @@ $$
 ### Zeroes
 
 The empty set is a *zero* for intersection, so that for all sets $A$,
+
 $$
 \emptyset \cap A \ = \ A \cap \emptyset \ = \ \emptyset.
 $$
-The universal set, if it exists, is a *zero* for union, so that for
-all sets $A$,
+
+The universal set, if it exists, is a *zero* for union, so that for all sets $A$,
+
 $$
 \mathcal{U} \cup A \ = \ A \cup \mathcal{U} \ = \ \mathcal{U}.
 $$
@@ -4635,33 +4556,35 @@ $$
 ### Idempotence
 
 The union and intersection operations are *idempotent*, so that for all sets $A$,
+
 $$
 A \cup A = A
 $$
+
 and
+
 $$
 A \cap A = A.
 $$
 
 ### De Morgan's law
 
-*De Morgan's law* relates complementation, intersection, and union,
-where for all sets $A$, $B$, and $C$,
+*De Morgan's law* relates complementation, intersection, and union, where for all sets $A$, $B$, and $C$,
+
 $$
-\left(A \cup B\right)^\complement
-= A^\complement \cap B^\complement.
+\left(A \cup B\right)^\complement = A^\complement \cap B^\complement.
 $$
+
 It follows that
+
 $$
-\left(A \cap B\right)^\complement
-= A^\complement \cup B^\complement.
+\left(A \cap B\right)^\complement = A^\complement \cup B^\complement.
 $$
+
 De Morgan's law can be extended to the countably infinite case,
+
 $$
-\bigcap_{n \in \mathbb{N}} A_n
-= \left(
-\bigcup_{n \in \mathbb{N}} A_n^\complement
-\right)^{\complement}.
+\bigcap_{n \in \mathbb{N}} A_n = \left(\bigcup_{n \in \mathbb{N}} A_n^\complement\right)^{\complement}.
 $$
 
 
@@ -4669,212 +4592,160 @@ $$
 
 ### Tuples
 
-Given elements from two sets, $a \in A$ and $b \in B$, we write $(a,
-b)$ for the *tuple* consisting of the pair $a$ and $b$ *in that
-order* (we stress the ordering to distinguish tuples from sets).
-The identity condition for tuples are that $(a, b) = (a', b')$ if and
-only if $a = a'$ and $b = b'.$  That means that if $a \neq b,$ then $(a,
-b) \neq (b, a).$
+Given elements from two sets, $a \in A$ and $b \in B$, we write $(a, b)$ for the *tuple* consisting of the pair $a$ and $b$ *in that order* (we stress the ordering to distinguish tuples from sets). The identity condition for tuples are that $(a, b) = (a', b')$ if and only if $a = a'$ and $b = b'.$  That means that if $a \neq b,$ then $(a, b) \neq (b, a).$
 
-Given a tuple $(a, b),$ there are two *projection functions,*
+Given a tuple $(a, b),$ there are two *projection functions*,
+
 $$
 \pi_1((a, b)) = a
 \qquad
 \pi_2((a, b)) = b.
 $$
-that pick out the elements.  Thus for any tuple $x,$ we have
-$x = (\pi_1(x), \pi_2(x)).$
 
-Tuples with two elements are called *pairs.* The tuple construction
-can be extended to any number of elements inductively.  For example,
-we can construct *3-tuples$ $(a, (b, c))$ by combining an element $a$
-and a pair $(b, c)$.  We conventionally write a 3-tuple as $(a, b,
-c).$  Longer $n$-*tuples* can be constructed in the same way.
+that pick out the elements.  Thus for any tuple $x,$ we have $x = (\pi_1(x), \pi_2(x)).$
+
+Tuples with two elements are called *pairs*. The tuple construction can be extended to any number of elements inductively. For example, we can construct 3-tuples $(a, (b, c))$ by combining an element $a$ and a pair $(b, c)$. We conventionally write a 3-tuple as $(a, b, c)$. Longer $n$-*tuples* can be constructed in the same way.
 
 ### Cross products and exponents
 
-The *cross product* of two sets $A$ and $B$ is written $A \times B$ and
-defined to be the set of tuples formed from $A$ and $B,$
+The *cross product* of two sets $A$ and $B$ is written $A \times B$ and defined to be the set of tuples formed from $A$ and $B$,
+
 $$
 A \times B = \{ (a, b) : a \in A, b \in B \}.
 $$
-This notion can be extended to any number of sets by taking the
-operator to be left associative and setting,
+
+This notion can be extended to any number of sets by taking the operator to be left associative and setting,
+
 $$
 A_1 \times A_2 \times \cdots A_N = A_1 \times (A_2 \times \cdots A_N).
 $$
 
-For the cross product of a set $A$ with itself $n \in N$ times, we
-define the *set exponent* as 
+For the cross product of a set $A$ with itself $n \in N$ times, we define the *set exponent* as 
+
 $$
 A^n = \underbrace{A \times \cdot \times A}_{n \textrm{ times}}.
 $$
 
 ### Relations
 
-A *relation* between the sets $A$ and $B$ is a set $R \subseteq A
-\times B.$ For example, the comparison operator $<$ defines a
-relation over the natural numbers by
+A *relation* between the sets $A$ and $B$ is a set $R \subseteq A \times B$. For example, the comparison operator $<$ defines a relation over the natural numbers by
+
 $$
 L = \{ (x, y) \in \mathbb{N} \times \mathbb{N} : x \leq y \}
 = \{ (0, 1), (0, 2), (1, 2), (0, 3), (1, 3), (2, 3), \ldots \}.
 $$
-It is a curious fact of empty sets that $\mathbb{N} \times \mathbb{N}$
-is the same size as $\mathbb{N}$---the above ordering is a hint as to
-how to lay out the pairs in a linear sequence.
 
-A relation $R$ is *symmetric* if $(a, b) \in R$
-implies $(b, a) \in R$. The inequality relation is not symmetric, but
-the equality relation $E = \{ (x, x) \in \mathbb{R} \times \mathbb{R}
-: x \in \mathbb{R} \}$ is.
+It is a curious fact of empty sets that $\mathbb{N} \times \mathbb{N}$ is the same size as $\mathbb{N}$---the above ordering is a hint as to how to lay out the pairs in a linear sequence.
 
-A relation $R$ is *transitive* if $(a, b) \in R$ and $(b,
-c) \in R$ implies $(a, c) \in R.$ Both equality and inequality are
-transitive relations, but the within unit distance relation
-$W = \{ (x, y) \in \mathbb{R} \times \mathbb{R} : | x - y | \leq 1 \}$
+A relation $R$ is *symmetric* if $(a, b) \in R$ implies $(b, a) \in R$. The inequality relation is not symmetric, but the equality relation $E = \{ (x, x) \in \mathbb{R} \times \mathbb{R} : x \in \mathbb{R} \}$ is.
+
+A relation $R$ is *transitive* if $(a, b) \in R$ and $(b, c) \in R$ implies $(a, c) \in R$. Both equality and inequality are transitive relations, but the within unit distance relation $W = \{ (x, y) \in \mathbb{R} \times \mathbb{R} : | x - y | \leq 1 \}$
 is not.
 
-If $R$ and $T$ are relations, then their *composition* $R \circ T$ is
-defined by
+If $R$ and $T$ are relations, then their *composition* $R \circ T$ is defined by
+
 $$
 R \circ T = \{ (a, c) : (a, b) \in R, (b, c) \in T \}.
 $$
-Thus a relation $R$ is transitive if $R \circ R = R.$
 
-The *inverse* of a relation $R \subseteq A \times B$ is the relation
-$R^{-1} \subseteq B \times A$ defined by $(b, a) \in R^{-1}$ if and
-only if $(a, b) \in R.$
+Thus a relation $R$ is transitive if $R \circ R = R$.
 
-There is nomenclature around many particular kinds of relations over a
-set $A,$ i.e., relations $R \subseteq A \times A.$
+The *inverse* of a relation $R \subseteq A \times B$ is the relation $R^{-1} \subseteq B \times A$ defined by $(b, a) \in R^{-1}$ if and only if $(a, b) \in R$.
 
-* $R$ is *transitive* if $(x, y), (y, z) \in R$ implies $(x, z) \in
- R,$ or equivalently, $R = R \circ R.$
+There is nomenclature around many particular kinds of relations over a set $A$, i.e., relations $R \subseteq A \times A$.
 
-* $R$ is *symmetric* if $(x, y) \in R$
-implies $(y, x) \in R,$ or equivalently, $R = R^{-1}.$
-
-* $R$ is *antisymmmetric* if $(x, y), (y, x) \in R$ implies
-$x = y.$
-
-* $R$ is *total* if for all $x, y \in A,$ $(x, y) \in A$ or $(y, x)
-  \in A.$
-
-* $R$ is *reflexive* if $(x, x) \in R$ for all $x \in A.$
-
+* $R$ is *transitive* if $(x, y), (y, z) \in R$ implies $(x, z) \in  R$, or equivalently, $R = R \circ R$.
+* $R$ is *symmetric* if $(x, y) \in R$ implies $(y, x) \in R$, or equivalently, $R = R^{-1}$.
+* $R$ is *antisymmmetric* if $(x, y), (y, x) \in R$ implies $x = y$.
+* $R$ is *total* if for all $x, y \in A,$ $(x, y) \in A$ or $(y, x) \in A$.
+* $R$ is *reflexive* if $(x, x) \in R$ for all $x \in A$.
 * $R$ is a *preorder* if it is reflexive and transitive.
-
-* $R$ is an *equivalence relation* if is
-reflexive, symmetric, and transitive.
-
-* $R$ is a *partial order* if it is reflexive, antisymmetric, and
-  transitive.
-
+* $R$ is an *equivalence relation* if is reflexive, symmetric, and transitive.
+* $R$ is a *partial order* if it is reflexive, antisymmetric, and transitive.
 * $R$ is a *total order* if it is a partial order and total.
+* $R$ is the *identity relation* if $R(x, y)$ if and only if $x = y$.
 
-* $R$ is the *identity relation* if $R(x, y)$ if and only if $x = y.$
+Given a partition of a set, the corresponding equivalence relation equates pairs of items if and only if they are in the same set.
 
-Given a partition of a set, the corresponding equivalence relation
-equates pairs of items if and only if they are in the same set.
-
-A relation $R \subseteq A \times A$ may be *closed* under relations
-such as the above by taking the smallest relation containing $R$ and
-satisfying the relation.  
+A relation $R \subseteq A \times A$ may be *closed* under relations such as the above by taking the smallest relation containing $R$ and satisfying the relation.  
 
 <div class="example-text">
-*Example.*  The transitive closure of a relation $R \subseteq A \times
-A$ can be defined inductively.  Let
+
+*Example.* The transitive closure of a relation $R \subseteq A \times A$ can be defined inductively. Let
+
 $$
 R^0 = \{ (a, a) : a \in A \}
 $$
+
 be the identity relation and let 
+
 $$
 R^{n + 1} = R \circ R^n
 $$
-be the one-step closure of $R^n$ (i.e., $(x, z) \in R^{n + 1}$ if $(x,
-y) \in R$ and $(y, z) \in R^n$), then define the *transitive closure*
-of $R$ to be
+
+be the one-step closure of $R^n$ (i.e., $(x, z) \in R^{n + 1}$ if $(x, y) \in R$ and $(y, z) \in R^n$), then define the *transitive closure* of $R$ to be
+
 $$
 \textrm{tr}(R)
 = \bigcup_{n \in \mathbb{N}} R^n
 = \lim_{n \rightarrow \infty} R^n.
 $$
-</div>
 
+</div>
 
 ## A.10 Functions {.unnumbered}
 
-A relation $f \subseteq A \times B$ is a *function* if for
-every $a \in A$ there is exactly one $b \in B$ such that $(a, b) \in
-f.$  If $(a, b) \in f$ we write $f(a) = b$ and say $a$ *maps to* $b.$
-If $f \subseteq A \times B$ is a function, we write $f:A \rightarrow
-B$.
+A relation $f \subseteq A \times B$ is a *function* if for every $a \in A$ there is exactly one $b \in B$ such that $(a, b) \in f$.  If $(a, b) \in f$ we write $f(a) = b$ and say $a$ *maps to* $b$. If $f \subseteq A \times B$ is a function, we write $f:A \rightarrow B$.
 
-Given two sets $A$ and $B,$ the set of functions from $A$ to $B$ is
-written as $B^A,$ and defined by
+Given two sets $A$ and $B$, the set of functions from $A$ to $B$ is written as $B^A$, and defined by
+
 $$
 B^A = \{ f : f:A \rightarrow B \textrm{ is a function} \}.
 $$
 
 ### Domains and ranges
 
-If $f:A \rightarrow B$ is a function, it *domain* is $A$ and its
-*codomain* is $B.$ The *range* of a function is the set of values that
-result from applying the function to elements of $A.$ If we define
-$f:\mathbb{R} \rightarrow \mathbb{R}$ by $f(x) = x^2,$ then the
-codomain is $\mathbb{R},$ but the range is $(0, \infty).$ The range of
-a function is always a subset of its codomain.
+If $f:A \rightarrow B$ is a function, it *domain* is $A$ and its *codomain* is $B.$ The *range* of a function is the set of values that result from applying the function to elements of $A.$ If we define $f:\mathbb{R} \rightarrow \mathbb{R}$ by $f(x) = x^2,$ then the codomain is $\mathbb{R},$ but the range is $(0, \infty).$ The range of a function is always a subset of its codomain.
 
 Given a function, its domain is
+
 $$
 \textrm{dom}(f) = \{ x : (x, y) \in f \} = A,
 $$
+
 and its range is
+
 $$
 \textrm{rng}(f) = \{ y : (x, y) \in f \},
 $$
-but we cannot infer its codomain from its members.  The codomain only
-matters in a higher-level context in which the function is considered
-a member of a larger family of functions.
 
+but we cannot infer its codomain from its members. The codomain only matters in a higher-level context in which the function is considered a member of a larger family of functions.
 
 
 ### Composition
 
-If $f:A \rightarrow B$ and $g:B \rightarrow C$ are functions, then
-their composition $g \circ f:A \rightarrow C$ is also a function, and
-satisfies $(g \circ f)(a) = g(f(a)).$
+If $f:A \rightarrow B$ and $g:B \rightarrow C$ are functions, then their composition $g \circ f:A \rightarrow C$ is also a function, and satisfies $(g \circ f)(a) = g(f(a))$.
 
 ### Injective, surjective, and bijective functions
 
 A function $f : A \rightarrow B$ is
 
-* *injective* (aka one-to-one) if $a \neq b$ implies $f(a) \neq f(b),$
-* *surjective* (aka onto) if $B = \textrm{range}(B),$ and 
+* *injective* (aka one-to-one) if $a \neq b$ implies $f(a) \neq f(b)$,
+* *surjective* (aka onto) if $B = \textrm{range}(B)$, and 
 * *bijective* if it is both injective and surjective.
 
-Functions satisfying these properties are called *injections,*
-*surjections,* and *bijections.*  A function that is not injective is
-said to be *many to one*.
+Functions satisfying these properties are called *injections*, *surjections,* and *bijections*. A function that is not injective is said to be *many to one*.
 
 ### Inverse functions
 
-If $f:A \rightarrow B$ is a bijection, it has an *inverse* $f^{-}:B
-\rightarrow A$ defined so that $f^{-1}(b) = a$ if $f(a) = b.$ This is
-just its inverse as a relation.  The composition of a function with
-its inverse or vice-versa is the identity function, $f \circ f^{-} =
-\textrm{id},$ $f^{-} \circ f = \textrm{id}.$ Thus for a bijection $f:A
-\rightarrow B,$ we have $f^{-1}(f(a)) = a$ for all $a \in A$ and
-$f(f^{-}(b)) = b$ for all $b \in B.$
+If $f:A \rightarrow B$ is a bijection, it has an *inverse* $f^{-}:B \rightarrow A$ defined so that $f^{-1}(b) = a$ if $f(a) = b$. This is just its inverse as a relation. The composition of a function with its inverse or vice-versa is the identity function, $f \circ f^{-} = \textrm{id},$ $f^{-} \circ f = \textrm{id}$. Thus for a bijection $f:A \rightarrow B,$ we have $f^{-1}(f(a)) = a$ for all $a \in A$ and $f(f^{-}(b)) = b$ for all $b \in B$.
 
 ### Special functions
 
-For a given set $A$, the *identity function* $\textrm{id}_A:A
-\rightarrow A$ maps each element to itself, i.e., $\textrm{id}_A(a) =
-a.$.  We usually drop the subscript and just write $\textrm{id}.$
+For a given set $A$, the *identity function* $\textrm{id}_A:A \rightarrow A$ maps each element to itself, i.e., $\textrm{id}_A(a) = a$.  We usually drop the subscript and just write $\textrm{id}$.
 
-For any set $A$, the *indicator function* $\textrm{I}_A$ is defined so
-that
+For any set $A$, the *indicator function* $\textrm{I}_A$ is defined so that
+
 $$
 \textrm{I}_A(x)
 = \begin{cases}
@@ -4883,403 +4754,308 @@ $$
 0 & \textrm{otherwise}.
 \end{cases}
 $$
-Another common notation for power sets is $\mathbf{2}^A,$ which
-follows from the set-theoretic notation $B^A$ for the set of all
-functions from $A$ to $B$ and the notation $\mathbf{2} = \{ 0, 1 \}$ for the
-two-element set denoting truth values, so that $\mathbf{2}^A$ is the
-set of all indicator functions, which stands in a bijective relation
-to the sets.
+
+Another common notation for power sets is $\mathbf{2}^A$, which follows from the set-theoretic notation $B^A$ for the set of all
+functions from $A$ to $B$ and the notation $\mathbf{2} = \{ 0, 1 \}$ for the two-element set denoting truth values, so that $\mathbf{2}^A$ is the set of all indicator functions, which stands in a bijective relation to the sets.
 
 
 ### Metrics
 
-A *distance metric* (or just *metric*) over a set $A$ is a function
-$d:(A \times A) \rightarrow \mathbb{R}$ satisfying
+A *distance metric* (or just *metric*) over a set $A$ is a function $d:(A \times A) \rightarrow \mathbb{R}$ satisfying
 
-* *non-negativity*: $d(x, y) \geq 0$ for all $x, y \in A,$
-
-* *identity of indiscernibles*: $d(x, y) = 0$ implies $x = y,$
-
+* *non-negativity*: $d(x, y) \geq 0$ for all $x, y \in A$,
+* *identity of indiscernibles*: $d(x, y) = 0$ implies $x = y$,
 * *symmetry*: $d(x, y) = d(y, x),$ and the
-
-* *triangle inequaltiy*: $d(x, y) + d(y, z) \geq d(x, z)$ for all $x,
-   y, z \in A.$
-
+* *triangle inequaltiy*: $d(x, y) + d(y, z) \geq d(x, z)$ for all $x, y, z \in A$.
 
 
 ## A.11 Countable and uncountable sets {.unnumbered}
 
-We can define finiteness more directly by taking $A$ to be *finite* if
-there exists a number $n \in \mathbb{N}$ and a bijection from $\{ 0,
-1, \ldots, n - 1 \}$ to $A.$ The number $n$ is the *size* of the set.  A
-set is *infinite* if it is not finite.
+We can define finiteness more directly by taking $A$ to be *finite* if there exists a number $n \in \mathbb{N}$ and a bijection from $\{ 0, 1, \ldots, n - 1 \}$ to $A.$ The number $n$ is the *size* of the set. A set is *infinite* if it is not finite.
 
-A set $A$ is *countable* if there is a surjection from the counting
-numbers $\mathbb{N}$ to $A$ and is *uncountable* otherwise.  If there
-is a surjection from $\mathbb{N}$ to $A$ then what we have done is
-assigned a counting number to every element of $A.$  
+A set $A$ is *countable* if there is a surjection from the counting numbers $\mathbb{N}$ to $A$ and is *uncountable* otherwise.  If there is a surjection from $\mathbb{N}$ to $A$ then what we have done is assigned a counting number to every element of $A.$  
 
-A countable set may be either finite or infinite.  It can be shown
-that the integers $\mathbb{Z}$ are countable and the set of real
+A countable set may be either finite or infinite. It can be shown that the integers $\mathbb{Z}$ are countable and the set of real
 numbers $\mathbb{R}$ is uncountable.
 
 
 # B. Probability theory {.unnumbered}
 
-The goal of this overview is to provide precise definitions of those
-aspects of probability theory required to understand the operations
-used in applied Bayesian statistics.  This introduction is
-measure-theoretic only insofar as is required to write down precise
-definitions of notions like random variables---it turns out to be
-quite tricky to define a consistent notion of event probability over
-continuous sample spaces due to the often counter-intuitive results of
-real analysis.
+The goal of this overview is to provide precise definitions of those aspects of probability theory required to understand the operations used in applied Bayesian statistics. This introduction is measure-theoretic only insofar as is required to write down precise definitions of notions like random variables---it turns out to be quite tricky to define a consistent notion of event probability over continuous sample spaces due to the often counter-intuitive results of real analysis.
 
-The presentation here was heavily influenced by an appendix to
-@anderson1979's book [*Optimal
-Filtering*](http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF),
-(Appendix A, "Brief Review of Results of Probability Theory") and by
-@rosenthal2006's book [*A First Look at Rigorous Probability
-Theory*](http://probability.ca/jeff/grprobbook.html).
+The presentation here was heavily influenced by an appendix to @anderson1979's book [*Optimal Filtering*](http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF), (Appendix A, "Brief Review of Results of Probability Theory") and by @rosenthal2006's book [*A First Look at Rigorous Probability Theory*](http://probability.ca/jeff/grprobbook.html).
 
 ## B.1 Probability spaces {.unnumbered}
 
 ### Sample spaces and $\sigma$-algebras
 
-A _sample space_ is a non-empty set $\Omega$, the members of which are
-called *outcomes* because they represent possible ways the world might
-be (i.e., what are sometimes known as "possible worlds").
+A *sample space* is a non-empty set $\Omega$, the members of which are called *outcomes* because they represent possible ways the world might be (i.e., what are sometimes known as "possible worlds").
 
-A _$\sigma$-algebra_ $\mathcal{S}$ is a set of subsets of $\Omega$,
-$\mathcal{S} \subseteq \textrm{pow}(\Omega)$, that 
+A $\sigma$*-algebra* $\mathcal{S}$ is a set of subsets of $\Omega$, $\mathcal{S} \subseteq \textrm{pow}(\Omega)$, that 
 
 * contains the *empty set*: $\emptyset \in \mathcal{S}$,
-* is *closed under complements*: if $A \in \mathcal{S},$ then $A^{\complement}
-\in \mathcal{S}$, and
-* is *closed under countable unions*: if $A_n \in \mathcal{S}$ for $n \in \mathbb{N},$
-then $\bigcup_{n=0}^N A_n \in \mathcal{S}$.
+* is *closed under complements*: if $A \in \mathcal{S},$ then $A^{\complement} \in \mathcal{S}$, and
+* is *closed under countable unions*: if $A_n \in \mathcal{S}$ for $n \in \mathbb{N}$, then $\bigcup_{n=0}^N A_n \in \mathcal{S}$.
 
-We are defining a more general class of $\sigma$-algebras to pull out
-a class of sets of outcomes that can have probabilities assigned to
-them.  It turns out that due to the vagaries of real analysis, it is
-not consistent to assign probabilities to arbitrary subsets of real
-numbers.  So even though power sets form $\sigma$-algebras, they do
-not form the kind of $\sigma$-algebra we need to do continuous
-statistics.  We provide an example of a Borel algebra for that below.
+We are defining a more general class of $\sigma$-algebras to pull out a class of sets of outcomes that can have probabilities assigned to them. It turns out that due to the vagaries of real analysis, it is not consistent to assign probabilities to arbitrary subsets of real numbers. So even though power sets form $\sigma$-algebras, they do not form the kind of $\sigma$-algebra we need to do continuous statistics. We provide an example of a Borel algebra for that below.
 
-Because $\emptyset \in \mathcal{S}$, its complement $\Omega =
-\emptyset^{\complement} \in \mathcal{S}$.  Closure under countable
+Because $\emptyset \in \mathcal{S}$, its complement $\Omega = \emptyset^{\complement} \in \mathcal{S}$. Closure under countable
 intersections follows from De Morgan's law.
 
-We will use the sets $A$ to represent sets of possible outcomes in
-$\Omega,$ so a set of possible outcomes $A \cup B$ is such that $x \in
-A \cup B$ if and only if $x \in A$ \textit{or} $x \in B$.  Similarly a
-complement $A^\complement$ is the set of all outcomes that are *not*
-in $A$.  Similarly, the set $\emptyset$ represents an impossible set
-of incomes because there is no outcome $\omega$ such that $\omega \in
-\emptyset.$ The set $\Omega$ is the universal set in the sense that
-every outcome $\omega$ is such that $\omega \in \Omega$.
+We will use the sets $A$ to represent sets of possible outcomes in $\Omega,$ so a set of possible outcomes $A \cup B$ is such that $x \in A \cup B$ if and only if $x \in A \text{ or }  x \in B$. Similarly a complement $A^\complement$ is the set of all outcomes that are *not* in $A$. Similarly, the set $\emptyset$ represents an impossible set of incomes because there is no outcome $\omega$ such that $\omega \in \emptyset$. The set $\Omega$ is the universal set in the sense that every outcome $\omega$ is such that $\omega \in \Omega$.
 
-For applied statistics, we can restrict our attention to sample spaces
-$\Omega \subseteq \mathbb{R}^N$.
+For applied statistics, we can restrict our attention to sample spaces $\Omega \subseteq \mathbb{R}^N$.
 
 <div class="example-text">
-*Example 1(a)*: The power set of any non-empty set contains the empty set
-and is closed under complementation and countable unions, and is hence
-a $\sigma$-algebra.  The trivial case has a singleton sample space
-$\Omega = \{ 0 \}$, with $\sigma$-algebra $\mathcal{S} = \left\{ \{\},
-\{ 0 \} \right\}$. The simplest non-trivial example has a binary
-sample space $\Omega = \{ 0, 1 \}$, with $\sigma$-algebra $\mathcal{S}
-= \left\{ \{\}, \{ 0 \}, \{ 1 \}, \{ 0, 1 \} \right\}$.
+
+*Example 1(a)*: The power set of any non-empty set contains the empty set and is closed under complementation and countable unions, and is hence a $\sigma$-algebra. The trivial case has a singleton sample space $\Omega = \{ 0 \}$, with $\sigma$-algebra $\mathcal{S} = \left\{ \{\},\{ 0 \} \right\}$. The simplest non-trivial example has a binary sample space $\Omega = \{ 0, 1 \}$, with $\sigma$-algebra $\mathcal{S} = \left\{ \{\}, \{ 0 \}, \{ 1 \}, \{ 0, 1 \} \right\}$.
+
 </div>
 
 <div class="example-text">
-*Example 1(b)*: As an example of a countably infinite sample space, we can
-take the power set of the natural numbers, $\Omega =
-\textrm{pow}(\mathbb{N}),$ which is not only a $\sigma$-algebra, but a
-complete, atomic, boolean algebra.
+
+*Example 1(b)*: As an example of a countably infinite sample space, we can take the power set of the natural numbers, $\Omega = \textrm{pow}(\mathbb{N})$, which is not only a $\sigma$-algebra, but a complete, atomic, boolean algebra.
+
 </div>
 
 <div class="example-text">
-*Example 1(c)*:  Not all discrete $\sigma$-algebras are power set
-algebras.  For example, with $\Omega = \{ 0, 1, 2, 3 \},$ there
+
+*Example 1(c)*:  Not all discrete $\sigma$-algebras are power set algebras.  For example, with $\Omega = \{ 0, 1, 2, 3 \},$ there
 is a $\sigma$-algebra
+
 $$
-\mathcal{S} = \{ \emptyset, \{0, 2 \}, \{ 1, 3 \}, \{ 0, 1, 2, 3 4 \}
-\}.
+\mathcal{S} = \{ \emptyset, \{0, 2 \}, \{ 1, 3 \}, \{ 0, 1, 2, 3 4 \}\}.
 $$
-The $\sigma$-algebra $\mathcal{S}$ is closed under complements and
-finite unions, but it does not include the atomic events $\{ 0 \}, \{
-1 \}, \{ 2 \},$ and $\{ 3 \}.$
+
+The $\sigma$-algebra $\mathcal{S}$ is closed under complements and finite unions, but it does not include the atomic events $\{ 0 \}, \{ 1 \}, \{ 2 \},$ and $\{ 3 \}$.
+
 </div>
 
 <div class="example-text">
-*Example 2(a)*: A simple continuous example takes a sample space
-$\Omega = (0, 1)$ and defines $\mathcal{S}$ to be the smallest
-$\sigma$-algebra containing the open intervals $(a, b) \subseteq
-\Omega$ (i.e., $0 < a < b < 1$) and closed under complements and
-countable unions.  The smallest $\sigma$-algebra
-containing the open sets of a sample space is called a *Borel
-algebra* and can be shown to exist.  This $\sigma$-algebra 
-contains all of the singletons, because $\{ a \} =
-((0, a) \cup (a, 1))^{\complement}.$ 
+
+*Example 2(a)*: A simple continuous example takes a sample space $\Omega = (0, 1)$ and defines $\mathcal{S}$ to be the smallest
+$\sigma$-algebra containing the open intervals $(a, b) \subseteq \Omega$ (i.e., $0 < a < b < 1$) and closed under complements and
+countable unions. The smallest $\sigma$-algebra containing the open sets of a sample space is called a *Borel algebra* and can be shown to exist. This $\sigma$-algebra contains all of the singletons, because $\{ a \} = ((0, a) \cup (a, 1))^{\complement}$. 
+
 </div>
 
 <div class="example-text">
-*Example 2(b)*: Another example of a Borel algebra is the closure of
-the open intervals over the entire real line, $\Omega = \mathbb{R}$.
+
+*Example 2(b)*: Another example of a Borel algebra is the closure of the open intervals over the entire real line, $\Omega = \mathbb{R}$.
+
 </div>
 
 <div class="example-text">
-*Example 3*: If $\mathcal{S}_1$ and $\mathcal{S}_2$ are
-$\sigma$-algebras over $\Omega_1$ and $\Omega_2$, then
-the product space $\mathcal{S} = \left\{ A_1 \times A_2 : A_1 \in \mathcal{S}_1 \
-\textrm{and} \ A_2 \in \mathcal{S}_2 \right\}$ is a $\sigma$-algebra
-over $\Omega = \Omega_1 \times \Omega_2.$
+
+*Example 3*: If $\mathcal{S}_1$ and $\mathcal{S}_2$ are $\sigma$-algebras over $\Omega_1$ and $\Omega_2$, then the product space $\mathcal{S} = \left\{ A_1 \times A_2 : A_1 \in \mathcal{S}_1 \text{ and } \ A_2 \in \mathcal{S}_2 \right\}$ is a $\sigma$-algebra over $\Omega = \Omega_1 \times \Omega_2$.
+
 </div>
 
 
 ### Measures and probability spaces
 
-Probability measures are measures where the sample space is normalized
-to have unit measure. A _probability measure_ over a $\sigma$-algebra
-$\mathcal{S}$ is a function $\Pr: \mathcal{S} \rightarrow [0, 1]$ such
-that for all $A, B_n \in \mathcal{S},$
+Probability measures are measures where the sample space is normalized to have unit measure. A _probability measure_ over a $\sigma$-algebra $\mathcal{S}$ is a function $\Pr: \mathcal{S} \rightarrow [0, 1]$ such that for all $A, B_n \in \mathcal{S},$
 
 * *sample space unit probability*: $\Pr[\Omega] = 1$,
 * *non-negativity*: if $A \in \mathcal{S}$, then $\Pr[A] \geq 0$, and
-* *countable additivity*: if $A_n \in \mathcal{S}$ for $n \in
-\mathbb{N}$ is a sequence of pairwise disjoint sets (i.e., $A_i \cap A_j =
-\emptyset$ if $i \neq j$), then
+* *countable additivity*: if $A_n \in \mathcal{S}$ for $n \in \mathbb{N}$ is a sequence of pairwise disjoint sets (i.e., $A_i \cap A_j = \emptyset$ if $i \neq j$), then
+
 $$
 \Pr\!\left[\bigcup_{n = 0}^\infty A_n\right] = \sum_{n=0}^\infty \Pr\!\left[A_n\right].
 $$
 
-The sample space $\Omega$ with a probability measure $\Pr$ over the
-$\sigma$-algebra $\mathcal{S}$ together make up the *probability
-space* $(\Omega, \mathcal{S}, \Pr)$.
+The sample space $\Omega$ with a probability measure $\Pr$ over the $\sigma$-algebra $\mathcal{S}$ together make up the *probability space* $(\Omega, \mathcal{S}, \Pr)$.
 
-In analysis, if $\mathcal{S}$ is a $\sigma$-algebra, an element $A \in
-\mathcal{S}$ is said to be a *Borel set.* If the $\sigma$-algebra is
-endowed with a measure, as in a probability space, an element of the
-$\sigma$-algebra is said to be a *measurable set.* Measurable sets $A
-\in \mathcal{S}$ are also called *events* because they have a
-well-defined probability $\Pr[A]$ of occurring.
+In analysis, if $\mathcal{S}$ is a $\sigma$-algebra, an element $A \in \mathcal{S}$ is said to be a *Borel set*. If the $\sigma$-algebra is endowed with a measure, as in a probability space, an element of the $\sigma$-algebra is said to be a *measurable set*. Measurable sets $A \in \mathcal{S}$ are also called *events* because they have a well-defined probability $\Pr[A]$ of occurring.
 
-Because for any event $A,$ $A^\complement \cup A = \Omega$, it follows
-from countable additivity that
+Because for any event $A,$ $A^\complement \cup A = \Omega$, it follows from countable additivity that
+
 $$
 \Pr[A^{\complement}] = 1 - \Pr[A],
 $$
+
 $$
 \Pr[\emptyset] = \Pr[\Omega^\complement] = 0, \textrm{ and}
 $$
+
 $$
 \Pr[A] \leq 1.
 $$
 
-A property holds almost everywhere with respect to a probability
-measure if the set of outcomes for which it does not hold has zero
-probability. More formally, suppose that $\phi : \Omega \rightarrow \{
-0, 1 \}$ is an indicator function assigning truth value to elements of
-$\Omega$ and defining a set $A_{\phi} = \{ \omega \in \Omega :
-\phi(\omega) = 1 \}.$ The property $\phi$ holds *$\Pr$-almost
-everywhere* if $\Pr[A_\phi] = 1,$ or equivalently,
-$\Pr[A_\phi^\complement] = 0.$
+A property holds almost everywhere with respect to a probability measure if the set of outcomes for which it does not hold has zero probability. More formally, suppose that $\phi : \Omega \rightarrow \{ 0, 1 \}$ is an indicator function assigning truth value to elements of $\Omega$ and defining a set $A_{\phi} = \{ \omega \in \Omega : \phi(\omega) = 1 \}.$ The property $\phi$ holds *$\Pr$-almost everywhere* if $\Pr[A_\phi] = 1,$ or equivalently, $\Pr[A_\phi^\complement] = 0$.
 
 <div class="example-text">
-*Example 1(a), continued*:  We can define a
-measure over the $\sigma$-algebra with sample space $\Omega = \{ 0, 1
-\}$ and measurable sets $\mathcal{S} = \left\{ \{\}, \{ 0 \}, \{ 1 \},
-\{ 0, 1 \} \right\}$.  This involves assigning probabilities to all of the
-events.  By construction, we know that
+
+*Example 1(a), continued*:  We can define a measure over the $\sigma$-algebra with sample space $\Omega = \{ 0, 1 \}$ and measurable sets $\mathcal{S} = \left\{ \{\}, \{ 0 \}, \{ 1 \}, \{ 0, 1 \} \right\}$. This involves assigning probabilities to all of the events. By construction, we know that
+
 $$
 \Pr[\{ \}] = 0 \qquad \Pr[\{ 0, 1 \}] = 1.
 $$
-By the countable additive property of measures, and the fact that
-events $\{ 0 \}$ and $\{ 1 \}$ are disjoint, it follows that
+
+By the countable additive property of measures, and the fact that events $\{ 0 \}$ and $\{ 1 \}$ are disjoint, it follows that
+
 $$
 \Pr[\{ 0 \}] + \Pr[\{ 1 \}] = \Pr[\{ 0 \} \cup \{ 1 \}] = 1,
 $$
+
 and therefore
+
 $$
 \Pr[\{ 0 \}] = 1 - \Pr[\{ 1 \}].
 $$
-For example, let $\Pr[\{ 1 \}] = 0.7$ so that $\Pr[\{ 0 \}] = 0.3.$
 
-If we take the sample space to represent the 
-boolean outcome of a football match (1 for the home team winning, 0
-for the visiting team winning), then $\Pr[\{ 1 \}]$ is the probability
-that the home team wins and $\Pr[\{ 0 \}]$ is the probability that the
-visiting team wins.
+For example, let $\Pr[\{ 1 \}] = 0.7$ so that $\Pr[\{ 0 \}] = 0.3$.
+
+If we take the sample space to represent the boolean outcome of a football match (1 for the home team winning, 0 for the visiting team winning), then $\Pr[\{ 1 \}]$ is the probability that the home team wins and $\Pr[\{ 0 \}]$ is the probability that the visiting team wins.
+
 </div>
 
 <div class="example-text">
-*Example 1(b), cont.*  We can define multiple measures over the power
-set of the integers.  These are defined by supplying probabilities to
-the atoms, i.e., the integers.  In this example, we will take
-$\Pr[\{ n \}] = 2^-{n + 1}.$  This assigns a probability to the
-event $\{ n \}$ equal to that of flipping $n$ successive heads with a
-fair coin.  Countable additivity gives us $\Pr[\mathbb{N}] = 1,$ because $\sum_{n \in
-\mathbb{N}} 2^{n - 1} = \frac{1}{2} + \frac{1}{4} + \frac{1}{8} +
-\cdots = 1.$   
+
+*Example 1(b), cont.*  We can define multiple measures over the power set of the integers. These are defined by supplying probabilities to the atoms, i.e., the integers. In this example, we will take $\Pr[\{ n \}] = 2^-{n + 1}.$  This assigns a probability to the event $\{ n \}$ equal to that of flipping $n$ successive heads with a fair coin. Countable additivity gives us $\Pr[\mathbb{N}] = 1,$ because $\sum_{n \in \mathbb{N}} 2^{n - 1} = \frac{1}{2} + \frac{1}{4} + \frac{1}{8} + \cdots = 1$, from which it follows from countable additivity that for any $A \subseteq \mathbb{N}$ that $\Pr[A] = \sum a \in A \Pr[\{a\}]$.
+
 </div>
 
 <div class="example-text">
-*Example 2(a), cont.*  We can define the *Lebesgue measure*
-over intervals $(a, b) \subseteq (0, 1)$ by
+
+*Example 2(a), cont.*  We can define the *Lebesgue measure* over intervals $(a, b) \subseteq (0, 1)$ by
+
 $$
 \Pr[(a, b)] = b - a.
 $$
+
 This yields the expected value for the whole space,
+
 $$
 \Pr[\Omega] = \Pr[(0, 1)] = 1 - 0 = 1.
 $$
-The probability for unions of non-intersecting
-intervals is defined by countable additivity.
-Singleton sets have measure zero, because
+
+The probability for unions of non-intersecting intervals is defined by countable additivity. Singleton sets have measure zero, because
+
 $$
 \Pr[\{ a \}] = \Pr[(a, a)] = a - a = 0.
 $$  
-We could have used $\Omega = [0, 1]$ as an example, but it
-is different geometrically than $(0, 1)$ because it contains its
-limiting end points. The open interval will be more convenient going
-forward when we consider functions from $(0, 1)$ to the real numbers.
+
+We could have used $\Omega = [0, 1]$ as an example, but it is different geometrically than $(0, 1)$ because it contains its limiting end points. The open interval will be more convenient going forward when we consider functions from $(0, 1)$ to the real numbers.
+
 </div>
 
 <div class="example-text">
-*Example 2(b), cont.*  The Lebesgue measure over $\Omega = \mathbb{R}$ does not
-form a probability space, because the measure of the whole space $\mathbb{R}$ is not
-finite.  On the other hand, we can define a measure over $\Omega = \mathbb{R}$ by
-defining the probability of an interval to be
+
+*Example 2(b), cont.*  The Lebesgue measure over $\Omega = \mathbb{R}$ does not form a probability space, because the measure of the whole space $\mathbb{R}$ is not finite. On the other hand, we can define a measure over $\Omega = \mathbb{R}$ by defining the probability of an interval to be
+
 $$
 \Pr[(a, b)] = \textrm{logit}^{-1}(b) - \textrm{logit}^{-1}(a),
 $$
-where for $u \in (0, 1)$ and $v \in \mathbb{R},$
+
+where for $u \in (0, 1)$ and $v \in \mathbb{R}$,
+
 $$
 \textrm{logit}(u) = \log \frac{u}{1 - u}
 \qquad \qquad
 \textrm{logit}^{-1}(v) = \frac{\exp(v)}{1 + \exp(v)}.
 $$
+
 This has the desired property that
+
 $$
 \Pr[\Omega]
 = \lim_{\begin{array}{c}a \rightarrow -\infty \\ b \rightarrow
-\infty\end{array}}
-  \Pr[(a, b)]
+\infty\end{array}} \Pr[(a, b)]
 = \lim_{\begin{array}{c}a \rightarrow -\infty \\ b \rightarrow \infty\end{array}}
-   \textrm{logit}^{-1}(b) - \textrm{logit}^{-1}(a)
-= 1 - 0 = 1.
+\textrm{logit}^{-1}(b) - \textrm{logit}^{-1}(a) = 1 - 0 = 1.
 $$
+
 </div>
 
 <div class="example-text">
-*Example 3, cont.* Suppose we have a product $\sigma$-algebra over the
-open unit square $\Omega = [0, 1]^2$ (i.e., $[0, 1] \times [0,
-1]$). We can define a basis for a probability measure using 
-open discs for $x \in (0, 1)^2$, 
+
+*Example 3, cont.* Suppose we have a product $\sigma$-algebra over the open unit square $\Omega = [0, 1]^2$ (i.e., $[0, 1] \times [0, 1]$). We can define a basis for a probability measure using open discs for $x \in (0, 1)^2$, 
+
 $$
 \textrm{D}(x, r) = \left\{
 x' : ||x|| < r \right\}.
 $$
-The probability
-of a disc in the unit square (i.e., $D(x, r) \subset \Omega$) is given by its area,
+
+The probability of a disc in the unit square (i.e., $D(x, r) \subset \Omega$) is given by its area,
+
 $$
 \Pr[\textrm{D}(x, r)] = \pi \cdot r^2.
 $$
-Probabilities for other measurable sets are defined by countable
-additivity and complementation.  In this probability space, a
-measurable subset of $(0, 1)^2$ has a probability equal to its area
-(i.e., it's a Lebesgue measure like Example 2(a)).  Thus the entire sample space
-$\Omega$ has a probability of 1 because it is a unit square with unit area.
-This construction works with the volumes of balls in three
-dimensions and the hypervolumes of hyperballs in higher dimensions.
+
+Probabilities for other measurable sets are defined by countable additivity and complementation.  In this probability space, a
+measurable subset of $(0, 1)^2$ has a probability equal to its area (i.e., it's a Lebesgue measure like Example 2(a)).  Thus the entire sample space $\Omega$ has a probability of 1 because it is a unit square with unit area. This construction works with the volumes of balls in three dimensions and the hypervolumes of hyperballs in higher dimensions.
+
 </div>
 
 ### Total variation distance
 
-Suppose we have two different measures, $\Pr$ and $\textrm{Q}$ over the
-same $\sigma$-algebra $(\Omega, \mathcal{S}).$  The *total variation
-distance* between $\Pr$ and $\textrm{Q}$ is written as $\left|\left|
-\strut \Pr - \textrm{Q} \right|\right|$ and defined by 
+Suppose we have two different measures, $\Pr$ and $\textrm{Q}$ over the same $\sigma$-algebra $(\Omega, \mathcal{S})$. The *total variation distance* between $\Pr$ and $\textrm{Q}$ is written as $\left|\left| \strut \Pr - \textrm{Q} \right|\right|$ and defined by 
+
 $$
 \left|\left| \strut \Pr - \textrm{Q} \right|\right|
 = \max_{A \in \mathcal{S}} \left| \strut \Pr[A] - \textrm{Q}[A] \right|.
 $$
-Total variation distance defines a metric over the space of
-probability measures on a fixed $\sigma$-algebra.
+
+Total variation distance defines a metric over the space of probability measures on a fixed $\sigma$-algebra.
 
 
 ## B.2 Joint and conditional probability {.unnumbered}
 
-In this section, we will presuppose a fixed probability space
-$(\Omega, \mathcal{S}, \Pr)$.
+In this section, we will presuppose a fixed probability space $(\Omega, \mathcal{S}, \Pr)$.
 
 ### Joint probability
 
-If $A$ and $B$ are events (i.e., $A, B \in \mathcal{S}$), their
-*joint probability* is written $\Pr[A, B]$ and understood
-as the probability that events $A$ and $B$ both occur, so that
+If $A$ and $B$ are events (i.e., $A, B \in \mathcal{S}$), their *joint probability* is written $\Pr[A, B]$ and understood as the probability that events $A$ and $B$ both occur, so that
+
 $$
 \Pr[A, B] = \Pr[A \cap B].
 $$
-This notation extends to any number of events, with $\Pr[A, B, C] =
-\Pr[A \cap B \cap C]$ and so on.  
 
-The sets $A_1, A_2, \ldots$ are *mutually disjoint* if $i
-\neq j$ implies $A_i \cap A_j = \emptyset.$ A $partition$ of the set
-$B$ is a countable sequence of mutually disjoint sets $B_0, B_1, B_2,
-\ldots$ such that $B = \bigcup_{n \in \mathbb{N}} \, B_n.$
+This notation extends to any number of events, with $\Pr[A, B, C] = \Pr[A \cap B \cap C]$ and so on.  
 
-The *law of total probability* states that if $B_0, B_1, \ldots$ is a
-partition of $B$, then
+The sets $A_1, A_2, \ldots$ are *mutually disjoint* if $i \neq j$ implies $A_i \cap A_j = \emptyset.$ A *partition* of the set $B$ is a countable sequence of mutually disjoint sets $B_0, B_1, B_2, \ldots$ such that $B = \bigcup_{n \in \mathbb{N}} \, B_n$.
+
+The *law of total probability* states that if $B_0, B_1, \ldots$ is a partition of $B$, then
+
 $$
 \Pr[A, B] = \sum_{n \in \mathbb{N}} \, \Pr[A, B_n].
 $$
+
 This result follows directly from countable additivity.
 
-In the context of joint probability
-$\Pr[A, B]$, we refer to $\Pr[A]$ as the *marginal probability* (of
-$A$). It follows from the law of total probability that if
-$B_1, B_2, \ldots$ is a partition of $\Omega,$ then the marginal
-probability of $A$ is
+In the context of joint probability $\Pr[A, B]$, we refer to $\Pr[A]$ as the *marginal probability* (of $A$). It follows from the law of total probability that if $B_1, B_2, \ldots$ is a partition of $\Omega,$ then the marginal probability of $A$ is
+
 $$
 \Pr[A] = \Pr[A, \Omega] = \sum_n \Pr[A, B_n].
 $$
 
 ### Conditional probability
 
-If $A$ and $B$ are events and $\Pr[B] \neq 0$, the
-*conditional probability* of $A$ given $B$ is the probability of 
-$A$ occurring if $B$ occurs, and is defined by
+If $A$ and $B$ are events and $\Pr[B] \neq 0$, the *conditional probability* of $A$ given $B$ is the probability of $A$ occurring if $B$ occurs, and is defined by
+
 $$
 \Pr[A \mid B] = \frac{\Pr[A, B]}{\Pr[B]}.
 $$
 
 The *chain rule for probabilities* follows immediately,
+
 $$
 \Pr[A, B] = \Pr[A \mid B] \cdot \Pr[B].
 $$
 
-Given a fixed event $B \in \mathcal{S},$ the function $\Pr[A \mid B]$
-forms a measure over $B.$  More formally, we can derive a new
-probability space with $\Omega' = B$, $\mathcal{S} = \{ A \in
-\mathcal{S} : A \subseteq B \},$ and $\Pr'[A] = \Pr[A \mid B].$
-
+Given a fixed event $B \in \mathcal{S},$ the function $\Pr[A \mid B]$ forms a measure over $B$.  More formally, we can derive a new probability space with $\Omega' = B$, $\mathcal{S} = \{ A \in \mathcal{S} : A \subseteq B \},$ and $\Pr'[A] = \Pr[A \mid B]$.
 
 ### Bayes's rule
 
-Bayes's rule allows us to derive a conditional probability $\Pr[A \mid
-B]$ given the inverse probability $\Pr[B \mid A]$ and $\Pr[A]$.  In
-its simplest form, it's just an application of the chain rule for
-probabilities and the definition of conditional probability, where if
-$\Pr[B] \neq 0,$ 
+Bayes's rule allows us to derive a conditional probability $\Pr[A \mid B]$ given the inverse probability $\Pr[B \mid A]$ and $\Pr[A]$. In its simplest form, it's just an application of the chain rule for probabilities and the definition of conditional probability, where if $\Pr[B] \neq 0$,
+
 $$
 \Pr[A \mid B] = \frac{\Pr[B \mid A] \cdot \Pr[A]}{\Pr[B]}.
 $$
-But Bayes's rule goes further and assumes that if 
-$A_0, A_1, A_2, \cdots$ is a partition of
-$A$ (either finite or countably infinite), then
+
+But Bayes's rule goes further and assumes that if $A_0, A_1, A_2, \cdots$ is a partition of $A$ (either finite or countably infinite), then
+
 $$
 \Pr[A_n \mid B]
 = \frac{\Pr[B \mid A_n] \cdot \Pr[A_n]}
@@ -5289,100 +5065,101 @@ $$
 
 ## B.3 Independent events {.unnumbered}
 
-There are several notions of independence in statistics, which we
-summarize below.
+There are several notions of independence in statistics, which we summarize below.
 
 ### Independence
 
 A pair of events $A$ and $B$ are *independent* if
+
 $$
 \Pr[A, B] = \Pr[A] \cdot \Pr[B].
 $$
-When $A$ and $B$ are independent, the occurence of $A$ doesn't give us
-any information about $B$, and vice-versa, so that
+
+When $A$ and $B$ are independent, the occurence of $A$ doesn't give us any information about $B$, and vice-versa, so that
+
 $$
 \Pr[A \mid B] = \Pr[A]
 \qquad \qquad
 \Pr[B \mid A] = \Pr[B].
 $$
-If $A$ and $B$ are independent, then $A$ and $B^\complement$ are also
-independent, and thus $\Pr[A \mid B] = \Pr[A \mid B^\complement].$ 
 
-<div class="example-text"> *Example 3, cont.* Consider our Lebesgue
-measure on $(0, 1)^2,$ where the probability of an event is equal to
-its area.  We can define an event $A$ by dividing the sample space
-into an area for $A$ of 0.2 and an area for $A^\complement$ of 0.8.
-On the left-hand side of the following diagram, we represent this as a
-blue horizontal dividing line, with the lower half (with area 0.2)
-representing the event $A.$ We do the same for $B$ with a red vertical
-dividing line, taking the left half (with area 0.6) to correspond to
-the event $B.$  Complements are represented by negation in the axis labels.
+If $A$ and $B$ are independent, then $A$ and $B^\complement$ are also independent, and thus $\Pr[A \mid B] = \Pr[A \mid B^\complement]$. 
+
+<div class="example-text"> 
+
+*Example 3, cont.* Consider our Lebesgue measure on $(0, 1)^2,$ where the probability of an event is equal to its area. We can define an event $A$ by dividing the sample space into an area for $A$ of 0.2 and an area for $A^\complement$ of 0.8. On the left-hand side of the following diagram, we represent this as a blue horizontal dividing line, with the lower half (with area 0.2)
+representing the event $A$. We do the same for $B$ with a red vertical dividing line, taking the left half (with area 0.6) to correspond to the event $B$. Complements are represented by negation in the axis labels.
 
 ```{python}
 #| code-fold: true
 plot1 = (pn.ggplot(pd.DataFrame())
-    + pn.scale_y_continuous(breaks=[0.1, 0.6], labels=["A", "-A"],
-                            limits = (0, 1), expand=(0, 0))
-    + pn.scale_x_continuous(breaks=[0.3, 0.8], labels=["B", "-B"],
-                            limits = (0, 1), expand=(0, 0))
-  + pn.geom_vline(pn.aes(xintercept=0.6), color='red')
-  + pn.geom_hline(pn.aes(yintercept=0.2), color='blue')
-  + pn.coord_equal()
-  + pn.labs(title="A, B: independent")
-  + pn.theme(panel_grid_major = pn.element_blank(),
-             panel_grid_minor = pn.element_blank(),
-     	     axis_title = pn.element_blank(),
-	     axis_ticks = pn.element_blank()))
+    + pn.scale_y_continuous(breaks=[0.1, 0.6], labels=["A", "-A"], limits = (0, 1), expand=(0, 0))
+    + pn.scale_x_continuous(breaks=[0.3, 0.8], labels=["B", "-B"], limits = (0, 1), expand=(0, 0))
+    + pn.geom_vline(pn.aes(xintercept=0.6), color='red')
+    + pn.geom_hline(pn.aes(yintercept=0.2), color='blue')
+    + pn.coord_equal()
+    + pn.labs(title="A, B: independent")
+    + pn.theme(
+        panel_grid_major = pn.element_blank(), 
+        panel_grid_minor = pn.element_blank(), 
+        axis_title = pn.element_blank(),
+        axis_ticks = pn.element_blank()
+    )
+)
 
 plot2 = (pn.ggplot(pd.DataFrame())
-    + pn.scale_x_continuous(breaks=[0.3, 0.8], labels=["C", "-C"],
-                            limits = (0, 1), expand=(0, 0), name="")
-    + pn.scale_y_continuous(breaks=[0.1, 0.6], labels=["A", "-A"],
-                            limits = (0, 1), expand=(0, 0), name="")
+    + pn.scale_x_continuous(breaks=[0.3, 0.8], labels=["C", "-C"], limits = (0, 1), expand=(0, 0), name="")
+    + pn.scale_y_continuous(breaks=[0.1, 0.6], labels=["A", "-A"], limits = (0, 1), expand=(0, 0), name="")
     + pn.geom_segment(pn.aes(x=0.2, y=1, xend=0.7, yend=0), color='red')
     + pn.coord_equal()
     + pn.geom_hline(pn.aes(yintercept=0.2), color='blue')
-  + pn.labs(title="A, C: not independent")
-    + pn.theme(panel_grid_major = pn.element_blank(),
-               panel_grid_minor = pn.element_blank(),
-	       axis_title = pn.element_blank(),
-	       axis_ticks = pn.element_blank()))
-	       
-plot12 = (pw.load_ggplot(plot1, figsize=(3.25, 3))
-         | pw.load_ggplot(plot2, figsize=(3.25, 3)))
+    + pn.labs(title="A, C: not independent")
+    + pn.theme(
+        panel_grid_major = pn.element_blank(),
+        panel_grid_minor = pn.element_blank(), 
+        axis_title = pn.element_blank(), 
+        axis_ticks = pn.element_blank()
+    )
+)
+
+plot12 = (
+    pw.load_ggplot(plot1) | 
+    pw.load_ggplot(plot2)
+)
+
 plot12.savefig()
 ```
 
 We have $\Pr[A] = 0.2$ and $\Pr[B] = 0.6.$ We can work out that
+
 $$
 \Pr[A \mid B] = \frac{\Pr[A, B]}{\Pr[B]} = \frac{0.12}{0.6} = 0.2 = \Pr[A],
 $$
+
 and
+
 $$
 \Pr[B \mid A] = \frac{\Pr[B, A]}{\Pr[A]} = \frac{0.12}{0.2} = 0.6 = \Pr[B].
 $$
-Thus the events $A$ and $B$ are independent.  We can also reason
-geometrically, noting that the ratio of $A$'s area to the total
-space's area is the same as the ratio of $A \cap B$'s area to the area
-of $B.$
 
-Now consider the right-hand figure above.  The event $A$ is the same,
-but there is a new event $C$.  Geometric reasoning shows that $\Pr[A
-\mid C^\complement] < \Pr[A \mid C]$ and thus $A$ and $C$ are not
-independent.
+Thus the events $A$ and $B$ are independent. We can also reason geometrically, noting that the ratio of $A$'s area to the total space's area is the same as the ratio of $A \cap B$'s area to the area of $B$.
+
+Now consider the right-hand figure above. The event $A$ is the same, but there is a new event $C$. Geometric reasoning shows that $\Pr[A \mid C^\complement] < \Pr[A \mid C]$ and thus $A$ and $C$ are not independent.
+
 </div>
 
 
 ### Conditional independence
 
-A pair of events $A$ and $B$ are *conditionally
-independent* given an event $C$ with $\Pr[C] > 0$ if
+A pair of events $A$ and $B$ are *conditionally independent* given an event $C$ with $\Pr[C] > 0$ if
+
 $$
 \Pr[A, B \mid C] = \Pr[A \mid C] \cdot \Pr[B \mid C].
 $$
-As with independence, if $A$ and $B$ are conditionally independent
-given $C$, then $A$ doesn't provide any information about the
+
+As with independence, if $A$ and $B$ are conditionally independent given $C$, then $A$ doesn't provide any information about the
 occurrence of $B$ if $C$ occurs,
+
 $$
 \Pr[A \mid B, C] = \Pr[A \mid C]
 \qquad \qquad
@@ -5392,82 +5169,57 @@ $$
 
 ### Mutual independence
 
-A sequence of events $A_0, A_1, \ldots, A_N$ is *mutually
-independent* if 
+A sequence of events $A_0, A_1, \ldots, A_N$ is *mutually independent* if 
 
-* $\Pr\!\left[\bigcap_{n = 1}^N A_n\right] = \prod_{n=1}^N \Pr[A_n],$ and
-
-* every proper subsequence $A_m, A_{m+1}, \ldots, A_{M}$ is mutually
-independent, where a proper subsequence is one in which $m \neq 0$ or
-$M \neq N$ (i.e., it is not the whole sequence).
+* $\Pr\!\left[\bigcap_{n = 1}^N A_n\right] = \prod_{n=1}^N \Pr[A_n]$, and
+* every proper subsequence $A_m, A_{m+1}, \ldots, A_{M}$ is mutually independent, where a proper subsequence is one in which $m \neq 0$ or $M \neq N$ (i.e., it is not the whole sequence).
 
 Conditional mutual independence is defined the same way.
 
-
 ## B.4 Random variables {.unnumbered}
 
-In this section we introduce univariate and multivariate random
-variables and show how to define new random variables as functions of
-random variables.
+In this section we introduce univariate and multivariate random variables and show how to define new random variables as functions of random variables.
 
 ### Random variables
 
-Given a probability space $(\Omega, \mathcal{S}, \Pr)$, a *random
-variable* over this space is a function $X:\Omega \rightarrow
-\mathbb{R}$ such that for every $x \in \mathbb{R}$, the set $\{ \omega
-\in \Omega : X(\omega) \leq x \} \in \mathcal{S}$ (i.e., it is
-measurable).  The little $x$ here is just a bound variable and this
-condition is just saying that for any number $x$, the set of outcomes
-where $X \leq x$ is an event in our $\sigma$-algebra.  We will need
-this condition in order to assign probabilities to possible values of
-the random variable.
+Given a probability space $(\Omega, \mathcal{S}, \Pr)$, a *random variable* over this space is a function $X:\Omega \rightarrow \mathbb{R}$ such that for every $x \in \mathbb{R}$, the set $\{ \omega \in \Omega : X(\omega) \leq x \} \in \mathcal{S}$ (i.e., it is measurable). The little $x$ here is just a bound variable and this condition is just saying that for any number $x$, the set of outcomes where $X \leq x$ is an event in our $\sigma$-algebra. We will need this condition in order to assign probabilities to possible values of the random variable.
 
-A random variable is a deterministic function, and as such is neither
-a variable nor random by itself.  The name derives because we often
-use simple variables like $X$ to refer to random variables in
-notation and because it derives its random structure from the
-underlying probability measure $\Pr,$ as we show in the rest of this
-section.
+A random variable is a deterministic function, and as such is neither a variable nor random by itself. The name derives because we often use simple variables like $X$ to refer to random variables in notation and because it derives its random structure from the underlying probability measure $\Pr,$ as we show in the rest of this section.
 
-Given a random variable $X$, we define its range as usual for a
-function, 
+Given a random variable $X$, we define its range as usual for a function, 
+
 $$
 \textrm{range}(X) = \{ X(\omega) : \omega \in \Omega \}.
 $$
-Because $X(\omega) \in \mathbb{R}$, the range is always a subset of
-real numbers. It is conventional to overload the membership operator
-for random variables and write $X \in A$ if $X(\omega) \in A$ for every
-$\omega \in \Omega.$ 
+
+Because $X(\omega) \in \mathbb{R}$, the range is always a subset of real numbers. It is conventional to overload the membership operator for random variables and write $X \in A$ if $X(\omega) \in A$ for every $\omega \in \Omega$. 
 
 <div class="example-text">
-*Example 1, cont.* Our first example has a finite sample space,
-$\Omega = \{ 0, 1 \}.$ Over this sample space, we can define a random
-variable $X:\Omega \rightarrow \mathbb{R}$ by $X(0) = -2$ and $X(1) =
-10$.  This has $\textrm{range}(X) = \{ -2, 10 \}$ and represents the
-payoff of a 2 unit bet placed on the outcome $X = 1$ at 5:1 odds.
+
+*Example 1, cont.* Our first example has a finite sample space, $\Omega = \{ 0, 1 \}.$ Over this sample space, we can define a random variable $X:\Omega \rightarrow \mathbb{R}$ by $X(0) = -2$ and $X(1) = 10$.  This has $\textrm{range}(X) = \{ -2, 10 \}$ and represents the payoff of a 2 unit bet placed on the outcome $X = 1$ at 5:1 odds.
+
 </div>
 
 <div class="example-text">
-*Example 2(a), cont.* In this ongoing example, we have
-$\Omega = (0, 1)$.  Because $\Omega \subseteq \mathbb{R}$, we can
-define a random variable $X$ by the identity function,
+
+*Example 2(a), cont.* In this ongoing example, we have $\Omega = (0, 1)$.  Because $\Omega \subseteq \mathbb{R}$, we can define a random variable $X$ by the identity function,
+
 $$
 X(\omega) = \omega,
 $$
-with a range equal to the sample space, $\textrm{range}(X) = (0, 1) =
-\Omega.$
 
-The range of a random variable is not constrained by $\Omega$.
-Consider the random variable $Y$ over $\Omega = (0, 1)$ defined by
+with a range equal to the sample space, $\textrm{range}(X) = (0, 1) = \Omega$.
+
+The range of a random variable is not constrained by $\Omega$. Consider the random variable $Y$ over $\Omega = (0, 1)$ defined by
+
 $$
 Y(\omega) =
 \textrm{logit}(\omega)
 = \log \frac{\omega}{1 - \omega} \textrm{ if} \omega \in (0, 1).
 $$
-A third example is the
-random variable $Z$ defined by $Z(\omega) = \log \omega$, which has
-$\textrm{range}(Z) = (-\infty, 0)$.  We can even have a random
-variable $T$ over $\Omega = (0, 1)$ with a discrete range by defining
+
+A third example is the random variable $Z$ defined by $Z(\omega) = \log \omega$, which has $\textrm{range}(Z) = (-\infty, 0)$. We can even have a random variable $T$ over $\Omega = (0, 1)$ with a discrete range by defining
+
 $$
 T(\omega)
 = \begin{cases}
@@ -5476,100 +5228,90 @@ T(\omega)
 0 & \textrm{if } \omega \geq 0.3,
 \end{cases}
 $$
-so that $\textrm{range}(T) = \{ 0, 1 \}.$
+
+so that $\textrm{range}(T) = \{ 0, 1 \}$.
+
 </div>
 
 <div class="example-text">
-*Example 2(b), cont.* We previously defined a probability space over the sample
-space $\Omega = \mathbb{R}$.  We can define a random variable $U$ over
-$\Omega$ by the identity function,
+
+*Example 2(b), cont.* We previously defined a probability space over the sample space $\Omega = \mathbb{R}$. We can define a random variable $U$ over $\Omega$ by the identity function,
+
 $$
 U(\omega) = \omega,
 $$
-which gives us $\textrm{range}(U) = \mathbb{R}.$  We can define a
-second random variable $V$ by
+
+which gives us $\textrm{range}(U) = \mathbb{R}.$  We can define a second random variable $V$ by
+
 $$
 V(\omega) = \textrm{logit}^{-1}(\omega) = \frac{1}{1 + \exp(-\omega)},
 $$
-which has $\textrm{range}(V) = (0, 1)$.  A third example is $W$ defined by
-$W(\omega) = \omega^2$, which has $\textrm{range}(W) = [0, \infty)$. 
+
+which has $\textrm{range}(V) = (0, 1)$. A third example is $W$ defined by $W(\omega) = \omega^2$, which has $\textrm{range}(W) = [0, \infty)$. 
+
 </div>
 
 ### Independence for random variables
 
-Two random variables $X$ and $Y$ are *independent* if the
-events picked out by $X \leq x$ and $Y \leq y$ (i.e., $\{ \omega \in
-\Omega : X(\omega) \leq x \}$) are independent for all
-$x$ and $y.$
+Two random variables $X$ and $Y$ are *independent* if the events picked out by $X \leq x$ and $Y \leq y$ (i.e., $\{ \omega \in \Omega : X(\omega) \leq x \}$) are independent for all $x$ and $y$.
 
 ### Functions of random variables
 
-Random variables partly derive their name because we can use them in
-arithmetic operations and as arguments to functions to produce new
-random variables.  Given a random variable $X$ defined over a sample
-space $\Omega$ and a function $f:\textrm{range}(X)
-\rightarrow \mathbb{R}$, we can define a new random variable $Y$ over
-the same sample space by setting $$ Y(\omega) = f(X(\omega)).  $$ This
-new random variable is conventionally written as $Y = f(X),$ which is
-yet another overload of conventional set-theory notation.
+Random variables partly derive their name because we can use them in arithmetic operations and as arguments to functions to produce new random variables. Given a random variable $X$ defined over a sample space $\Omega$ and a function $f:\textrm{range}(X) \rightarrow \mathbb{R}$, we can define a new random variable $Y$ over the same sample space by setting 
 
-Functions of more than one random variable work the same way.  If
-$X_1, \ldots, X_N$ are random variables and $f:\textrm{range}(X_1)
-\times \cdots \times \textrm{range}(X_N) \rightarrow \mathbb{R}$,
-then we write $Y = f(X_1, \ldots, X_N)$ for the random variable
-defined by
+$$
+Y(\omega) = f(X(\omega)).  
+$$ 
+
+This new random variable is conventionally written as $Y = f(X)$, which is yet another overload of conventional set-theory notation.
+
+Functions of more than one random variable work the same way. If $X_1, \ldots, X_N$ are random variables and $f:\textrm{range}(X_1) \times \cdots \times \textrm{range}(X_N) \rightarrow \mathbb{R}$, then we write $Y = f(X_1, \ldots, X_N)$ for the random variable defined by
+
 $$
 Y(\omega) = f(X_1(\omega), \ldots, X_N(\omega)).
 $$
 
 <div class="example-text">
-*Example 2(a), cont.*  Although we have given the random variables $X,$
-$Y,$ and $T$ direct definitions, note that $Y = \textrm{logit}(X),$
-$Z = \textrm{log}(X),$ and $T = \textrm{I}(X < 0.3).$
+
+*Example 2(a), cont.*  Although we have given the random variables $X$, $Y$, and $T$ direct definitions, note that $Y = \textrm{logit}(X)$, $Z = \textrm{log}(X),$ and $T = \textrm{I}(X < 0.3)$.
+
 </div>
 
 <div class="example-text">
-*Example 2(b), cont.* In this example, we have defined $U,$ $V,$ and
- $W$ as primitive random variables, but we also have $V =
- \textrm{logit}^{-1}(U)$ and $W = \textrm{U}^2.$
+
+*Example 2(b), cont.* In this example, we have defined $U,$ $V,$ and $W$ as primitive random variables, but we also have $V =  \textrm{logit}^{-1}(U)$ and $W = \textrm{U}^2$.
+
 </div>
 
 ## B.5 Cdfs, pdfs, and pmfs {.unnumbered}
 
-In this section, we introduce cumulative distribution functions
-(cdfs), probability density functions (pdfs), and probability mass
+In this section, we introduce cumulative distribution functions (cdfs), probability density functions (pdfs), and probability mass
 functions (pmfs).
 
 ### Cumulative distribution function {.unnumbered}
 
-Given a random variable $X$ defined over a probability space $(\Omega,
-\mathcal{S}, \Pr),$ its *cumulative distribution function* (cdf)
-$F_X:\mathbb{R} \rightarrow [0, 1]$ is defined for $x \in \mathbb{R}$
-by
+Given a random variable $X$ defined over a probability space $(\Omega, \mathcal{S}, \Pr),$ its *cumulative distribution function* (cdf) $F_X:\mathbb{R} \rightarrow [0, 1]$ is defined for $x \in \mathbb{R}$ by
+
 $$
 F_X(x) = \Pr[X \leq x],
 $$
-where we read $X \leq x$ as the event $\{ \omega \in \Omega : X(\omega)
-\leq x \}$.  The cdf of a random variable is well-defined because all
-of the relevant events $X \leq x$ must be measurable in order
-for $X$ to be a random variable.
 
-The cdf $F_X$ of any random variable $X$ satisfies three important
-properties,
+where we read $X \leq x$ as the event $\{ \omega \in \Omega : X(\omega) \leq x \}$. The cdf of a random variable is well-defined because all of the relevant events $X \leq x$ must be measurable in order for $X$ to be a random variable.
+
+The cdf $F_X$ of any random variable $X$ satisfies three important properties,
 
 * $F_X$ is continuous from the right,
 * $F_X$ is monotonic increasing (but not necessarily strictly so), and
 * the limit as the argument goes to infinity is one,
+
 $$
 \lim_{x \rightarrow \infty} F_X(x) = 1.
 $$
 
 <div class="example-text">
 
-*Example 1, cont.*: Continuing our minimal discrete example with
-$\Omega = \{ 0, 1 \}$, $\Pr[\{ 0 \}] = 0.3,$ and $\Pr[\{ 1 \}] = 0.7,$
-consider a random variable that takes $X(0) = -2$ and $X(1) = 10$. The
-resulting cdf is
+*Example 1, cont.*: Continuing our minimal discrete example with $\Omega = \{ 0, 1 \}$, $\Pr[\{ 0 \}] = 0.3,$ and $\Pr[\{ 1 \}] = 0.7$, consider a random variable that takes $X(0) = -2$ and $X(1) = 10$. The resulting cdf is
+
 $$
 F_X(x) =
 \begin{cases}
@@ -5580,13 +5322,14 @@ F_X(x) =
 1.0 & \textrm{if } x \in [10, \infty).
 \end{cases}
 $$
+
 </div>
 
 <div class="example-text">
-*Example 2(a), cont.* Taking up our example of $\Omega = (0,
-1),$ with $\Pr[(a, b)] = b - a$ for $(a, b) \subseteq (0, 1),$ we see
-that the random variable $X(\omega) = \omega$ has the cdf
-$F_X:\mathbb{R} \rightarrow [0, 1]$ defined by
+
+*Example 2(a), cont.* Taking up our example of $\Omega = (0, 1),$ with $\Pr[(a, b)] = b - a$ for $(a, b) \subseteq (0, 1),$ we see
+that the random variable $X(\omega) = \omega$ has the cdf $F_X:\mathbb{R} \rightarrow [0, 1]$ defined by
+
 $$
 F_X(x)
 = \begin{cases}
@@ -5597,11 +5340,12 @@ x & \textrm{if } x \in [0, 1), \textrm{ and}
 1 & \textrm{if } x \in [1, \infty).
 \end{cases}
 $$
-The result for $x \in [0, 1)$ follows because
-$F_X(x) = \Pr[X \leq x] = \Pr[(0, x)] = x.$
 
-For the case of $Y(\omega) = \textrm{logit}(\omega),$ we have
-the cdf $F_Y:\mathbb{R} \rightarrow [0, 1]$ defined by
+The result for $x \in [0, 1)$ follows because $F_X(x) = \Pr[X \leq x] = \Pr[(0, x)] = x$.
+
+For the case of $Y(\omega) = \textrm{logit}(\omega),$ we have the cdf $F_Y:\mathbb{R} \rightarrow [0, 1]$ defined by
+
+$$
 \begin{align}
 F_Y(y) &= \Pr[Y \leq y]
 \\[4pt]
@@ -5611,14 +5355,15 @@ F_Y(y) &= \Pr[Y \leq y]
 \\[4pt]
 &= \textrm{logit}^{-1}(y).
 \end{align}
+$$
+
 </div>
 
 <div class="example-text">
-*Example 2(b), cont.* In this example, 
-$\Omega = \mathbb{R}$ and $\Pr[(a, b)] = \textrm{logit}^{-1}(b) -
-\textrm{logit}^{-1}(a).$ Let the random variable $U$ be the identity
-i.e., $U(\omega) = \omega.$ The cdf of $U$ is the function
-$F_U:\mathbb{R} \rightarrow [0, 1]$ defined by
+
+*Example 2(b), cont.* In this example, $\Omega = \mathbb{R}$ and $\Pr[(a, b)] = \textrm{logit}^{-1}(b) - \textrm{logit}^{-1}(a).$ Let the random variable $U$ be the identity i.e., $U(\omega) = \omega.$ The cdf of $U$ is the function $F_U:\mathbb{R} \rightarrow [0, 1]$ defined by
+
+$$
 \begin{align}
 F_U(u) &= \Pr[U \leq u]
 \\[3pt]
@@ -5631,10 +5376,10 @@ F_U(u) &= \Pr[U \leq u]
 \\[3pt]
 &= \textrm{logit}^{-1}(u).
 \end{align}
-This is the same cumulative
-distribution function as we had for $Y$ in Example 2(a).  Consider
-a second random variable $V = \textrm{logit}^{-1}(U)$.  The 
-cdf of $V$ is given by
+$$
+
+This is the same cumulative distribution function as we had for $Y$ in Example 2(a). Consider a second random variable $V = \textrm{logit}^{-1}(U)$. The cdf of $V$ is given by
+
 $$
 F_V(v)
 = \begin{cases}
@@ -5645,7 +5390,10 @@ v & \textrm{if } v \in [0, 1)
 1 & \textrm{if } v \in [1, \infty).
 \end{cases}
 $$
+
 The middle case follows because
+
+$$
 \begin{align}
 F_V(v) 
 &= \Pr[V \leq v]
@@ -5658,34 +5406,33 @@ F_V(v)
 \\[3pt]
 &= v.
 \end{align}
-Thus we see that $F_V$ in this example has the same cumulative
-distribution as $F_X$ in example 2(a).  
+$$
+
+Thus we see that $F_V$ in this example has the same cumulative distribution as $F_X$ in example 2(a).
+
 </div>
 
 ### Probability density function {.unnumbered}
 
-If the cumulative distribution function $F_X$ for a random variable
-$X$ is continuous and differentiable, we define its *probability
-density function* (pdf) $p_X:\mathbb{R} \rightarrow (0, \infty)$ by
+If the cumulative distribution function $F_X$ for a random variable $X$ is continuous and differentiable, we define its *probability density function* (pdf) $p_X:\mathbb{R} \rightarrow (0, \infty)$ by
+
 $$
 p_X(x) = F_X'(x),
 $$
-for $x \in \mathbb{R},$ where $F_X'$ is the derivative of the cdf.
-Thus the unit of measure for the cdf is probability, whereas the unit
-of measure for the pdf is change in probability.
 
-Even though the cdf forms the theoretical foundation for
-distributions, in practice we usually work with pdfs and occasionally
+for $x \in \mathbb{R},$ where $F_X'$ is the derivative of the cdf. Thus the unit of measure for the cdf is probability, whereas the unit of measure for the pdf is change in probability.
+
+Even though the cdf forms the theoretical foundation for distributions, in practice we usually work with pdfs and occasionally
 want to go back to the cdf, which we can do by integration,
+
 $$
 F_X(x) = \int_{-\infty}^x \, p_X(x) \, \textrm{d}x.
 $$
 
-We know that $\Pr[\Omega] = 1$ and that for any random variable $X,$
-$\Pr[\Omega] = \lim_{x \rightarrow \infty} \, F_X(x) = 1$.
-Furthermore, we know $F_X(x) = \int_{-\infty}^x p_X(x) \textrm{d}x.$  Putting this
-together we have
+We know that $\Pr[\Omega] = 1$ and that for any random variable $X$, $\Pr[\Omega] = \lim_{x \rightarrow \infty} \, F_X(x) = 1$.
+Furthermore, we know $F_X(x) = \int_{-\infty}^x p_X(x) \textrm{d}x$. Putting this together we have
 
+$$
 \begin{align}
 \int_{-\infty}^\infty p_X(x) \textrm{d}x
 &= \lim_{x \rightarrow \infty} \int_{-\infty}^x p_X(x) \textrm{d}x
@@ -5694,59 +5441,57 @@ together we have
 \\[4pt]
 &= 1.
 \end{align}
-
+$$
 
 <div class="example-text">
-*Example 2(a), cont.* We have a random variable $X$ with cdf $F_X(x) =
-x,$ for $x \in X,$ so the pdf is
+
+*Example 2(a), cont.* We have a random variable $X$ with cdf $F_X(x) = x,$ for $x \in X,$ so the pdf is
+
 $$
 p_X(x) = F_X'(x) = \frac{\textrm{d}}{\textrm{d}x} x = 1.
 $$
-A constant density indicates the variable has a *uniform
-distribution.*  The uniform distribution has an associated
-function for $\alpha < \beta \in \mathbb{R},$
+
+A constant density indicates the variable has a *uniform distribution*. The uniform distribution has an associated function for $\alpha < \beta \in \mathbb{R}$,
+
 $$
 \textrm{uniform}(x \mid \alpha, \beta) = \frac{1}{\beta - \alpha}.
 $$
-If a random variable $X$ has a density $p_X(x) = \textrm{uniform}(x
-\mid \alpha, \beta),$ we write
+
+If a random variable $X$ has a density $p_X(x) = \textrm{uniform}(x \mid \alpha, \beta),$ we write
+
 $$
 X \sim \textrm{uniform}(\alpha, \beta).
 $$
-In this notation, $\alpha$ and $\beta$ might themselves be random
-variables, which require the notion of conditional density, which we
-define below. 
 
-For our second random variable $Y$, the cdf is $F_Y(y) =
-\textrm{logit}^{-1}(y),$  and so the pdf is 
+In this notation, $\alpha$ and $\beta$ might themselves be random variables, which require the notion of conditional density, which we define below. 
+
+For our second random variable $Y$, the cdf is $F_Y(y) = \textrm{logit}^{-1}(y)$, and so the pdf is 
+
 $$
 p_Y(y) = F_Y'(y) = \frac{\textrm{d}}{\textrm{d}y} \textrm{logit}^{-1}(y) =
 \textrm{logit}^{-1}(y) \cdot (1 - \textrm{logit}^{-1}(y)).
 $$
+
 Variable $Y$ has a standard *logistic distribution*, and we write
+
 $$
 Y \sim \textrm{logistic}(0, 1).
 $$
-The general definition of the logistic distribution's density
-involves parameters $\mu \in \mathbb{R}$ and $\sigma
-\in (0, \infty),$
+
+The general definition of the logistic distribution's density involves parameters $\mu \in \mathbb{R}$ and $\sigma \in (0, \infty)$,
+
 $$
 \textrm{logistic}(y \mid \mu, \sigma)
 = \textrm{logit}^{-1}\!\left(\frac{y - \mu}{\sigma}\right)
 \cdot
 \left(1 - \textrm{logit}^{-1}\!\left(\frac{y - \mu}{\sigma}\right)\right).
 $$
-The use of $\mu$ and $\sigma$ in this configuration defines what's
-known as a *location-scale parameterization.*  The *standard
-parameterization* takes the location to be zero and the scale to be
-one.  If $Y \sim \textrm{logistic}(0, 1)$ (i.e., it has a standard
-logistic distribution), then $Z = \mu + \sigma \cdot Y$ is such that
-$Z \sim \textrm{logistic}(\mu, \sigma).$  The parameter $\sigma$ used
-to scale is called a *scale parametrer* and the parameter $\mu$ used
-to translate or shift is called a *location parameter*.
 
-The following code and plot shows the cdf and pdf for the standard
-logistic distribution.
+The use of $\mu$ and $\sigma$ in this configuration defines what's known as a *location-scale parameterization.*  The *standard
+parameterization* takes the location to be zero and the scale to be one. If $Y \sim \textrm{logistic}(0, 1)$ (i.e., it has a standard logistic distribution), then $Z = \mu + \sigma \cdot Y$ is such that $Z \sim \textrm{logistic}(\mu, \sigma)$. The parameter $\sigma$ used to scale is called a *scale parametrer* and the parameter $\mu$ used to translate or shift is called a *location parameter*.
+
+The following code and plot shows the cdf and pdf for the standard logistic distribution.
+
 ```{python}
 #| code-fold: true
 def logit(x):
@@ -5764,17 +5509,18 @@ df_cdf = pd.DataFrame({
     'x': x, 'y': cdf_y, 'type': 'cdf F_X'
 })
 df = pd.concat([df_pdf, df_cdf])
-print(pn.ggplot(df, pn.aes(x='x', y='y')) + pn.geom_line()
+
+(
+    pn.ggplot(df, pn.aes(x='x', y='y')) + pn.geom_line()
     + pn.facet_wrap('~ type', scales = 'free_y')
     + pn.labs(x='x', y='value', title = 'X ~ logistic(0, 1)')
     + pn.scale_x_continuous(breaks = [-8, -6, -4, -2, 0, 2, 4, 6, 8])
-    + pn.theme(figure_size=(10, 4), panel_spacing=0.5))
+    # + pn.theme(figure_size=(10, 4), panel_spacing=0.5)
+).show();
 ```
-The side-by-side plots illustrate how the pdf $p_X$ is the derivative
-of the cdf $F_X.$ The derivative of the cdf, and hence the pdf, is
-maximized at $X = 0,$ and approaches zero as $X \rightarrow \infty$ or
-$X \rightarrow -\infty.$  The chain rule for derivatives cancels the
-outer negation and establishes symmetry, 
+
+The side-by-side plots illustrate how the pdf $p_X$ is the derivative of the cdf $F_X.$ The derivative of the cdf, and hence the pdf, is maximized at $X = 0,$ and approaches zero as $X \rightarrow \infty$ or $X \rightarrow -\infty$.  The chain rule for derivatives cancels the outer negation and establishes symmetry, 
+
 $$
 F_X(x) = 1 - F_X(-x)
 \qquad \qquad
@@ -5782,59 +5528,50 @@ F_X'(x) = F_X'(-x)
 \qquad \qquad
 p_X(x) = p_X(-x).
 $$
+
 </div>
 
 
 #### Change of variables (univariate)
 
-Suppose I have a univariate random variable $X:\Omega \rightarrow
-\mathbb{R}$ and a function $f:\mathbb{R} \rightarrow \mathbb{R}$.
-Then I can define a new random variable $Y = f(X)$ by defining
+Suppose I have a univariate random variable $X:\Omega \rightarrow \mathbb{R}$ and a function $f:\mathbb{R} \rightarrow \mathbb{R}$. Then I can define a new random variable $Y = f(X)$ by defining
+
 $$
 Y(\omega) = f(X(\omega))
 $$
+
 for a point $\omega \in \Omega$ in the sample space.
 
-If the function $f$ is a differentiable, monotonic (up or down),
-and one-to-one, then the standard *change of variables* formula for
-densities applies, so that the density function for $Y$ is
+If the function $f$ is a differentiable, monotonic (up or down), and one-to-one, then the standard *change of variables* formula for densities applies, so that the density function for $Y$ is
+
 $$
 p_Y(y) = p_X(f^{-1}(y)) \cdot (f^{-1})'(y),
 $$
-where $f^{-1}$ is the inverse of $f$ and $(f^{-1})'$ is the derivative
-of the inverse of $f$.  We consider multivariate changes of variables
-when we introduce vector-based random variables below.
+
+where $f^{-1}$ is the inverse of $f$ and $(f^{-1})'$ is the derivative of the inverse of $f$.  We consider multivariate changes of variables when we introduce vector-based random variables below.
 
 
 ### Probability mass function {.unnumbered}
 
-If the cumulative distribution function $F_X$ for a random variable
-$X$ is discrete (in the sense of being made up only of step
-functions), then we define its *probability mass function* (pmf)
-$p_X:\mathbb{N} \rightarrow (0, \infty)$ by
+If the cumulative distribution function $F_X$ for a random variable $X$ is discrete (in the sense of being made up only of step
+functions), then we define its *probability mass function* (pmf) $p_X:\mathbb{N} \rightarrow (0, \infty)$ by
+
 $$
 p_X(n) = \Pr[X \leq n + 1] - \Pr[X \leq n] = F_X(n + 1) - F_X(n),
 $$
+
 for $n \in \mathbb{N}$.  
 
-The *support* of a random variable $X$ is the set of values it can
-take on, which is formally defined as the values for which the pdf or
-pmf is strictly greater than 0,
+The *support* of a random variable $X$ is the set of values it can take on, which is formally defined as the values for which the pdf or pmf is strictly greater than 0,
+
 $$
 \textrm{supp}(X) = \{ x : p_X(x) > 0 \}.
 $$
 
 <div class="example-text">
-*Example 4.* Let $U$ be the result of rolling a fair 6-sided die and
-$V$ be the result of rolling another fair 6-sided die independently,
-and let $X = U + V$ be the sum of the dice.  The following plots show
-the pmf and pdf for $X$, which can take on values between 2 and 12.
-There are $6 \times 6 = 36$ different primitive outcomes, and each
-outcome has a probability equal to the total number of ways it can
-arise divided by 36 (e.g., $\Pr[X = 2] = 1/36$ because $X=2$ only
-occurs one way, with $U = 1, V = 1,$ whereas $\Pr[X = 5] = 4/36$
-because $X = 5$ can arise as four different combinations of $U$ and
-$V$.
+
+*Example 4.* Let $U$ be the result of rolling a fair 6-sided die and $V$ be the result of rolling another fair 6-sided die independently, and let $X = U + V$ be the sum of the dice. The following plots show the pmf and pdf for $X$, which can take on values between 2 and 12. There are $6 \times 6 = 36$ different primitive outcomes, and each outcome has a probability equal to the total number of ways it can arise divided by 36 (e.g., $\Pr[X = 2] = 1/36$ because $X=2$ only occurs one way, with $U = 1, V = 1,$ whereas $\Pr[X = 5] = 4/36$ because $X = 5$ can arise as four different combinations of $U$ and $V$).
+
 ```{python}
 #| code-fold: true
 support = np.arange(2, 13)
@@ -5843,146 +5580,123 @@ cdf_values = np.cumsum(probs)
 df = pd.DataFrame({
     'n': support,  'cdf': cdf_values[1:12], 'cdf_low': cdf_values[0:11],
 })
-plot1 = (pn.ggplot(df, pn.aes(x='n', y='cdf'))
+plot1 = (
+    pn.ggplot(df, pn.aes(x='n', y='cdf'))
     + pn.geom_point(size=2)
     + pn.scale_x_continuous(breaks=np.arange(2, 13))
     + pn.labs(x='n', y='Pr[X <= n]')
-    + pn.scale_x_continuous(limits=(1,13),
-                            breaks=support, expand=(0, 0))
+    + pn.scale_x_continuous(limits=(1,13), breaks=support, expand=(0, 0))
     + pn.ggtitle('cdf')
     + pn.theme(strip_align_x=5.0))
 for n in range(0,12):
-    plot1 += pn.geom_segment(pn.aes(x = n + 1,
-               y = cdf_values[n], xend = n + 2 - 0.075,
-               yend = cdf_values[n]))
-    plot1 += pn.geom_point(pn.aes(x='n', y='cdf_low'),
-               size=2, stroke=0.5, fill='none',
-	       shape='o', color='black')
+    plot1 += pn.geom_segment(pn.aes(x = n + 1, y = cdf_values[n], xend = n + 2 - 0.075, yend = cdf_values[n]))
+    plot1 += pn.geom_point(pn.aes(x='n', y='cdf_low'), size=2, stroke=0.5, fill='none', shape='o', color='black')
 df2 = pd.DataFrame({ 'n': support, 'probs': probs[1:] })
-plot2 = (pn.ggplot(df2, pn.aes(x='n', y='probs'))
-         + pn.geom_bar(stat='identity', color='black', fill='white')
-         + pn.scale_x_continuous(breaks=support)
-         + pn.scale_y_continuous(breaks=np.arange(1, 7) / 36,
-               labels=['1/36', '2/36', '3/36', '4/36', '5/36', '6/36'])
-         + pn.ggtitle('pmf'))
-g12 = (pw.load_ggplot(plot1, figsize=(3.25, 3))
-      | pw.load_ggplot(plot2, figsize=(3.25, 3)))
+plot2 = (
+    pn.ggplot(df2, pn.aes(x='n', y='probs'))
+    + pn.geom_bar(stat='identity', color='black', fill='white')
+    + pn.scale_x_continuous(breaks=support)
+    + pn.scale_y_continuous(breaks=np.arange(1, 7) / 36, labels=['1/36', '2/36', '3/36', '4/36', '5/36', '6/36'])
+    + pn.ggtitle('pmf'))
+g12 = (pw.load_ggplot(plot1) | pw.load_ggplot(plot2))
 g12.savefig()
 ```
+
 </div>
 
-
-The characterization of random variables with pdfs and pmfs is
-incomplete because not all probability distributions can be classified
-as discrete or continuous.  A random variable $X$ can have a cdf with
-both continuous portions and jumps.  For example, if we define a
-mixture of a discrete and continuous cdf (e.g., for a spike-and-slab
-prior in Bayesian statistics), we get a cdf that is neither discrete
-nor continuous (we provide an example and plot its cdf below).
+The characterization of random variables with pdfs and pmfs is incomplete because not all probability distributions can be classified as discrete or continuous. A random variable $X$ can have a cdf with both continuous portions and jumps. For example, if we define a mixture of a discrete and continuous cdf (e.g., for a spike-and-slab prior in Bayesian statistics), we get a cdf that is neither discrete nor continuous (we provide an example and plot its cdf below).
 
 
 ### Conditional cdfs, pdfs, and pmfs
 
 #### Conditional cumulative distribution function
 
-If $X:\Omega \rightarrow \mathbb{R}$ is a random variable and
-$A \subseteq \Omega$ is an event with $\Pr[A] > 0,$ the *conditional cumulative
-distribution function* is
+If $X:\Omega \rightarrow \mathbb{R}$ is a random variable and $A \subseteq \Omega$ is an event with $\Pr[A] > 0,$ the *conditional cumulative distribution function* is
+
 $$
 F_{X \mid A}(x) = \Pr[X \leq x \mid A],
 $$
-where we read $X \leq x$ as the event $\{ \omega \in \Omega : X(\omega) \leq x \}.$
 
+where we read $X \leq x$ as the event $\{ \omega \in \Omega : X(\omega) \leq x \}$.
 
 #### Conditional probability mass functions
 
-If $X$ is a discrete random variable, the *conditional probability
-mass function* is 
+If $X$ is a discrete random variable, the *conditional probability mass function* is 
+
 $$
 p_{X \mid A}(x) = \Pr[X = x \mid A],
 $$
-where $X = x$ picks out the event $\{ \omega \in \Omega : X(\omega) = x \}.$ 
 
-Suppose $Y:\Omega \rightarrow \mathbb{R}$ is a discrete random
-variable (i.e., $\textrm{range}(Y)$ is countable).  It is conventional
-to further overload notation and terminology and define the 
-*conditional probability mass function* $p_{X \mid Y}$ by taking
+where $X = x$ picks out the event $\{ \omega \in \Omega : X(\omega) = x \}$. 
+
+Suppose $Y:\Omega \rightarrow \mathbb{R}$ is a discrete random variable (i.e., $\textrm{range}(Y)$ is countable). It is conventional to further overload notation and terminology and define the *conditional probability mass function* $p_{X \mid Y}$ by taking
+
 $$
 p_{X \mid Y}(x \mid y)
 = \Pr[X = x \mid Y = y].
 $$
+
 It follows that
+
 $$
 p_{X \mid Y}(x \mid y) = \frac{p_{X, Y}(x, y)}{p_Y(y)}.
 $$
 
 #### Conditional probability density functions
 
-If $X$ is continuous, the *conditional probability density function* is
-defined by differentiation,
+If $X$ is continuous, the *conditional probability density function* is defined by differentiation,
+
 $$
 p_{X \mid A}(x) = F_{X \mid A}'(x).
 $$
 
-If $Y$ is also continuous, we will define a limit that provides the
-conditional form.  Let $Y^{y, \epsilon}$ be the event determined by
-the condition $Y \in (y - |\epsilon|, y + |\epsilon|)$ and define
+If $Y$ is also continuous, we will define a limit that provides the conditional form. Let $Y^{y, \epsilon}$ be the event determined by the condition $Y \in (y - |\epsilon|, y + |\epsilon|)$ and define
+
 $$
 p_{X \mid Y}(x \mid y) 
 = \lim_{\epsilon \rightarrow 0} \ p_{X \mid Y^{\mbox{$\scriptstyle y,\epsilon$}}}(x).
 $$
+
 It follows that
+
 $$
 p_{X \mid Y}(x \mid y) = \frac{p_{X, Y}(x, y)}{p_Y(y)}.
 $$
 
 #### Conditioning on discrete and continuous variables
 
-In practice, we might have a variable (discrete or continuous) whose
-value depends on the value of one or more discrete variables and one
-or more continuous variables (e.g., the outcome of a drug trial based
-on a patient's discrete age group and continuous blood pressure).  In
-this case, we define the cdf by conditioning on equality for discrete
-variables and by taking limits of surrounding intervals (balls in
-higher dimensions) for continuous variables.  If the resulting
-variable is discrete, its pmf is defined by differences of the cdf; if
-it is continuous, the pdf is defined by differentiating the cdf.
+In practice, we might have a variable (discrete or continuous) whose value depends on the value of one or more discrete variables and one or more continuous variables (e.g., the outcome of a drug trial based on a patient's discrete age group and continuous blood pressure). In this case, we define the cdf by conditioning on equality for discrete variables and by taking limits of surrounding intervals (balls in higher dimensions) for continuous variables. If the resulting variable is discrete, its pmf is defined by differences of the cdf; if it is continuous, the pdf is defined by differentiating the cdf.
 
-In all cases, we will rely on the fact that for any random variables
-$X$ and $Y$, including multivariate ones, we have
+In all cases, we will rely on the fact that for any random variables $X$ and $Y$, including multivariate ones, we have
+
 $$
 p_{X \mid Y}(x \mid y) = \frac{p_{X, Y}(x, y)}{p_Y(y)}.
 $$
-Here, we have exploited the overloaded $p$ notation, which allows for
-discrete, continuous, or mixed random variables.
+
+Here, we have exploited the overloaded $p$ notation, which allows for discrete, continuous, or mixed random variables.
 
 <div class="example-text">
-*Example 5.*
-Suppose we have a continuous random variable $Y$ that depends on a
-discrete random variable $U$ and a continuous
-random variable $V.$  Then we define the conditional density as a
-partial derivative of a limit conditioned on the discrete outcome,
+
+*Example 5.* Suppose we have a continuous random variable $Y$ that depends on a discrete random variable $U$ and a continuous
+random variable $V$. Then we define the conditional density as a partial derivative of a limit conditioned on the discrete outcome,
+
 $$
 p_{Y \mid U, V}(y \mid u, v) =
 \frac{\partial}{\partial y}
 \lim_{\epsilon \rightarrow 0}
 F_{Y \mid U = u, \ V \in (v - |\epsilon|, v+ |\epsilon|)}(y).
 $$
+
 </div>
 
 ### Mixed continuous and discrete variables
 
-Not all random variables can be classified as continuous or
-discrete---some have cumulative distribution functions that
-are continuous in some segments and step functions elsewhere.
-In our applied examples, such distributions will be constructed
-from simpler continuous and discrete distributions.
+Not all random variables can be classified as continuous or discrete---some have cumulative distribution functions that are continuous in some segments and step functions elsewhere. In our applied examples, such distributions will be constructed from simpler continuous and discrete distributions.
 
 <div class="example-text">
-*Example 6.* Suppose we have a binary random variable
-$Z$ (i.e., $\textrm{range}(Z) = \{ 0, 1 \}$) and a continuous random
-variable $U$ with $\textrm{range}(U) = \mathbb{R}.$   We can define a
-new random variable $Y$ by 
+
+*Example 6.* Suppose we have a binary random variable $Z$ (i.e., $\textrm{range}(Z) = \{ 0, 1 \}$) and a continuous random variable $U$ with $\textrm{range}(U) = \mathbb{R}$. We can define a new random variable $Y$ by 
+
 $$
 Y =
 \begin{cases}
@@ -5991,12 +5705,9 @@ Y =
 U & \textrm{if } Z = 0.
 \end{cases}
 $$
-The variable $Y$ will have $\textrm{range}(Y) = \mathbb{R},$ so it
-is not technically discrete.  Nevertheless, we see that $\Pr[Y = 0] =
-\Pr[Z = 1],$ which cannot happen in a continuous distribution (where
-all points have zero probability).  The cdf $F_Y$ is equal to the
-cdf $F_U$ scaled by the probability $Z = 0$, with a jump at zero of
-$\Pr[Z = 1],$
+
+The variable $Y$ will have $\textrm{range}(Y) = \mathbb{R},$ so it is not technically discrete.  Nevertheless, we see that $\Pr[Y = 0] = \Pr[Z = 1],$ which cannot happen in a continuous distribution (where all points have zero probability). The cdf $F_Y$ is equal to the cdf $F_U$ scaled by the probability $Z = 0$, with a jump at zero of $\Pr[Z = 1]$,
+
 $$
 F_Y(y) =
 \begin{cases}
@@ -6005,15 +5716,11 @@ F_U(y) \cdot \Pr[Z = 0] & \textrm{if } y < 0, \textrm{ and}
 \Pr[Z = 1] + F_U(y) \cdot \Pr[Z = 0] & \textrm{if } y > 0.
 \end{cases}
 $$
-Zero-inflated continuous distributions are sometimes called *spike and
-slab* distributions, because the probability mass at zero acts as a
-"spike" (i.e., as a delta function for integration), with the
-underlying continuous distribution forming the "slab" (especially
-when there is a high probability of extreme values).
 
-Here is a plot of the resulting mixed cdf for the case $\Pr[Z = 1] =
-0.4$, with the standard logistic distribution as the continuous
-component (i.e., with cdf $\textrm{logit}^{-1}.)$
+Zero-inflated continuous distributions are sometimes called *spike and slab* distributions, because the probability mass at zero acts as a "spike" (i.e., as a delta function for integration), with the underlying continuous distribution forming the "slab" (especially when there is a high probability of extreme values).
+
+Here is a plot of the resulting mixed cdf for the case $\Pr[Z = 1] = 0.4$, with the standard logistic distribution as the continuous component (i.e., with cdf $\textrm{logit}^{-1}$.)
+
 ```{python}
 #| code-fold: true
 p = 0.4
@@ -6026,17 +5733,22 @@ F_Y_left = [mix_cdf(y_n) for y_n in y_left]
 F_Y_right = [mix_cdf(y_n) for y_n in y_right]
 df_left = pd.DataFrame({ 'y': y_left, 'F_Y': F_Y_left })
 df_right = pd.DataFrame({ 'y': y_right, 'F_Y': F_Y_right })
-print(pn.ggplot(pn.aes(x = 'y', y = 'F_Y'))
+
+(
+    pn.ggplot(pn.aes(x = 'y', y = 'F_Y'))
     + pn.geom_line(data = df_left)
     + pn.geom_line(data = df_right)
-    + pn.geom_point(data = pd.DataFrame({'x': [0], 'y': [(1 - p) / 2]}),
-                    mapping = pn.aes(x = 'x', y = 'y'), size=2,
-		    shape='o', stroke = 0.5, fill='none')
-    + pn.geom_point(data = pd.DataFrame({'x': [0], 'y': [1 - (1 - p) / 2]}),
-                    mapping = pn.aes(x = 'x', y = 'y'), size=2)
+    + pn.geom_point(
+        data = pd.DataFrame({'x': [0], 'y': [(1 - p) / 2]}), 
+        mapping = pn.aes(x = 'x', y = 'y'), 
+        size=2, shape='o', stroke = 0.5, fill='none')
+    + pn.geom_point(
+        data = pd.DataFrame({'x': [0], 'y': [1 - (1 - p) / 2]}), 
+        mapping = pn.aes(x = 'x', y = 'y'), 
+        size=2)
     + pn.scale_x_continuous(breaks = np.linspace(-8, 8, 9))
     + pn.scale_y_continuous(breaks = [0, 0.3, 0.7, 1])
-)
+).show();
 ```
 
 </div>
@@ -6044,96 +5756,74 @@ print(pn.ggplot(pn.aes(x = 'y', y = 'F_Y'))
 
 ## B.6 Multivariate random variables {.unnumbered}
 
-Although we have only described univariate random variables that take
-values in $\mathbb{R}$, if we take a collection of random variables
-$X_1, \ldots, X_N$ we can combine them into a multivariate random
-variable $X:\Omega \rightarrow \mathbb{R}^N$, by taking
+Although we have only described univariate random variables that take values in $\mathbb{R}$, if we take a collection of random variables $X_1, \ldots, X_N$ we can combine them into a multivariate random variable $X:\Omega \rightarrow \mathbb{R}^N$, by taking
+
 $$
 X(\omega) = [X_1(\omega) \ \cdots \ X_N(\omega)].
 $$
-In this case, we can write $X = [X_1 \ \cdots \ X_N].$ The same
-construction may be naturally extended to matrices, tensors, etc.
+
+In this case, we can write $X = [X_1 \ \cdots \ X_N]$. The same construction may be naturally extended to matrices, tensors, etc.
 
 <div class="example-text">
-*Example 4.* Consider a sample space $(0, 1)^2$ with a Borel
-$\sigma$-algebra and probability function given by area (i.e., the
-Lebesgue measure), so that if $A \subseteq (0,1)^2,$ we have $\Pr[A] =
-\int_{(0,1)^2} \, \textrm{I}(x \in A) \, \textrm{d}x.$ We can define a
-random variable $X$ by $X(\omega) = \pi_1(\omega),$ where $\pi_1$ is
-the *projection function* defined by $\pi_1\!\left((x,y)\strut\right)
-= x,$ and a second random variable $Y$ defined by $Y(\omega) =
-\pi_2(\omega),$ where $\pi_2\!\left((x, y)\strut\right) = y.$ We can
-define a multivariate random variable $Z = [X \quad Y],$ which could
-have also been defined directly by $Z(\omega) = \omega.$
+
+*Example 4.* Consider a sample space $(0, 1)^2$ with a Borel $\sigma$-algebra and probability function given by area (i.e., the
+Lebesgue measure), so that if $A \subseteq (0,1)^2,$ we have $\Pr[A] = \int_{(0,1)^2} \, \textrm{I}(x \in A) \, \textrm{d}x$. We can define a random variable $X$ by $X(\omega) = \pi_1(\omega),$ where $\pi_1$ is the *projection function* defined by $\pi_1\!\left((x,y)\strut\right) = x,$ and a second random variable $Y$ defined by $Y(\omega) = \pi_2(\omega),$ where $\pi_2\!\left((x, y)\strut\right) = y$. We can define a multivariate random variable $Z = [X \quad Y],$ which could have also been defined directly by $Z(\omega) = \omega$ 
+
 </div>
 
 ### Functions of multivariate random variables
 
-As in the univariate case, we can directly apply real-valued
-multivariate functions to a sequence of random variables to define new
-random variables. For example, if
-$f:\textrm{range}(X_1) \times \cdots \times \textrm{range}(X_N)
-\rightarrow \mathbb{R}^M,$ then we get a new random variable $Y =
-f(X)$ defined by
+As in the univariate case, we can directly apply real-valued multivariate functions to a sequence of random variables to define new random variables. For example, if $f:\textrm{range}(X_1) \times \cdots \times \textrm{range}(X_N) \rightarrow \mathbb{R}^M$, then we get a new random variable $Y = f(X)$ defined by
+
 $$
 Y(\omega) = f(X_1(\omega), \ldots, X_N(\omega)).
 $$
 
 
 <div class="example-text">
-*Example 4, cont.* We can take the random variables $X$ and $Y$ and
-define a new random variable $L = \sqrt{X^2 + Y^2}$ which is the
-Euclidean distance from the origin to the point $(X, Y)$.  We can
-move back and forth between univariate and multivariate functions.
-For example, we could have defined $L$ as a function of the
-multivariate variable $Z$ by $L = \sqrt{Z_1^2 + Z_2^2}.$
+
+*Example 4, cont.* We can take the random variables $X$ and $Y$ and define a new random variable $L = \sqrt{X^2 + Y^2}$ which is the Euclidean distance from the origin to the point $(X, Y)$.  We can move back and forth between univariate and multivariate functions. For example, we could have defined $L$ as a function of the multivariate variable $Z$ by $L = \sqrt{Z_1^2 + Z_2^2}$.
+
 </div>
 
 ### Change of variables (multivariate)
 
-Suppose we have a random variable $X \in \mathbb{R}^N$ and a smooth,
-invertible function $f:\mathbb{R}^N \rightarrow \mathbb{R}^N.$  Then we define
-$Y = f(X)$ to be a new random variable, and note that its density is
+Suppose we have a random variable $X \in \mathbb{R}^N$ and a smooth, invertible function $f:\mathbb{R}^N \rightarrow \mathbb{R}^N$. Then we define $Y = f(X)$ to be a new random variable, and note that its density is
+
 $$
 p_Y(y)
-= p_X\!\left(f^{-1}(y)\right)
-  \cdot \left| \nabla \! \left( f^{-1} \right) \! \left(y\right) \right|,
+= p_X\!\left(f^{-1}(y)\right) \cdot \left| \nabla \! \left( f^{-1} \right) \! \left(y\right) \right|,
 $$
-where $\nabla g$ is the Jacobian of the function $g$ and
-$\left| A \right|$ is read as the absolute determinant of the matrix
-$A.$  Here the function $g = f^{-1}$ maps $\mathbb{R}^N$ to $\mathbb{R}^N,$
-so the Jacobian $\nabla\!\left(f^{-1}\right)$ is an $N \times N$
-matrix.
 
-If the Jacobian $\nabla f^{-1}$ is a triangular $N \times N$ matrix,
-its determinant simplifies to product of its diagonal,
+where $\nabla g$ is the Jacobian of the function $g$ and $\left| A \right|$ is read as the absolute determinant of the matrix $A$.  Here the function $g = f^{-1}$ maps $\mathbb{R}^N$ to $\mathbb{R}^N$, so the Jacobian $\nabla\!\left(f^{-1}\right)$ is an $N \times N$ matrix.
+
+If the Jacobian $\nabla f^{-1}$ is a triangular $N \times N$ matrix, its determinant simplifies to product of its diagonal,
+
 $$
-\left| (\nabla f^{-1})(y) \right|
-= \prod_{n = 1}^N \left((\nabla f^{-1})(y)\right)_{n, n},
+\left| (\nabla f^{-1})(y) \right| = \prod_{n = 1}^N \left((\nabla f^{-1})(y)\right)_{n, n},
 $$
-where $(\nabla f^{-1}(y))_{n, n}$ is the partial derivative of
-the $n$-th element of the output with respect to the $n$-th element of
-the input, evaluated at $y,$
+
+where $(\nabla f^{-1}(y))_{n, n}$ is the partial derivative of the $n$-th element of the output with respect to the $n$-th element of the input, evaluated at $y$,
+
 $$
 \left((\nabla f^{-1})(y)\right)_{n, n}
 = \frac{\partial}{\partial u_n} f^{-1}(u)_n \ \bigg|_{u = y}.
 $$
-For example, suppose we have random variables $X, Y$ such that
-$X \in (0, 1)$ and $Y \in (0, 1 - X).$  If we define $Z = 1 - X - Y,$
-then $[X \quad Y \quad Z]$ is a simplex (i.e., non-negative entries,
-sums to one).  We can perform a change of variables on $X, Y$ to
-convert to unconstrained parameters $U, V \in \mathbb{R}^2$ using the
-following "stick-breaking" transform, $[u \quad v] = f([x \quad y]),$
-defined by
+
+For example, suppose we have random variables $X, Y$ such that $X \in (0, 1)$ and $Y \in (0, 1 - X).$  If we define $Z = 1 - X - Y$, then $[X \quad Y \quad Z]$ is a simplex (i.e., non-negative entries, sums to one). We can perform a change of variables on $X, Y$ to convert to unconstrained parameters $U, V \in \mathbb{R}^2$ using the following "stick-breaking" transform, $[u \quad v] = f([x \quad y])$, defined by
+
 $$
 u = \textrm{logit}(x) \qquad v = \textrm{logit}\!\left(\frac{y}{1 - x}\right).
 $$
-The inverse of this function, $[x \quad y] = f^{-1}([u \quad v])$ is
-given by
+
+The inverse of this function, $[x \quad y] = f^{-1}([u \quad v])$ is given by
+
 $$
 x = \textrm{logit}^{-1}(u) \qquad y = \textrm{logit}^{-1}(v) \cdot (1 - \textrm{logit}^{-1}(u)),
 $$
+
 with the Jacobian matrix 
+
 $$
 \begin{bmatrix}
 \frac{\partial}{\partial u} x & \frac{\partial}{\partial v} x
@@ -6149,26 +5839,31 @@ $$
 &  (1 - \textrm{logit}^{-1}(u)) \cdot (\textrm{logit}^{-1})'(v)
 \end{bmatrix},
 $$
+
 and thus has a Jacobian determinant of
+
 $$
 \left| \nabla f^{-1}([u \quad v]) \right|
 = (\textrm{logit}^{-1})'(u)
 \cdot (1 - \textrm{logit}^{-1}(u))
 \cdot (\textrm{logit}^{-1})'(v),
 $$
+
 where
+
 $$
 \left(\textrm{logit}^{-1}\right)'(y) =
 \textrm{logit}^{-1}(y) \cdot \left( 1 - \textrm{logit}^{-1}(y) \right).
 $$
 
-It is convenient for derivations that the Jacobian for a function
-composition is just the product of the Jacobians for the functions,
+It is convenient for derivations that the Jacobian for a function composition is just the product of the Jacobians for the functions,
+
 $$
 \frac{\textrm{d}}{\textrm{d}x} f(g(x)) = f'(g(x)) \cdot f'(x),
 $$
-and hence the determinant is just a function of the individual
-functions' determinants,
+
+and hence the determinant is just a function of the individual functions' determinants,
+
 $$
 \left| \nabla (f \circ g) (x) \right|
 =
@@ -6179,46 +5874,50 @@ $$
 
 ### Multivariate cdfs, pmfs, and pdfs
 
-The *cumulative distribution function* for a multivariate random variable
-$X:\Omega \rightarrow \mathbb{R}^N$ is defined by
+The *cumulative distribution function* for a multivariate random variable $X:\Omega \rightarrow \mathbb{R}^N$ is defined by
+
 $$
 F_X(x_1, \ldots, x_N)
 = \Pr[x_1 \leq X_1, \cdots, x_N \leq X_N]
 = \Pr[\{ x \in \mathbb{R}^N : x_1 \leq X_1, \ldots, x_N \leq X_N \}].
 $$
 
-The *probability mass function* for a discrete multivariate random
-variable is
+The *probability mass function* for a discrete multivariate random variable is
+
 $$
 p_X(x_1, \ldots, x_N)
 = \Pr[X_1 = x_1, \ldots, X_N = x_n].
 $$
 
-The *probability density function* for a continuous multivariate
-random variable $X \in \mathbb{R}^N$ is defined as the function
-$p_X:\mathbb{R}^N \rightarrow [0, \infty)$ that has the property
-that for any event $A \in \mathcal{S},$
+The *probability density function* for a continuous multivariate random variable $X \in \mathbb{R}^N$ is defined as the function
+$p_X:\mathbb{R}^N \rightarrow [0, \infty)$ that has the property that for any event $A \in \mathcal{S}$,
+
 $$
 \Pr[x \in A] = \int_A p_X(x) \textrm{d} x,
 $$
+
 or equivalently, in terms of rectangular integrations and the cdf,
+
 $$
 F_X(x) = \int_0^{x_1} \cdots \int_0^{x_N} p_X([x_1 \quad
 \cdots \quad x_N]) \, \textrm{d}x_N \cdots \textrm{d}x_1.
 $$
 
 We can marginalize a joint cdf with a limit,
+
 $$
 F_X(x) = \lim_{y \rightarrow \infty} F_{X, Y}(x, y).
 $$
+
 The *law of total probability* holds for joint densities,
+
 $$
 p_X(x) = \int_{\mathbb R} \, p_{X, Y}(x, y) \, \textrm{d}y.
 $$
 
-Conditional cdfs, pmfs, and pdfs are defined in the same way as for
-univariate random variables.  This leads to a common form of
+Conditional cdfs, pmfs, and pdfs are defined in the same way as for univariate random variables. This leads to a common form of
 marginalization where the joint density is factored,
+
 $$
 p_X(x) = \int_{\mathbb R} \, p_{X \mid Y}(x \mid y) \cdot p_Y(y) \, \textrm{d}y.
 $$
@@ -6228,30 +5927,30 @@ $$
 
 ### Expectation
 
-If we have a (potentially multivariate) random variable $Z$, we write
-$\mathbb{E}[Z]$ for its _expectation_, which despite the fancy name,
-is just its average value, weighted by its density,
+If we have a (potentially multivariate) random variable $Z$, we write $\mathbb{E}[Z]$ for its *expectation*, which despite the fancy name, is just its average value, weighted by its density,
+
 $$
 \mathbb{E}[Z] = \int_{\textrm{supp}(Z)} z \cdot p_Z(z) \, \textrm{d}z.
 $$
-Discussing random variables presupposes a background probability space
-$(\Omega, \mathcal{S}, \Pr)$ with respect to which the cumulative
-distribution function $F_Z$ and the probability density function $p_Z$
-are defined.
 
-Statistical notation overloads many notations, and commonly just $Z$
-rather than $\textrm{supp}(Z)$ is used to subscript the integral.
+Discussing random variables presupposes a background probability space $(\Omega, \mathcal{S}, \Pr)$ with respect to which the cumulative distribution function $F_Z$ and the probability density function $p_Z$ are defined.
 
-Expectations are linear operators in that if $a, b$ are constants and
-$X$ is a random variable, then 
+Statistical notation overloads many notations, and commonly just $Z$ rather than $\textrm{supp}(Z)$ is used to subscript the integral.
+
+Expectations are linear operators in that if $a, b$ are constants and $X$ is a random variable, then 
+
 $$
 \mathbb{E}[a + b \cdot X] = a + b \cdot \mathbb{E}[X].
 $$
+
 Expectations are also additive in random variables,
+
 $$
 \mathbb{E}[X + Y] = \mathbb{E}[X] + \mathbb{E}[Y].
 $$
+
 If $X$ and $Y$ are independent, then we also have
+
 $$
 \mathbb{E}[X \cdot Y] = \mathbb{E}[X] \cdot \mathbb{E}[Y].
 $$
@@ -6259,27 +5958,20 @@ $$
 
 ### Conditional expectation
 
-With Bayesian statistics, we are typically interested in conditional
-expectations, which are the value of a random variable conditioned on
-the observed value of a second random variable.  Suppose $Y$ is a
-second random variable over the same implicit probability space
-and we observe that $Y = y$.  The _conditional
-expectation_ of $Z$ given $Y = y$ is
+With Bayesian statistics, we are typically interested in conditional expectations, which are the value of a random variable conditioned on the observed value of a second random variable. Suppose $Y$ is a second random variable over the same implicit probability space and we observe that $Y = y$.  The *conditional expectation* of $Z$ given $Y = y$ is
+
 $$
 \mathbb{E}[Z \mid Y = y]
 = \int_{Z} z \cdot p_{Z \mid Y}(z \mid y) \, \textrm{d}z.
 $$
-That is, we take a weighted average of the value of $Z$ with weights
-determined by the conditional density $p_{Z \mid Y}(z \mid y)$.
+
+That is, we take a weighted average of the value of $Z$ with weights determined by the conditional density $p_{Z \mid Y}(z \mid y)$.
 
 ### Expectations of functions of random variables
 
-Suppose we have a random variable $Z$ and a real-valued function
-$f:\textrm{supp}(Z) \rightarrow \mathbb{R}^N$.  We can then define
-a new random variable $W = f(Z)$.  To calculate the expectation of $W$
-in terms of the density for $Z$, we use the so-called *law of the
-unconscious statistician*, which tells us we can simplify the change
-of variables back to a direct average over $Z$,
+Suppose we have a random variable $Z$ and a real-valued function $f:\textrm{supp}(Z) \rightarrow \mathbb{R}^N$. We can then define a new random variable $W = f(Z)$. To calculate the expectation of $W$ in terms of the density for $Z$, we use the so-called *law of the unconscious statistician*, which tells us we can simplify the change of variables back to a direct average over $Z$,
+
+$$
 \begin{align}
 \mathbb{E}[f(Z)]
 &= \mathbb{E}[W]
@@ -6290,33 +5982,35 @@ of variables back to a direct average over $Z$,
 \\[4pt]
 &= \int_Z f(z) \cdot p_Z(z) \, \textrm{d}z,
 \end{align}
-where we have written $f^{-1}$ for the inverse transfrom form $W$
-back to $Z$ and $(f^{-1})'$ for its derivative.  The first line is
-the definition, the second is a standard univariate change of
-variables (see above), but deriving the third line in the general case
-requires measure-theoretic techniques beyond this short introduction.
+$$
+
+where we have written $f^{-1}$ for the inverse transfrom form $W$ back to $Z$ and $(f^{-1})'$ for its derivative. The first line is the definition, the second is a standard univariate change of variables (see above), but deriving the third line in the general case requires measure-theoretic techniques beyond this short introduction.
 
 The conditional form follows suit,
+
 $$
 \mathbb{E}[f(Z) \mid Y = y] = \int_Z f(z) \cdot p_{Z \mid Y}(z \mid y) \, \textrm{d}z.
 $$
-Either way, we just take a weighted average the value of $f(z)$ with
-weights $p_Z(z)$ or $p_{Z|Y}(z \mid y).$
+
+Either way, we just take a weighted average the value of $f(z)$ with weights $p_Z(z)$ or $p_{Z|Y}(z \mid y)$.
 
 
 ## B.8 Variance, standard deviation, covariance, and correlation {.unnumbered}
 
 ### Variance
 
-The _variance_ of a random variable is the expectation of its squared
-difference from the expectation,
+The *variance* of a random variable is the expectation of its squared difference from the expectation,
+
 $$
 \textrm{var}[X]
 = \mathbb{E}\!\left[
 \left( X - \mathbb{E}[X] \right)^2
 \right].
 $$
+
 Variance can be decomposed as follows.
+
+$$
 \begin{align}
 \textrm{var}[X]
 &= \mathbb{E}\!\left[
@@ -6337,126 +6031,131 @@ X^2 - 2 \cdot X \cdot \mathbb{E}[X] + \mathbb{E}[X]^2
 \\[4pt]
 &= \mathbb{E}\!\left[X^2\right] - \mathbb{E}[X]^2.
 \end{align}
+$$
 
-If $X$ represents a distance measured in meters, then the 
-variance $\textrm{var}[X]$ is expressed in square meters.  This can
+If $X$ represents a distance measured in meters, then the  variance $\textrm{var}[X]$ is expressed in square meters. This can
 make it tricky to reason about variances.
 
-Adding a constant $c \in \mathbb{R}$ to a random variable $X$ does not
-change its variance,
+Adding a constant $c \in \mathbb{R}$ to a random variable $X$ does not change its variance,
+
 $$
 \textrm{var}[c + X] = \textrm{var}[X].
 $$
+
 Multiplying the variance requires quadratic scaling,
+
 $$
 \textrm{var}[c \cdot X] = c^2 \cdot \textrm{var}[X].
 $$
+
 The variance of a sum is the sum of the variances,
+
 $$
 \textrm{var}[U + V] = \textrm{var}[U] + \textrm{var}[V].
 $$
 
 ### Divergent expectations
 
-An expectation is defined through an integral, but that integral might
-diverge (i.e., not have a finite value).  Examples are rampant in
-statistics.  Suppose we have two independent, standard normal random
-variables $X_1, X_2 \sim \textrm{normal}(0, 1).$ Then their quotient
-$Y = \frac{X_1}{X_2}$ is a random variable such that $\mathbb{E}[Y]$
-and hence $\textrm{var}[Y]$ diverges.  The density of $Y$ follows the
-Cauchy distribution, with
+An expectation is defined through an integral, but that integral might diverge (i.e., not have a finite value).  Examples are rampant in statistics. Suppose we have two independent, standard normal random variables $X_1, X_2 \sim \textrm{normal}(0, 1).$ Then their quotient $Y = \frac{X_1}{X_2}$ is a random variable such that $\mathbb{E}[Y]$ and hence $\textrm{var}[Y]$ diverges.  The density of $Y$ follows the Cauchy distribution, with
+
 $$
 p_Y(y) = \frac{1}{\pi} \cdot \frac{1}{1 + y^2}.
 $$
-The fundamental problem is that $p_Y(y)$ does not converge to
-zero quickly enough as $y \rightarrow \infty$ or $y \rightarrow
--\infty$.  Contrast the standard Cauchy density with the
-standard normal density,
+
+The fundamental problem is that $p_Y(y)$ does not converge to zero quickly enough as $y \rightarrow \infty$ or $y \rightarrow
+-\infty$.  Contrast the standard Cauchy density with the standard normal density,
+
 $$
 p_{X_1}(x) = \frac{1}{\sqrt{2 \cdot \pi}} \exp\!\left(-\frac{1}{2}\cdot x\right),
 $$
+
 which converges exponentially fast.
 
 
 ### Standard deviation
 
-The _standard deviation_ of a random variable is the square root of its variance,
+The *standard deviation* of a random variable is the square root of its variance,
+
 $$
 \textrm{sd}[X] = \sqrt{\textrm{var}[X]}.
 $$
-The units of the standard deviation are identical to those of the
-random variable $X$.  Thus we say that the standard deviation is the
-*scale* of a variable's variation.
 
-Standard deviations of a random variable $X$ have the same scale as
-the random variable $X$ itself.  They also drop additive constants,
-but unlike variances, they scale linearly with multiplication due to
-their scale.  For any constant $c \in \mathbb{R},$ we have
+The units of the standard deviation are identical to those of the random variable $X$.  Thus we say that the standard deviation is the *scale* of a variable's variation.
+
+Standard deviations of a random variable $X$ have the same scale as the random variable $X$ itself. They also drop additive constants, but unlike variances, they scale linearly with multiplication due to their scale. For any constant $c \in \mathbb{R},$ we have
+
+$$
 \begin{align}
 \textrm{sd}[c + X] &= \textrm{sd}[X]
 \\[4pt]
 \textrm{sd}[c \cdot X] &= c \cdot \textrm{sd}[X].
 \end{align}
-The standard deviation of a sum works through the fact that variances
-are additive,
+$$
+
+The standard deviation of a sum works through the fact that variances are additive,
+
 $$
 \textrm{sd}[U + V]
 = \sqrt{\textrm{sd}[U]^2 + \textrm{sd}[V]^2}.
-$$
-    
+$$ 
+
 ### Covariance
 
-If we have two random variables $X$ and $Y$, their *covariance* is
-defined as
+If we have two random variables $X$ and $Y$, their *covariance* is defined as
+
 $$
 \textrm{cov}[X, Y]
 = \mathbb{E}\!\left[\strut (X - \mathbb{E}[X]) \cdot (Y - \mathbb{E}[Y])\right].
 $$
-Covariance is measured in units that are the product of the units of
-$X$ and the units of $Y$. For example if $X$ is
-watts and $Y$ is hours, then the units of $\textrm{cov}[X, Y]$ is
-watt-hours.  As an operation, covariance is commutative in that
-$\textrm{cov}[X,Y] = \textrm{cov}[Y, X].$
+
+Covariance is measured in units that are the product of the units of $X$ and the units of $Y$. For example if $X$ is watts and $Y$ is hours, then the units of $\textrm{cov}[X, Y]$ is watt-hours. As an operation, covariance is commutative in that $\textrm{cov}[X,Y] = \textrm{cov}[Y, X]$.
 
 The covariance between a variable and itself is just its variance,
+
 $$
 \textrm{cov}[X, X]
-= \mathbb{E}\!\left[ \strut (X - \mathbb{E}[X])
-                    \cdot (X - \mathbb{E}[X])\right]
+= \mathbb{E}\!\left[ \strut (X - \mathbb{E}[X]) \cdot (X - \mathbb{E}[X])\right]
 = \mathbb{E}\!\left[ \strut (X - \mathbb{E}[X])^2\right]
 = \textrm{var}[X].
 $$
 
 <div class="example-text">
-*Example 6.* We can construct a pair of scalar random variables $(X,
-Y)$ that covary by generating data according to a simple linear
-regression with $\mathbb{E}[Y] = \alpha + \beta \cdot X,$
+
+*Example 6.* We can construct a pair of scalar random variables $(X, Y)$ that covary by generating data according to a simple linear regression with $\mathbb{E}[Y] = \alpha + \beta \cdot X$, 
+
+$$
 \begin{align}
 p_X(x) &= \textrm{normal}(x \mid 0, \tau), \textrm{ and}
 \\[4pt]
 p_{Y \mid X}(y \mid x)
 &= \textrm{normal}(y \mid \alpha + \beta \cdot x, \sigma),
 \end{align}
-where $\sigma, \tau \in (0, \infty)$ are scale parameters (i.e.,
-determine the distribution's standard deviation).  Because the normal
-distribution uses a location-scale parameterization, we can also
-construct $Y$ using a simple change of variables using a new variable
-$E$ corresponding to the "error,"
+$$
+
+where $\sigma, \tau \in (0, \infty)$ are scale parameters (i.e., determine the distribution's standard deviation). Because the normal distribution uses a location-scale parameterization, we can also construct $Y$ using a simple change of variables using a new variable $E$ corresponding to the "error," 
+
+$$
 \begin{align}
 Y &= \alpha + \beta \cdot X + E
 \\[4pt]
 p_E(\epsilon) &= \textrm{normal}(0, \sigma).
 \end{align}
-We know from regression theory that if $Y = \alpha + \beta \cdot X +
-E$ where $E$ has a normal distribution, then
+$$
+
+We know from regression theory that if $Y = \alpha + \beta \cdot X + E$ where $E$ has a normal distribution, then
+
 $$
 \beta = \frac{\textrm{cov}[X, Y]}{\textrm{var}[X]},
 $$
+
 and hence
+
 $$
 \textrm{cov}[X, Y] = \beta \cdot \textrm{var}[X] = \beta \cdot \tau^2.
 $$
+
 We can validate our mathematical derivation via simulation.
+
 ```{python}
 M = 100_000
 tau = 2.3
@@ -6467,93 +6166,93 @@ y = np.random.normal(loc = alpha + beta * x, scale = sigma, size = M)
 cov_hat = np.cov(x, y)[0, 1]
 print(f"sample cov(x, y) = {cov_hat:5.2f}")
 ```
-Here, we expect the sample covariance to be very close to $\beta \cdot
-\tau^2 = -0.7 \cdot 2.3^2 = -3.703.$
+
+Here, we expect the sample covariance to be very close to $\beta \cdot \tau^2 = -0.7 \cdot 2.3^2 = -3.703$.
+
 </div>
 
 
 ### Correlation
 
 The *correlation* between two random variables is their inverse scaled covariance,
+
 $$
 \textrm{corr}[X, Y]
-= \frac{\textrm{cov}[X, Y]}
-       {\textrm{sd}[X] \cdot \textrm{sd}[Y]}.
+= \frac{\textrm{cov}[X, Y]} {\textrm{sd}[X] \cdot \textrm{sd}[Y]}.
 $$
-The units all cancel here---the numerator has units in the square of
-the original variables as does the denominator.  Like covariance,
-correlation is commutative.
+
+The units all cancel here---the numerator has units in the square of the original variables as does the denominator. Like covariance, correlation is commutative.
 
 The correlation between a variable and itself is the unit,
+
 $$
 \textrm{corr}[X, X]
-= \frac{\textrm{var}[X]}
-       {\textrm{sd}[X] \cdot \textrm{sd}[X]}
+= \frac{\textrm{var}[X]}{\textrm{sd}[X] \cdot \textrm{sd}[X]}
 = 1.
 $$
 
 <div class="example-text">
-*Example 6, cont.*  Given that we have computed the covariance between
-$X$ and $Y$, we can compute their correlation by dividing by their
-scales,
+
+*Example 6, cont.*  Given that we have computed the covariance between $X$ and $Y$, we can compute their correlation by dividing by their scales,
+
 $$
 \textrm{corr}[X, Y]
 = \frac{\textrm{cov}[X, Y]}{\textrm{sd}[X] \cdot \textrm{sd}[Y]}.
 $$
-We know that $\textrm{sd}[X] = \tau,$ but $Y$ is a compound that
-inherits additional uncertainty form its location parameter being a
-random variable itself.  Nevertheless, because
-$Y = \alpha + E + \beta \cdot X$, where $\alpha$ is constant
-and both $E$ and $X$ are normal, we just add variances of the varying
-terms and then take the square root to return to the standard
-deviation scale, 
+
+We know that $\textrm{sd}[X] = \tau,$ but $Y$ is a compound that inherits additional uncertainty form its location parameter being a random variable itself.  Nevertheless, because $Y = \alpha + E + \beta \cdot X$, where $\alpha$ is constant and both $E$ and $X$ are normal, we just add variances of the varying terms and then take the square root to return to the standard deviation scale, 
+
 $$
 \textrm{sd}[Y] = \sqrt{\textrm{var}[\beta \cdot X] + \textrm{var}[E]}
 = \sqrt{\beta^2 \cdot \textrm{var}[X] + \textrm{var}[E]}
 = \sqrt{\beta^2 \cdot \tau^2 + \sigma^2}
 \approx 2.200.
 $$
+
 Therefore, the correlation will be
+
 $$
 \textrm{corr}[X, Y]
 = \frac{\textrm{cov}[X, Y]}{\textrm{sd}[X] \cdot \textrm{sd}[Y]}
 = \frac{\beta \cdot \tau^2}{\sigma \cdot \sqrt{\beta^2 \cdot \tau^2 + \sigma^2}}
 = \frac{-0.7 \cdot 2.3^2}{2.3 \cdot 2.2} \approx -0.732.
 $$
+
 The simulation results agree with the mathematics.
+
 ```{python}
 print(f"sd(x) = {np.std(x):5.2f};  sd(y) = {np.std(y):5.2f}")
 corr_hat = np.corrcoef(x, y)[0, 1]
 print(f"sample corr(x, y) = {corr_hat:5.2f}")
 ```
-</div>
 
+</div>
 
 ### Covariance and correlation matrices
 
-If we have a random variable $X:\Omega \rightarrow \mathbb{R}^N$, its
-*covariance matrix* is
+If we have a random variable $X:\Omega \rightarrow \mathbb{R}^N$, its *covariance matrix* is
+
 $$
 \textrm{cov}[X]
 = \mathbb{E}\!\left[(X - \mathbb{E}[X]) \cdot (X - \mathbb{E}[X])^{\top}\right].
 $$
-The covariance matrix of $X$ has entries that are covariances of its
-elements, 
+
+The covariance matrix of $X$ has entries that are covariances of its elements, 
+
 $$
 \textrm{cov}[X]_{i,j} = \textrm{cov}[X_i, X_j].
 $$
-Covariance matrices are symmetric and positive definite (and hence
-full rank).  The units of the entries are squared relative to the
-original variable $X$.
 
-The *correlation matrix* for $X$ standardizes the covariance matrix
-by dividing by the scales,
+Covariance matrices are symmetric and positive definite (and hence full rank). The units of the entries are squared relative to the original variable $X$.
+
+The *correlation matrix* for $X$ standardizes the covariance matrix by dividing by the scales,
+
 $$
 \textrm{corr}[X] = S^{-1} \cdot \textrm{cov}[X] \cdot S^{-1},
 $$
-where $S$ is the diagonal matrix of scales, $S_{n,n} =
-\textrm{sd}[X_n].$  The entries are the correlations between
-pairs of components,
+
+where $S$ is the diagonal matrix of scales, $S_{n,n} = \textrm{sd}[X_n]$. The entries are the correlations between pairs of components,
+
 $$
 \textrm{corr}[X]_{i,j}
 = \frac{1}{\textrm{sd}[X_i]} \cdot \textrm{cov}[X_i, X_j] \cdot \frac{1}{\textrm{sd}[X_j]}
@@ -6563,22 +6262,12 @@ $$
 
 ## B.9 Quantiles, medians, and uncertainty intervals {.unnumbered}
 
-The *quantile function* for a continuous random variable $Z$ is its
-inverse cdf, $F^{-1}_Z:(0, 1) \rightarrow \textrm{range}(Z).$ For a
-value $p \in (0, 1),$ we say that $F^{-1}_Z(p)$ is the _$p$-quantile_
-of $Z$.  In terms of probabilities, if $z = F^{-1}_Z(p),$ then $\Pr[Z
-\leq z] = p.$
+The *quantile function* for a continuous random variable $Z$ is its inverse cdf, $F^{-1}_Z:(0, 1) \rightarrow \textrm{range}(Z)$. For a value $p \in (0, 1),$ we say that $F^{-1}_Z(p)$ is the $p$-*quantile* of $Z$. In terms of probabilities, if $z = F^{-1}_Z(p),$ then $\Pr[Z \leq z] = p$.
 
-The 50% quantile, $F_Z^{-1}(0.5),$ is known as the _median_.  There is
-a 50% chance that a random variable takes on a value less than its
-median and a 50% chance that it takes on a value greater.
+The 50% quantile, $F_Z^{-1}(0.5),$ is known as the *median*. There is a 50% chance that a random variable takes on a value less than its median and a 50% chance that it takes on a value greater.
 
-We can define posterior intervals for variables using quantile
-functions.  For a random variable $X$ and $p \in (0, 1)$ the
-*central $p$ posterior interval* of $X$ is
-$\left( F_X^{-1}\!\left(\frac{1 - p}{2}\right),
-        F_X^{-1}\!\left(1 - \frac{1 - p}{2}\right) \right),$
-and it has its nominal coverage by definition,
+We can define posterior intervals for variables using quantile functions. For a random variable $X$ and $p \in (0, 1)$ the *central $p$ posterior interval* of $X$ is $\left( F_X^{-1}\!\left(\frac{1 - p}{2}\right), F_X^{-1}\!\left(1 - \frac{1 - p}{2}\right) \right)$, and it has its nominal coverage by definition,
+
 $$
 \Pr\!\left[X \in \left( F_X^{-1}\!\left(\frac{1 - p}{2}\right),
         F_X^{-1}\!\left(1 - \frac{1 - p}{2}\right) \right)\right]
@@ -6588,24 +6277,21 @@ $$
 
 ## B.10 The central limit theorem {.unnumbered}
 
-The central limit theorem is expressed in terms of the convergence of
-a sequence of random variables to another random variable, so we will
-begin with formal definitions of convergence of random variables.
+The central limit theorem is expressed in terms of the convergence of a sequence of random variables to another random variable, so we will begin with formal definitions of convergence of random variables.
 
 ### Convergence of sequences of random variables
 
-Suppose $Y = Y_1, Y_2, \ldots$ is a sequence of random variables and
-$Z$ is another random variable.
+Suppose $Y = Y_1, Y_2, \ldots$ is a sequence of random variables and $Z$ is another random variable.
 
-The sequence $Y$ *converges in distribution* to $Z$
-if for every point $x$ at which $F_Z$ is continuous,
+The sequence $Y$ *converges in distribution* to $Z$ if for every point $x$ at which $F_Z$ is continuous,
+
 $$
 \textrm{lim}_{n \rightarrow \infty} F_{Y_n}(x)
 = F_{Z}(x).
 $$
 
-The sequence $Y$ *converges in probability* to $Z$
-if for all $\epsilon > 0,$ 
+The sequence $Y$ *converges in probability* to $Z$ if for all $\epsilon > 0$,
+
 $$
 \textrm{lim}_{n \rightarrow \infty}
 \Pr\!\left[ \strut \left| Y_n - Z \right| \geq \epsilon \right]
@@ -6613,6 +6299,7 @@ $$
 $$
 
 The sequence $Y$ *converges almost surely* to $Z$ if
+
 $$
 \Pr\!\left[
 \{ \omega : \lim_{n \rightarrow \infty} Y_n(\omega) = Z(\omega) \}
@@ -6620,42 +6307,31 @@ $$
 = 1.
 $$
 
-Convergence of a sequence of random variables to a constant value $\mu
-\in \mathbb{R}$ is defined as convergence to a constant random
-variable $Z$ that always takes the value $\mu$ (i.e., $Z(\omega) =
-\mu$ for all $\omega \in \Omega$).
+Convergence of a sequence of random variables to a constant value $\mu \in \mathbb{R}$ is defined as convergence to a constant random variable $Z$ that always takes the value $\mu$ (i.e., $Z(\omega) = \mu$ for all $\omega \in \Omega$).
 
 ### The laws of large numbers
 
-Suppose we have an infinite sequence of random variables $X_0, X_1,
-\ldots$ that are *independent and identically distributed* (i.i.d.)
-with a finite expectation, which means there is a constant
-$\mu \in \mathbb{R}$ such that for all $n \in \mathbb{N},$
+Suppose we have an infinite sequence of random variables $X_0, X_1, \ldots$ that are *independent and identically distributed* (i.i.d.) with a finite expectation, which means there is a constant $\mu \in \mathbb{R}$ such that for all $n \in \mathbb{N}$,
+
 $$
 \mathbb{E}[X_n] = \mu.
 $$
-Next, define a sequence of variables $Y_0, Y_1, \ldots$ to be the
-running averages of the $X$ sequence,
+
+Next, define a sequence of variables $Y_0, Y_1, \ldots$ to be the running averages of the $X$ sequence,
+
 $$
 Y_n = \textrm{mean}(X_{0:n}) = \frac{1}{n + 1} \sum_{i = 0}^n X_n.
 $$
-The additional one in the denominator is because there are $n + 1$
-numbers between $0$ and $n$ (inclusive).
 
-The *weak law of large numbers* is that the sequence $Y$ converges in
-probability to $\mu.$
+The additional one in the denominator is because there are $n + 1$ numbers between $0$ and $n$ (inclusive).
 
-The *strong law of large numbers* is that the sequence $Y$ converges
-almost surely to $\mu.$
+The *weak law of large numbers* is that the sequence $Y$ converges in probability to $\mu$.
+
+The *strong law of large numbers* is that the sequence $Y$ converges almost surely to $\mu$.
 
 <div class="example-text">
-*Example 7:* Let $X_n \sim \textrm{bernoulli}(0.8),$ and recall that
-$Y_n = \textrm{mean}(X_{0:n}).$ We draw a sequence of length $n =
-10^6$ and plot $Y_n$ versus $n$ in two segments.  On the left is $n
-\in [10^2, 10^4]$ and on the right shows $n \in [10^4, 10^6].$ The axes
-are scaled so that 
-on the right are shrunk by a factor fo 10---on the left, the $y$-axis
-has a range $(0.7, 0.9)$, whereas it is $(0.79, 0.81)$ on the rig.
+
+*Example 7:* Let $X_n \sim \textrm{bernoulli}(0.8),$ and recall that $Y_n = \textrm{mean}(X_{0:n}).$ We draw a sequence of length $n = 10^6$ and plot $Y_n$ versus $n$ in two segments. On the left is $n \in [10^2, 10^4]$ and on the right shows $n \in [10^4, 10^6].$ The axes are scaled so that on the right are shrunk by a factor fo 10---on the left, the $y$-axis has a range $(0.7, 0.9)$, whereas it is $(0.79, 0.81)$ on the rig.
 
 ```{python}
 #| code-fold: true
@@ -6690,59 +6366,44 @@ plot2 = (pn.ggplot(df2, pn.aes(x='n', y='Y', group='Simulation'))
         + pn.scale_y_continuous(limits=[0.79, 0.81])
         + pn.scale_x_continuous(trans='log10'))
 
-g12 = (pw.load_ggplot(plot1, figsize=(2.8, 2))
-      | pw.load_ggplot(plot2, figsize=(2.8, 2)))
+g12 = (
+    pw.load_ggplot(plot1) | 
+    pw.load_ggplot(plot2)
+) 
 g12.savefig()
 ```
 
-The plots look nearly identical because the error in estimating the
-mean in the laws of large numbers follows a predictable pattern we
-describe in the next section.
+The plots look nearly identical because the error in estimating the mean in the laws of large numbers follows a predictable pattern we describe in the next section.
 
+</div>
 
 ### The central limit theorem
 
-We will still be assuming that $X = X_0, X_1, \ldots$ is an infinite
-sequence of i.i.d.\ random variables with finite mean and further
-assume they have finite variance, so that we can define
+We will still be assuming that $X = X_0, X_1, \ldots$ is an infinite sequence of i.i.d.\ random variables with finite mean and further assume they have finite variance, so that we can define
+
 $$
 \sigma = \textrm{sd}[X_n].
 $$
-The central limit theorem involves convergence to a random variable
-with a standard normal distribution (which such variable we choose
-doesn't matter).  Because $Y_n$ is defined as a running average of the
-$X_n$, their scale will be reduced by $\sqrt{n}$ (this is what the
-central limit theorem establishes).  Because we want a single variable
-to target for our limit, we also standardize the $Y_n$ by subtracting
-the mean $\mu = \mathbb{E}[X_n]$ and then dividing by the scale
-$\sigma = \textrm{sd}[X_n].$  This gives us
+
+The central limit theorem involves convergence to a random variable with a standard normal distribution (which such variable we choose doesn't matter).  Because $Y_n$ is defined as a running average of the $X_n$, their scale will be reduced by $\sqrt{n}$ (this is what the central limit theorem establishes). Because we want a single variable to target for our limit, we also standardize the $Y_n$ by subtracting the mean $\mu = \mathbb{E}[X_n]$ and then dividing by the scale $\sigma = \textrm{sd}[X_n]$. This gives us
+
 $$
 U_n = \sqrt{n} \cdot \frac{Y_n - \mu}{\sigma}.
 $$
-The *central limit theorem* (CLT) simply says that $U_n$ converges in
-distribution to a standard normal variate $Z \sim \textrm{normal}(0,
-1)$. If we let $\Phi$ be the  cdf of the standard normal distribution,
-we can unpack the convergence in distribution to restate the CLT as
+
+The *central limit theorem* (CLT) simply says that $U_n$ converges in distribution to a standard normal variate $Z \sim \textrm{normal}(0, 1)$. If we let $\Phi$ be the  cdf of the standard normal distribution, we can unpack the convergence in distribution to restate the CLT as
+
 $$
 \lim_{n \rightarrow \infty} \Pr[U_n \leq x] = \Phi(x).
 $$
 
-The first version of the central limit theorem, provided by
-@demoivre1718, was restricted to the binomial case; it was generalized
-nearly 100 years later by @laplace1811 and then extended to non
-identically distributed variables by @lyapnunov1900 nearly another
+The first version of the central limit theorem, provided by @demoivre1718, was restricted to the binomial case; it was generalized
+nearly 100 years later by @laplace1811 and then extended to non identically distributed variables by @lyapnunov1900 nearly another
 century later.
-
 
 <div class="example-text">
 
-*Example 7, cont.:*  We continue the example with $X_n \sim
-\textrm{bernoulli}(0.8),$ which has an expected value of
-$\mu = 0.8$ and standard deviation of  $\sigma = \sqrt{\mu \cdot (1 -
-\mu)} = 0.4.$  As before, $Y_n$ defined to be
-the running average of the $X_n.$  We now take $U_n = \sqrt{n} \cdot \frac{Y_n
-- \mu}{\sigma},$ as defined above, and plot histograms of draws for
-various $n.$
+*Example 7, cont.:*  We continue the example with $X_n \sim \textrm{bernoulli}(0.8),$ which has an expected value of $\mu = 0.8$ and standard deviation of  $\sigma = \sqrt{\mu \cdot (1 - \mu)} = 0.4$.  As before, $Y_n$ defined to be the running average of the $X_n$.  We now take $U_n = \sqrt{n} \cdot \frac{Y_n - \mu}{\sigma}$, as defined above, and plot histograms of draws for various $n$.
 
 ```{python}
 #| code-fold: true
@@ -6755,97 +6416,72 @@ for N in [2, 4, 8, 16, 32, 64, 128, 256, 512]:
     u = [np.sqrt(N) * (v - mu) / sigma for v in y]
     dfN = pd.DataFrame({'N': N, 'u': u })
     df = pd.concat([df, dfN], ignore_index = True)
-print(pn.ggplot(df, pn.aes(x = 'u'))
-  + pn.geom_bar(stat = 'count', width=0.125)
-  + pn.facet_wrap('~ N', scales='free_y')
-  + pn.scale_x_continuous(breaks = [-4, -2, 0, 2, 4], limits = [-5, 5])
-  + pn.theme(axis_text_y = pn.element_blank(),
-             axis_title_y = pn.element_blank(),
-             axis_ticks_major_y = pn.element_blank()))
+
+(
+    pn.ggplot(df, pn.aes(x = 'u'))
+    + pn.geom_bar(stat = 'count', width=0.125)
+    + pn.facet_wrap('~ N', scales='free_y')
+    + pn.scale_x_continuous(breaks = [-4, -2, 0, 2, 4], limits = [-5, 5])
+    + pn.theme(
+        axis_text_y = pn.element_blank(),
+        axis_title_y = pn.element_blank(),
+        axis_ticks_major_y = pn.element_blank())
+).show();
 ```
-With $n \gg 100,$ the approximation is quite reasonable even with
-skewed Bernoulli draws.  More draws
-would be required for chance of success greater than 0.8 (or by
-symmetry, less than 0.2) and fewer would
-be required for chances of success closer to 0.5.
+
+With $n \gg 100,$ the approximation is quite reasonable even with skewed Bernoulli draws. More draws would be required for chance of success greater than 0.8 (or by symmetry, less than 0.2) and fewer would be required for chances of success closer to 0.5.
+
 </div>
 
 
 ## B.11 Stochastic processes {.unnumbered}
 
-A *stochastic process* is an infinite sequence of random variables
-taking their values in some set $\mathcal{X},$ which is referred to as
-the *state space* of the process.  For the purposes of parametric
-applied statistics, we will assume a real-valued state space of fixed
-dimension, $\mathcal{X} = \mathbb{R}^N.$ We do allow variables that
-range over subsets of $\mathbb{R}^N,$ such as the integers, simplexes,
-or positive definite matrices.
+A *stochastic process* is an infinite sequence of random variables taking their values in some set $\mathcal{X}$, which is referred to as the *state space* of the process. For the purposes of parametric applied statistics, we will assume a real-valued state space of fixed dimension, $\mathcal{X} = \mathbb{R}^N$. We do allow variables that range over subsets of $\mathbb{R}^N$, such as the integers, simplexes, or positive definite matrices.
 
 ### Discrete-time stochastic processes
 
-A *discrete-time stochastic process* is a countably infinite sequence of
-random variables $X = X_0, X_1, \ldots \in \mathcal{X}$ indexed by natural
-numbers $n \in \mathbb{N}.$  Continuous-time processes are similar,
-only with real-valued indexes.
+A *discrete-time stochastic process* is a countably infinite sequence of random variables $X = X_0, X_1, \ldots \in \mathcal{X}$ indexed by natural numbers $n \in \mathbb{N}.$  Continuous-time processes are similar, only with real-valued indexes.
 
-In the simplest case where the state space is just the real numbers,
-$\mathcal{X} = \mathbb{R}$, then each $X_n$ is scalar and the
-stochastic process $X$ can be treated like an infinite-dimensional
-vector.  Or you can think of it as a function from indexes to regular
-old scalar random variables.
+In the simplest case where the state space is just the real numbers, $\mathcal{X} = \mathbb{R}$, then each $X_n$ is scalar and the
+stochastic process $X$ can be treated like an infinite-dimensional vector. Or you can think of it as a function from indexes to regular old scalar random variables.
 
 ### Stationary processes
 
-A discrete-time stochastic process $X_1, X_2, \ldots$ is *stationary*
-if the marginal distribution of every subsequence of the same length
-is the same, i.e., 
-position, i.e., for all sequence lengths $k \in \mathbb{N}$ and
-starting positions $n, n' \in \mathbb{N},$
+A discrete-time stochastic process $X_1, X_2, \ldots$ is *stationary* if the marginal distribution of every subsequence of the same length is the same, i.e., position, i.e., for all sequence lengths $k \in \mathbb{N}$ and starting positions $n, n' \in \mathbb{N}$,
+
 $$
 F_{X_{n}, \ldots, X_{n + k}}
 =
 F_{X_{n'}, \ldots X_{n' + k}}.
 $$
-With $k = 1,$ we have $F_{X_n} = F_{X_{n'}}$
-for all $n, n' \in \mathbb{N}.$  In particular, the initial
-distribution $F_{X_0}$ must be identical to every other $F_{X_n}$
-(more about this later).
 
+With $k = 1,$ we have $F_{X_n} = F_{X_{n'}}$ for all $n, n' \in \mathbb{N}.$  In particular, the initial distribution $F_{X_0}$ must be identical to every other $F_{X_n}$ (more about this later).
 
-this requires $F_{X_0} = F_{X_n}$ for all $n \in
-\mathbb{N}.$ 
+this requires $F_{X_0} = F_{X_n}$ for all $n \in \mathbb{N}.$ 
 
 <div class="example-text">
-*Example 1.* Any i.i.d.\ sequence is stationary, including a constant
-sequence.
+
+*Example 1.* Any i.i.d.\ sequence is stationary, including a constant sequence.
+
 </div>
 
 ## B.12 Markov chains {.unnumbered}
 
-A *Markov chain* is a discrete-time stochastic process consisting of a
-countably infinite sequence of random variables $X = X_0, X_1,
-\ldots,$ where the conditional distribution of $X_{n + 1}$ given $X_1,
-\ldots, X_n$ depends only on $X_n,$ i.e., for all $n \in \mathbb{N},$
+A *Markov chain* is a discrete-time stochastic process consisting of a countably infinite sequence of random variables $X = X_0, X_1, \ldots,$ where the conditional distribution of $X_{n + 1}$ given $X_1, \ldots, X_n$ depends only on $X_n,$ i.e., for all $n \in \mathbb{N}$,
+
 $$
 F_{X_{n + 1} \mid X_n}
 = F_{X_{n + 1} \mid X_n, \ldots, X_1}
 $$
-The distribution function for the first element of the chain is
-$F_{X^{(0)}}.$ 
 
-These distribution functions may only have support over subsets of the
-state space $\mathcal{X} = \mathbb{R}^N,$ such as correlations
-constrained to $[-1, 1]$ or rates constrained to $(0, \infty).$ In the
-finite state-space case, the initial distribution can be represented
-as a simplex (i.e., a vector with non-negative entries that sums to
-one) and the transition distribution as a stochastic matrices (i.e.,
-matrices with simplex rows).
+The distribution function for the first element of the chain is $F_{X^{(0)}}$. 
+
+These distribution functions may only have support over subsets of the state space $\mathcal{X} = \mathbb{R}^N$, such as correlations constrained to $[-1, 1]$ or rates constrained to $(0, \infty)$. In the finite state-space case, the initial distribution can be represented as a simplex (i.e., a vector with non-negative entries that sums to one) and the transition distribution as a stochastic matrices (i.e., matrices with simplex rows).
 
 ### Time-homogeneous Markov chains
 
-We will restrict our attention to *time-homogeneous* Markov chains,
-where the conditional distribution function for the next element does
-not depend on $n,$ i.e., for all $n, n' \in \mathbb{N},$
+We will restrict our attention to *time-homogeneous* Markov chains, where the conditional distribution function for the next element does not depend on $n,$ i.e., for all $n, n' \in \mathbb{N}$,
+
 $$
 F_{X_{n + 1} \mid X_n}
 = F_{X_{n' + 1} \mid X_{n'}}.
@@ -6853,113 +6489,89 @@ $$
 
 ### Initial and conditional pmfs or pdfs
 
-We will often work with either a discrete or continuous initial
-distribution, which will have either a pmf or pdf $p_{X_0}.$
-Similarly, transition distributions will typically be discrete or
-continuous and have either a conditional pmf or pdf $p_{X_{n + 1}
-\mid X_n},$ which is the same for every $n$ in the time-homogeneous
-case.
+We will often work with either a discrete or continuous initial distribution, which will have either a pmf or pdf $p_{X_0}$. Similarly, transition distributions will typically be discrete or continuous and have either a conditional pmf or pdf $p_{X_{n + 1} \mid X_n},$ which is the same for every $n$ in the time-homogeneous case.
 
 <div class="example-text">
-*Example 2. Autoregressive process.*  @rosenthal2006 provides the
-example of a Markov chain defined by an initial distribution with
-density 
+
+*Example 2. Autoregressive process.* @rosenthal2006 provides the example of a Markov chain defined by an initial distribution with density 
+
 $$
 p_{X_0}(x_0) = \textrm{normal}(x_0 \mid 0, 1),
 $$
+
 and transition distribution with density
+
 $$
 p_{X_{n + 1} \mid X_n}(x_{n + 1} \mid x_n)
 = \textrm{normal}\!\left(x_{n+1} \mid \frac{x_n}{2}, \frac{3}{4}\right),
 $$
+
 which leads to a Markov chain with a standard normal stationary distribution
+
 $$
 p_{X_n}(x_n) = \textrm{normal}(x_n \mid 0, 1).
 $$
-This process is an example of a *first-order autoregressive process*
-(AR(1)), the general form of which has a transition distribution
+
+This process is an example of a *first-order autoregressive process* (AR(1)), the general form of which has a transition distribution
+
 $$
 X_{n + 1} \sim \textrm{normal}\!\left(\alpha + \beta \cdot X_n \mid \sigma\right).
 $$
-An AR(1) process is stationary only if $\alpha = 0$ and $\left|
-\beta \right| < 1,$ and has a marginal distribution of
+
+An AR(1) process is stationary only if $\alpha = 0$ and $\left| \beta \right| < 1,$ and has a marginal distribution of
+
 $$
 X_n \sim \textrm{normal}\!\left(0, \frac{\sigma}{\sqrt{1 - \beta^2}}\right)
 $$
+
 and covariance
+
 $$
 \textrm{cov}[X_n, X_{n + k}]
 = \frac{\sigma^2 \cdot \beta^k}{1 - \beta^2}.
 $$
-The covariance only depends on the number of transition steps, $k,$
-and decays exponentially with $\beta < 1.$  This is easier to see on
-the correlation scale after dividing through by the marginal standard
-deviations, which are both $\sigma / \sqrt{1 - \beta^2}$, 
+
+The covariance only depends on the number of transition steps, $k$, and decays exponentially with $\beta < 1$. This is easier to see on the correlation scale after dividing through by the marginal standard deviations, which are both $\sigma / \sqrt{1 - \beta^2}$, 
+
 $$
 \textrm{corr}[X_n, X_{n + k}]
-= \frac{\textrm{cov}[X_n, X_{n + k}]}
-       {\textrm{sd}[X_n] \cdot \textrm{sd}[X_{n + k}]}
+= \frac{\textrm{cov}[X_n, X_{n + k}]}{\textrm{sd}[X_n] \cdot \textrm{sd}[X_{n + k}]}
 = \frac{\left( \frac{\sigma^2 \cdot \beta^k}{1 - \beta^2} \right)}
-       {\left( \frac{\sigma}{\sqrt{1 - \beta^2}}
-               \cdot
-	       \frac{\sigma}{\sqrt{1 - \beta^2}} \right)}
+{\left( \frac{\sigma}{\sqrt{1 - \beta^2}}\cdot\frac{\sigma}{\sqrt{1 - \beta^2}} \right)}
 = \beta^k.
 $$
+
 </div>
 
 ### Stationarity and stationary-preserving transitions
 
-Suppose we have a Markov chain $X = X_0, X_1, \ldots$ with state-space
-$\mathcal{X} = \mathbb{R}^N.$ 
+Suppose we have a Markov chain $X = X_0, X_1, \ldots$ with state-space $\mathcal{X} = \mathbb{R}^N$. 
 
-Suppose we have a measure $\textrm{Q}$ on the
-state space with a density-like function $\pi_Q$ corresponding to
-$\textrm{Q},$ so that for every event $A$ in the Borel algebra over
-$\mathbb{R}^N,$ 
+Suppose we have a measure $\textrm{Q}$ on the state space with a density-like function $\pi_Q$ corresponding to $\textrm{Q}$, so that for every event $A$ in the Borel algebra over $\mathbb{R}^N$, 
 
 $$
 \textrm{Q}[A] = \int_{A} \pi_Q(x) \, \textrm{d}x.
 $$
 
-We say that the measure $\textrm{Q}$ is the *stationary distribution*
-of the Markov chain $X$ if for every $A \in \mathcal{Q},$ 
+We say that the measure $\textrm{Q}$ is the *stationary distribution* of the Markov chain $X$ if for every $A \in \mathcal{Q}$, 
 
 $$
 \textrm{Q}[A] = \int_{A} \pi_Q(x) \textrm{d}x.
 $$
 
-A Markov chain $X$ need not be stationary to have a stationary
-distribution.  In applications, we generally construct non-stationary
-Markov chains with a target stationary distribution (e.g., a Bayesian
-posterior).   If $X$ has the stationary distribution $\textrm{Q}$
-and the initial distribution follows it (i.e., $\Pr[X_0 \in A] =
-\textrm{Q}[A]),$, then $X$ is a stationary chain.
+A Markov chain $X$ need not be stationary to have a stationary distribution. In applications, we generally construct non-stationary Markov chains with a target stationary distribution (e.g., a Bayesian posterior). If $X$ has the stationary distribution $\textrm{Q}$ and the initial distribution follows it (i.e., $\Pr[X_0 \in A] = \textrm{Q}[A]$), then $X$ is a stationary chain.
 
 ### Reversible Markov chains
 
-A Markov chain is *reversible* if $p_{X_n, X_{n + 1}} = p_{X_{n + 1},
-X_n}$ for all $n \in \mathbb{N}.$  In a reversible chain, the
-conditional probability of the next and previous elements are the same
-(i.e., $p_{X_{n + 1} \mid X_n} = p_{X_{n - 1} \mid X_n}$ for $n > 0$).
+A Markov chain is *reversible* if $p_{X_n, X_{n + 1}} = p_{X_{n + 1}, X_n}$ for all $n \in \mathbb{N}.$  In a reversible chain, the conditional probability of the next and previous elements are the same (i.e., $p_{X_{n + 1} \mid X_n} = p_{X_{n - 1} \mid X_n}$ for $n > 0$).
 
 ### Irreducibility
 
-A Markov chain is irreducible with respect to a probability measure on
-its state space if every subset of the state space with non-zero
-probability in the specified measure will eventually be reached from
-any given starting point in the state space after a finite number of
-steps.
+A Markov chain is irreducible with respect to a probability measure on its state space if every subset of the state space with non-zero probability in the specified measure will eventually be reached from any given starting point in the state space after a finite number of steps.
 
-More formally, suppose we have a time-homogeneous Markov chain $X =
-X_0, X_1, \ldots$ over state-space $\mathbb{R}^N.$ Further, suppose we
-have a probability measure $Q$ over the usual Borel algebra for
-$\mathbb{R}^N.$  In the standard definition, $Q$ can be an arbitrary
-measure over a general state space.  Note that the measure $Q$ is
-distinct from the measure $\Pr$ defining the Markov chain.
+More formally, suppose we have a time-homogeneous Markov chain $X = X_0, X_1, \ldots$ over state-space $\mathbb{R}^N$. Further, suppose we have a probability measure $Q$ over the usual Borel algebra for $\mathbb{R}^N$. In the standard definition, $Q$ can be an arbitrary measure over a general state space. Note that the measure $Q$ is distinct from the measure $\Pr$ defining the Markov chain.
 
-A Markov chain $X = X_0, X_1, \ldots$ is $Q$-irreducible if for every $A
-\subseteq \mathbb{R}^N$ such that $Q[A] > 0,$ and for every point $x
-\in \mathbb{R}^N,$ there exists an $m \in \mathbb{N}$ such that
+A Markov chain $X = X_0, X_1, \ldots$ is $Q$-irreducible if for every $A \subseteq \mathbb{R}^N$ such that $Q[A] > 0$, and for every point $x \in \mathbb{R}^N$, there exists an $m \in \mathbb{N}$ such that
 
 $$
 Q\left[X_{m + n} \in A \mid X_n = x\right] > 0.
@@ -6967,42 +6579,28 @@ $$
 
 ### Aperiodicity
 
-Informally, a Markov chain is periodic if there are distinct subsets
-of its sample space and it cycles through them in turn.
-Suppose we have a Markov chain $X = X_0, X_1, \ldots$ over
-$\mathbb{R}^N.$  The *period* of such a chain is defined to be the
-largest $M \in \mathbb{N}$ such that there is a partition
-$A_0, \ldots, A_{M - 1}$ of $\mathbb{R}^N$ such that for all $m < M,$
+Informally, a Markov chain is periodic if there are distinct subsets of its sample space and it cycles through them in turn. Suppose we have a Markov chain $X = X_0, X_1, \ldots$ over $\mathbb{R}^N$.  The *period* of such a chain is defined to be the
+largest $M \in \mathbb{N}$ such that there is a partition $A_0, \ldots, A_{M - 1}$ of $\mathbb{R}^N$ such that for all $m < M$.
 
 $$
 \Pr[X_{n + 1} \in A_{m + 1 \textrm{ mod } M} \mid X_n \in A_m] = 1.
 $$
 
-A chain is *periodic* if it has a period greater than one and is
-*aperiodic* otherwise.
+A chain is *periodic* if it has a period greater than one and is *aperiodic* otherwise.
 
 ### The ergodic theorem
 
-This section lays out a simple form of the ergodic theorem, which 
-entails that under certain mild conditions and for almost every starting
-point, the distribution of the elements of a Markov chain converges
-to the chain's stationary distribution in total variation distance.
+This section lays out a simple form of the ergodic theorem, which entails that under certain mild conditions and for almost every starting point, the distribution of the elements of a Markov chain converges to the chain's stationary distribution in total variation distance.
 
-Suppose $X = X_0, X_1, \ldots$ is a Markov chain over the state space
-$\mathbb{R}^N,$ with a Borel algebra $\mathcal{S}$ of events and
-a measure $\Pr.$  To aid in the statement of the theorem, we define a
-new measure $P^n_x$ over $A \in \mathcal{S}$ by
+Suppose $X = X_0, X_1, \ldots$ is a Markov chain over the state space $\mathbb{R}^N,$ with a Borel algebra $\mathcal{S}$ of events and a measure $\Pr.$  To aid in the statement of the theorem, we define a new measure $P^n_x$ over $A \in \mathcal{S}$ by
 
 $$
 P^n_x[A] = \Pr[X_n \in A \mid X_0 = x],
 $$
 
-which is the probability of being in set $A$ after $n$ transitions starting
-from $x.$
+which is the probability of being in set $A$ after $n$ transitions starting from $x$.
 
-*The ergodic theorem.* If $X = X_1, X_2, \ldots$ is a Markov chain over
-$\mathbb{R}^n$ with stationary measure $Q$ that is $Q$-irreducible and
-aperiodic, then for $Q$-almost every $x \in \mathbb{R}^N,$
+*The ergodic theorem.* If $X = X_1, X_2, \ldots$ is a Markov chain over $\mathbb{R}^n$ with stationary measure $Q$ that is $Q$-irreducible and aperiodic, then for $Q$-almost every $x \in \mathbb{R}^N$,
 
 $$
 \lim_{n \rightarrow \infty}
@@ -7010,45 +6608,33 @@ $$
 \rightarrow 0.
 $$
 
-The double bars are notation for total variation distance, which
-expands here to
+The double bars are notation for total variation distance, which expands here to
 
 $$
 \begin{align}
 \big|\big| \,
 P^n_x - Q
 \, \big|\big|
-&= \sup_{A \in \mathcal{S}}
-   \bigg| {\textstyle \Pr^n_x[A]} - Q[A] \bigg|
-   \\[4pt]
-&= \sup_{A \in \mathcal{S}}
-\bigg| \Pr[X_n \in A] - Q[A] \bigg|.
+&= \sup_{A \in \mathcal{S}}\bigg| {\textstyle \Pr^n_x[A]} - Q[A] \bigg|\\[4pt]
+&= \sup_{A \in \mathcal{S}}\bigg| \Pr[X_n \in A] - Q[A] \bigg|.
 \end{align}
 $$
 
 
 # C.  Monte Carlo methods {.unnumbered}
 
-In this section, we introduce the basic theory of Monte Carlo methods
-and then move on to more general Markov chain Monte Carlo methods.
-The presentation here was strongly influenced by
-@roberts2004 and @rosenthal2006.
+In this section, we introduce the basic theory of Monte Carlo methods and then move on to more general Markov chain Monte Carlo methods. The presentation here was strongly influenced by @roberts2004 and @rosenthal2006.
 
 ## C.1 Monte Carlo methods {.unnumbered}
 
-Monte Carlo methods use randomness to estimate expectations.  In the
-general case, suppose a random variable $X:\Omega \rightarrow
-\mathbb{R}^N$ is defined over a probability space $(\Omega, \mathcal{S}, \Pr)$
-and we want to estimate an expectation
+Monte Carlo methods use randomness to estimate expectations. In the general case, suppose a random variable $X:\Omega \rightarrow \mathbb{R}^N$ is defined over a probability space $(\Omega, \mathcal{S}, \Pr)$ and we want to estimate an expectation
 
 $$
 \mathbb{E}\!\left[f(X)\right]
 = \int_{\mathbb{R}^N} f(x) \cdot p_X(x) \, \textrm{d}x.
 $$
 
-This integral may be difficult to evaluate analytically, but if we can
-take independent draws $x^{(1)}, \ldots, x^{(M)}$ where each draw is
-distributed as
+This integral may be difficult to evaluate analytically, but if we can take independent draws $x^{(1)}, \ldots, x^{(M)}$ where each draw is distributed as
 
 $$
 x^{(m)} \sim p_X(\cdot),
@@ -7062,10 +6648,7 @@ $$
 \frac{1}{M} \sum_{m=1}^M f\!\left(x^{(m)}\right).
 $$
 
-Because the draws of $x^{(m)}$ are independent, the draws of
-$f\!\left(x^{(m)}\right)$ are also independent, so the ordinary
-central limit theorem applies. This means that we get the right
-answer in the limit as the number of draws grows,
+Because the draws of $x^{(m)}$ are independent, the draws of $f\!\left(x^{(m)}\right)$ are also independent, so the ordinary central limit theorem applies. This means that we get the right answer in the limit as the number of draws grows,
 
 $$
 \lim_{M \rightarrow \infty}
@@ -7073,9 +6656,7 @@ $$
 = \mathbb{E}\!\left[f(X)\right],
 $$
 
-and that the error approaches shrinks at a rate of (only)
-$\mathcal{O}\!\left(\frac{1}{\sqrt{M}}\right),$ and approaches a
-normal distribution,
+and that the error approaches shrinks at a rate of (only) $\mathcal{O}\!\left(\frac{1}{\sqrt{M}}\right)$, and approaches a normal distribution,
 
 $$
 \lim_{M \rightarrow \infty}
@@ -7084,34 +6665,23 @@ $$
 \textrm{normal}\!\left( \frac{\textrm{sd}[X]}{\sqrt{M}} \right).
 $$
 
-As usual, this can be a good approximation for even small values, such
-as $M \approx 20.$
+As usual, this can be a good approximation for even small values, such as $M \approx 20$.
 
-We refer to $q$ as the transition density, though we may also consider
-the induced measure,
+We refer to $q$ as the transition density, though we may also consider the induced measure,
+
 $$
 \Pr(X_{m + 1} \in A \mid X_m = x_m) = \int_{A} q(y \mid x_m) \textrm{d}x_m.
 $$
 
 
-
 # D. Bayesian statistics {.unnumbered}
 
-In this appendix, we provide a concise mathematical overview of
-Bayesian statistics. Bayesian statistics is largely concerned with
-estimating quantities of interest based on a joint probability model of
-the data and parameters, given some observed data. It is also
-concerned with quantifying our uncertainty in these estimates.
-Quantities of interest are typically parameter values and deviations,
-event probability estimates, and forecasts/backcasts.
+In this appendix, we provide a concise mathematical overview of Bayesian statistics. Bayesian statistics is largely concerned with
+estimating quantities of interest based on a joint probability model of the data and parameters, given some observed data. It is also concerned with quantifying our uncertainty in these estimates. Quantities of interest are typically parameter values and deviations, event probability estimates, and forecasts/backcasts.
 
 ## D.1 Bayes's rule for densities {.unnumbered}
 
-@bayes1763 formalized his approach in the following theorem which was
-named after him. The basic idea is that if we have parameters and
-data, we can calculate the conditional distribution of the parameters given the
-data if we know the distribution of the data given the parameters and
-the prior distribution of the parameters, the distribution the prior.
+@bayes1763 formalized his approach in the following theorem which was named after him. The basic idea is that if we have parameters and data, we can calculate the conditional distribution of the parameters given the data if we know the distribution of the data given the parameters and the prior distribution of the parameters, the distribution the prior.
 
 Using names, the first step of Bayes's theorem for densities is 
 
@@ -7128,16 +6698,12 @@ $$
 \end{align}
 $$
 
-In general discussions, we typically use the variable $y$ for data and
-$\theta$ for model parameters. The second step of Bayes's theorem
-replaces the evidence by marginalizing data out of the denominator.
+In general discussions, we typically use the variable $y$ for data and $\theta$ for model parameters. The second step of Bayes's theorem replaces the evidence by marginalizing data out of the denominator.
 
 ::: {#thm-line}
 ### Bayes's Theorem
 
-Given a joint density $p(y, \theta)$, the posterior density $p(\theta \mid y)$ 
-can be defined in terms that only involve the prior $p(\theta)$ and 
-sampling distribution $p(y \mid \theta)$, as
+Given a joint density $p(y, \theta)$, the posterior density $p(\theta \mid y)$ can be defined in terms that only involve the prior $p(\theta)$ and sampling distribution $p(y \mid \theta)$, as
 
 $$
 p(\theta \mid y)
@@ -7148,15 +6714,14 @@ p(\theta \mid y)
 $$
 
 *Proof*:
+
 $$
 \begin{align}
 p(\theta \mid y)
-&=  \frac{p(y, \theta)}
-         {p(y)}
+&=  \frac{p(y, \theta)}{p(y)}
 & \textrm{[definition of conditional probability]}       
 \\[6pt]
-&= \frac{p(y \mid \theta) \cdot p(\theta)}
-        {p(y)}
+&= \frac{p(y \mid \theta) \cdot p(\theta)}{p(y)}
 & \textrm{[chain rule for densities]} 
 \\[6pt]
 &= \frac{p(y \mid \theta) \cdot p(\theta)}
@@ -7173,14 +6738,9 @@ $$
 $\blacksquare$
 :::
 
-Bayes's theorem allows us to solve the so-called *inverse problem* of
-inferring the posterior $p(\theta \mid y)$ when all we have is the
-sampling distribution $p(y \mid \theta),$ the prior $p(\theta)$, and
-data $y$.
+Bayes's theorem allows us to solve the so-called *inverse problem* of inferring the posterior $p(\theta \mid y)$ when all we have is the sampling distribution $p(y \mid \theta),$ the prior $p(\theta)$, and data $y$.
 
-In most cases, Stan programs do not require normalized log densities.
-This allows us to go a step further and drop the denominator $p(y)$, 
-which does not depend on $\theta$ and write Bayes's rule up to a proportion as
+In most cases, Stan programs do not require normalized log densities. This allows us to go a step further and drop the denominator $p(y)$, which does not depend on $\theta$ and write Bayes's rule up to a proportion as
 
 $$
 p(\theta \mid y)
@@ -7188,59 +6748,36 @@ p(\theta \mid y)
 p(y \mid \theta) \cdot p(\theta).
 $$
 
-This lets us proceed with only an unnormalized sampling density 
-$p(y \mid \theta)$ and unnormalized prior $p(\theta)$. About the only time
-that a normalizing constant is required is for comparing two models'
-prior predictive distributions, which is not something we would
-recommend doing. The prior *predictive distribution* is just the
-distribution of the data in the model (aka, the *evidence*),
+This lets us proceed with only an unnormalized sampling density $p(y \mid \theta)$ and unnormalized prior $p(\theta)$. About the only time that a normalizing constant is required is for comparing two models' prior predictive distributions, which is not something we would recommend doing. The prior *predictive distribution* is just the distribution of the data in the model (aka, the *evidence*),
 
 $$
 p(\tilde{y}) = \int_{\mathbb{R}^N} p(\tilde{y} \mid \theta) \cdot p(\theta) \,
 \textrm{d}\theta.
 $$
 
-The prior predictive distribution is useful for simulating data to do
-prior predictive checks, but we prefer to compare models using
-posterior predictive checks, which condition on some "training" data $y$,
+The prior predictive distribution is useful for simulating data to do prior predictive checks, but we prefer to compare models using posterior predictive checks, which condition on some "training" data $y$,
 
 $$
 p(\tilde{y} \mid y) = \int_{\mathbb{R}^N} p(\tilde{y} \mid \theta)
 \cdot p(\theta \mid y) \cdot \textrm{d}\theta.
 $$
 
-Here we have only replaced the prior $p(\theta)$ in the prior
-predictive formula with the posterior $p(\theta \mid y)$ conditioned
+Here we have only replaced the prior $p(\theta)$ in the prior predictive formula with the posterior $p(\theta \mid y)$ conditioned
 on observed data $y$. 
 
-This is useful for checking whether priors are sensible by using
-it to simulate $y$ from potential $\theta$ drawn from the prior.
+This is useful for checking whether priors are sensible by using it to simulate $y$ from potential $\theta$ drawn from the prior.
 
 ## D.2 Bayesian inference {.unnumbered}
 
-Bayesian inference is largely about estimating quantities of interest
-based on a probability model and observed data. In typical applied
-Bayesian inference problems, we are interested in three quantities
-that can be expressed as expectations: **parameter estimates**, 
-**event probabilities**, and **probabilistic prediction**.  
-All of these quantities are expressed as expectations over the posterior, 
-meaning that they involve averaging over our uncertainty in parameter values.
+Bayesian inference is largely about estimating quantities of interest based on a probability model and observed data. In typical applied Bayesian inference problems, we are interested in three quantities that can be expressed as expectations: **parameter estimates**, **event probabilities**, and **probabilistic prediction**. All of these quantities are expressed as expectations over the posterior, meaning that they involve averaging over our uncertainty in parameter values.
 
-We are also interested in uncertainty, which is defined by the
-posterior. We typically summarize uncertainty using quantiles, and in
-particular, posterior intervals (sometimes called "credible
-intervals").
+We are also interested in uncertainty, which is defined by the posterior. We typically summarize uncertainty using quantiles, and in particular, posterior intervals (sometimes called "credible intervals").
 
 
 ### Parameter estimation {.unnumbered}
 
-The first quantity of interest is the value of parameters. The
-standard Bayesian parameter estimate is the posterior mean, or
-conditional expectation given the data. Given a model $p(y, \theta)$
-and observed data $y$, the Bayesian posterior mean estimate of the
-parameters $\theta$ is written as $\widehat{\theta},$ where as usual, a
-hat is placed over a parameter to signify the value is an estimate of
-the variable without the hat. The definition for the Bayesian estimator is
+The first quantity of interest is the value of parameters. The standard Bayesian parameter estimate is the posterior mean, or
+conditional expectation given the data. Given a model $p(y, \theta)$ and observed data $y$, the Bayesian posterior mean estimate of the parameters $\theta$ is written as $\widehat{\theta},$ where as usual, a hat is placed over a parameter to signify the value is an estimate of the variable without the hat. The definition for the Bayesian estimator is
 
 $$
 \begin{align}
@@ -7251,11 +6788,7 @@ $$
 \end{align}
 $$
 
-The posterior mean is the value that minimizes expected square
-error in the estimates if the model is well specified in the sense of
-representing the true data-generating process. Square error is the squared
-$\textrm{L}_2$ norm of the difference between the estimate and the true
-parameter values. We can expand these definitions down to basic form.
+The posterior mean is the value that minimizes expected square error in the estimates if the model is well specified in the sense of representing the true data-generating process. Square error is the squared $\textrm{L}_2$ norm of the difference between the estimate and the true parameter values. We can expand these definitions down to basic form.
 
 $$
 \begin{align}
@@ -7272,22 +6805,14 @@ $$
 \end{align}
 $$
 
-The final estimate is a weighted average over the posterior 
-$p(\theta \mid y),$ which is called out by the form 
-$\int_{\Theta} \cdots p(\theta \mid y) \, \textrm{d}\theta,$ 
-which we see again and again with expectations.
+The final estimate is a weighted average over the posterior $p(\theta \mid y),$ which is called out by the form $\int_{\Theta} \cdots p(\theta \mid y) \, \textrm{d}\theta$, which we see again and again with expectations.
 
 
 ### Event probabilities {.unnumbered}
 
-An *event* in statistics is a subset of the parameter space, 
-$A \subseteq \Theta$, where $\Theta$ is the set of all valid parameter
-values. We usually pick out events using conditions on the parameter
-space. For example, the condition $\theta > 0.5$ defines the
-event $A = \left\{ \theta \in \Theta : \theta > 0.5 \right\}$.
+An *event* in statistics is a subset of the parameter space, $A \subseteq \Theta$, where $\Theta$ is the set of all valid parameter values. We usually pick out events using conditions on the parameter space. For example, the condition $\theta > 0.5$ defines the event $A = \left\{ \theta \in \Theta : \theta > 0.5 \right\}$.
 
-The probability of an event conditioned on data is just another
-posterior expectation, this time of
+The probability of an event conditioned on data is just another posterior expectation, this time of
 
 $$
 \begin{align}
@@ -7298,24 +6823,12 @@ $$
 \end{align}
 $$
 
-where $\textrm{I}$ is a function defined over boolean values.
-The expression $\textrm{I}(\theta \in A)$ takes on value 1 if 
-$\theta \in A$ and value 0 otherwise. We write $\textrm{I}[\Theta \in A]$
-using square brackets because a random variable is a function, whereas
-we write $\textrm{I}(\theta \in A)$ because $\theta \in \mathbb{R}^D$
-is a value; see [Appendix B.4. Random variables](#b.4-random-variables).
+where $\textrm{I}$ is a function defined over boolean values. The expression $\textrm{I}(\theta \in A)$ takes on value $1$ if $\theta \in A$ and value $0$ otherwise. We write $\textrm{I}[\Theta \in A]$ using square brackets because a random variable is a function, whereas we write $\textrm{I}(\theta \in A)$ because $\theta \in \mathbb{R}^D$ is a value; see [Appendix B.4. Random variables](#b.4-random-variables).
 
 
 ### Posterior predictive inference {.unnumbered}
 
-Often we are interested in predicting new data $\tilde{y}$ given the
-observation of existing data $y$. This is a form of* posterior predictive inference*.  
-For example, $y$ might be the price of a stock over some time period and 
-$\tilde{y}$ the price of the stock in the future (we use $\tilde{y}$ as a 
-hint that we are talking about a predictive quantity). Or 
-$y$ might be the result of past games and $\tilde{y}$ the new outcome 
-representing the winner of tomorrow's game. Posterior predictive 
-inference is also cast as an expectation, this time of a density.
+Often we are interested in predicting new data $\tilde{y}$ given the observation of existing data $y$. This is a form of *posterior predictive inference*. For example, $y$ might be the price of a stock over some time period and $\tilde{y}$ the price of the stock in the future (we use $\tilde{y}$ as a hint that we are talking about a predictive quantity). Or $y$ might be the result of past games and $\tilde{y}$ the new outcome representing the winner of tomorrow's game. Posterior predictive inference is also cast as an expectation, this time of a density.
 
 $$
 \begin{align}
@@ -7328,15 +6841,9 @@ $$
 
 ## D.3  Conjugate priors {.unnumbered}
 
-In a few limited, though very useful, cases, we can derive posterior
-distributions analytically.
+In a few limited, though very useful, cases, we can derive posterior distributions analytically.
 
-Suppose we have a family of distributions $\mathcal{G}$ and a family
-of sampling distributions $\mathcal{F}$ that share the same parameter
-space. We say that $\mathcal{G}$ is the *conjugate prior* family for
-the sampling distribution $\mathcal{F}$ if a prior from
-$\mathcal{G}$ and sampling distribution from $\mathcal{F}$ entail that
-the posterior distribution will be in $\mathcal{G}$.
+Suppose we have a family of distributions $\mathcal{G}$ and a family of sampling distributions $\mathcal{F}$ that share the same parameter space. We say that $\mathcal{G}$ is the *conjugate prior* family for the sampling distribution $\mathcal{F}$ if a prior from $\mathcal{G}$ and sampling distribution from $\mathcal{F}$ entail that the posterior distribution will be in $\mathcal{G}$.
 
 <div class="example-text">
 
@@ -7347,8 +6854,7 @@ $$
 \propto \theta^{\alpha - 1} \cdot (1 - \theta)^{\beta - 1},
 $$
 
-is the conjugate prior for the class of binomial sampling
-distributions,
+is the conjugate prior for the class of binomial sampling distributions,
 
 $$
 \textrm{binomial}(y \mid N, \theta)
@@ -7379,8 +6885,7 @@ p(\theta \mid y, N, \alpha, \beta)
 \end{align}
 $$
 
-From here, we can conclude that the posterior is the beta
-distribution, because if
+From here, we can conclude that the posterior is the beta distribution, because if
 
 $$
 p(\theta \mid y, N, \alpha, \beta)
@@ -7407,19 +6912,11 @@ $$
 
 ### Conjugate priors as data
 
-Conjugate priors are always from the *exponential family* of
-distributions (which we do not characterize here).  The reason for
-this is that the prior and sampling distribution both need to be
-exponential functions of the parameters so that their effects can be
-added and remain within the prior family.  For example, normals have
-density functions that are exponential functions of their argument and
-fall in the exponential family.
+Conjugate priors are always from the *exponential family* of distributions (which we do not characterize here). The reason for this is that the prior and sampling distribution both need to be exponential functions of the parameters so that their effects can be added and remain within the prior family. For example, normals have density functions that are exponential functions of their argument and fall in the exponential family.
 
 <div class="example-text">
 
-Continuing the example of a $\textrm{beta}(\alpha, \beta)$
-distribution, consider the case where $\alpha = \beta = 1.$
-The resulting beta distribution is uniform over $\theta \in (0, 1),$
+Continuing the example of a $\textrm{beta}(\alpha, \beta)$ distribution, consider the case where $\alpha = \beta = 1$. The resulting beta distribution is uniform over $\theta \in (0, 1)$,
 
 $$
 \textrm{beta}(\theta \mid 1, 1)
@@ -7427,39 +6924,18 @@ $$
 = 1.
 $$
 
-Consider observing $y$ successes out of $N,$ and hence $N - y$
-failures.  The posterior will be $\textrm{beta}(y + 1, N - y + 1).$
-Given that we started from a uniform distribution, this represents $y$
-successes and $N - y$ failures.
+Consider observing $y$ successes out of $N$, and hence $N - y$ failures. The posterior will be $\textrm{beta}(y + 1, N - y + 1)$. Given that we started from a uniform distribution, this represents $y$ successes and $N - y$ failures.
 
 </div>
 
 ### Chaining inferences
 
-Suppose we have observed data $y$ and parameter $\theta$ with sampling
-distribution $p(y \mid \theta)$ and prior $p(\theta \mid a_0)$ for
-some fixed parameters $a_1.$ Now suppose we observe data $y_1.$ We
-will have a posterior $p(\theta \mid a_1)$ where $a_1$ is some new
-fixed parameters.  This posterior after one observation $y_1$ may be
-used as the prior for the next observation $y_2.$ We can continue to
-chain inference this way and will wind up with the same result as if
-we had taken a sampling distribution with density $\prod_{n = 1}^N
-p(y_n \mid \theta)$ and observed $y_1, \ldots, y_N$ all at once.
+Suppose we have observed data $y$ and parameter $\theta$ with sampling distribution $p(y \mid \theta)$ and prior $p(\theta \mid a_0)$ for some fixed parameters $a_1$. Now suppose we observe data $y_1$. We will have a posterior $p(\theta \mid a_1)$ where $a_1$ is some new fixed parameters.  This posterior after one observation $y_1$ may be used as the prior for the next observation $y_2$. We can continue to chain inference this way and will wind up with the same result as if we had taken a sampling distribution with density $\prod_{n = 1}^N p(y_n \mid \theta)$ and observed $y_1, \ldots, y_N$ all at once.
 
 
 <div class="example-text">
 
-*Example (cont.)* Continuing the beta-binomial example, suppose we
-start with a uniform prior $\textrm{beta}(1,1).$ Now suppose we
-observe $y_1 = 1, N_1 = 1$, 1 success out of 1 try.  The posterior
-after observing $y_1$ is $\textrm{beta}(2, 1).$ This lets us update
-what we know about $\theta$ and use $\textrm{beta}(2, 1)$ as our prior
-for the next observation.  Suppose the next observation is $y_2 = 1,$
-another success. This gives us a posterior of $\textrm{beta}(3, 1),$
-which becomes the prior for the next observation and so on.  In this
-way, we can break a single binomial updates down into a sequence of
-smaller updates, even down to $N = 1$ where we take the results one at
-a time.
+*Example (cont.)* Continuing the beta-binomial example, suppose we start with a uniform prior $\textrm{beta}(1,1).$ Now suppose we observe $y_1 = 1, N_1 = 1$, 1 success out of 1 try.  The posterior after observing $y_1$ is $\textrm{beta}(2, 1).$ This lets us update what we know about $\theta$ and use $\textrm{beta}(2, 1)$ as our prior for the next observation. Suppose the next observation is $y_2 = 1,$ another success. This gives us a posterior of $\textrm{beta}(3, 1),$ which becomes the prior for the next observation and so on. In this way, we can break a single binomial updates down into a sequence of smaller updates, even down to $N = 1$ where we take the results one at a time.
 
 </div>
 
