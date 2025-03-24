@@ -243,7 +243,7 @@ statistics often operates counterfactually, where we have actually
 observed the outcome of a coin flip but persist in treating it as if
 it were random and could have resulted in a different value.
 
-In practice, Stan parameters, transformed paraemters, and posterior
+In practice, Stan parameters, transformed parameters, and posterior
 predictive quantities are all unobserved random variables.  Such
 variables are inferred from the model and the values of other
 variables.  Stan typically produces different values for unobserved
@@ -261,9 +261,7 @@ the unobserved random variables in the model.  Stan is available
 through the open-source analytics languages Python, R, or Julia and
 compatible with these languages' built-in Bayesian analysis tools as
 well as Stan's own tools, some of which we will cover in this
-introduction.  Stan's also available in Mathematica, Stata, and
-MATLAB, but those interfaces are very basic compared to our
-open-source interfaces.
+introduction.
   
 
 # Pragmatic Bayesian statistics
@@ -2654,7 +2652,7 @@ is constrained to be positive, so we use a lognormal distribution.  We
 could have made other choices for the prior here such as a positive
 half normal distribution or a positive half Student-t (unlike
 lognormal distributions, a positive half normal distribution centered
-at zero can accomodate scale values near zero; Student-t distributions
+at zero can accommodate scale values near zero; Student-t distributions
 have wider tails if there is more prior uncertainty as to the exact
 scale of the model).
 
@@ -2744,7 +2742,7 @@ as follows.
 ```stan
   petal_length ~ normal_id_glm(petal_width, alpha, beta, sigma);
 ```
-To accomodate the *signature* (argument order and types) of
+To accommodate the *signature* (argument order and types) of
 `normal_id_glm`,n data and parameter type declarations are *lifted* to
 container types. 
 ```stan
