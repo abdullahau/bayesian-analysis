@@ -1,21 +1,26 @@
 a {
-    color: midnightblue;
-    text-decoration: none;
+  color: midnightblue;
+  text-decoration: none;
 }
 
 a:hover {
-    color: midnightblue;
-    text-decoration: underline;
+  color: midnightblue;
+  text-decoration: underline;
 }
 
 
-code, pre {
-    color: black;
-    font-size: 0.875em; /* Adjust this value to your preference */
+pre {
+  color: black;
+  font-size: 0.875em; 
+}
+
+code {
+  color: rgb(17, 0, 173);
+  font-size: 0.875em; /* Adjust this value to your preference */
 }
 
 pre {
-    background-color: white;
+  background-color: white;
 }
 
 .example-text {
@@ -43,4 +48,3 @@ pre {
 .example-text::after {
   bottom: -1.25;
 }
-
